@@ -1,0 +1,198 @@
+'use strict';
+
+const { pool, q, currentTenant } = require('../config/db');
+const Directory = require('../platform/Directory');
+const { OPEN_LEAD_STATUSES, ASSIGNMENT_CAPACITY } = require('../config/constants');
+const { ValidationError, NotFoundError, ForbiddenError } = require('../exceptions');
+const { audit } = require('../utils/audit');
+const { OTP_ONLY_HASH } = require('../utils/passwords');
+const RbacService = require('./RbacService');
+
+const ROLES = ['admin', 'manager', 'agent'];
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Per-agent effective cap on OPEN leads = min(personal max_open_leads, global
+// ASSIGNMENT_CAPACITY). NULL means "no personal limit" and falls back to the
+// global backstop, so this never returns null.
+async function capacityFor(userId) {
+  const r = await q('SELECT max_open_leads FROM user_capacity WHERE user_id = $1', [userId]);
+  const personal = r.rows.length ? r.rows[0].max_open_leads : null;
+  if (personal === null || personal === undefined) return { max_open_leads: null, effective: ASSIGNMENT_CAPACITY };
+  return { max_open_leads: parseInt(personal), effective: Math.min(parseInt(personal), ASSIGNMENT_CAPACITY) };
+}
+
+class UserService {
+  capacityFor(userId) { return capacityFor(userId); }
+
+  // One query with scalar subqueries per user: teams, leads owned, calls this
+  // month and last login all come back in a single round trip.
+  async list(ctx, query) {
+    if (ctx.role !== 'admin' && ctx.role !== 'manager') throw new ForbiddenError('Forbidden');
+    // $1 is always the open-status list; every optional filter is ANDed on after.
+    const params = [OPEN_LEAD_STATUSES];
+    let where = ' WHERE 1=1';
+    if (query.role) { params.push(query.role); where += ` AND role = $${params.length}`; }
+    // Deactivated users are hidden by default but an admin can ask for them.
+    if (query.include_inactive !== 'true') where += ' AND is_active = true';
+    const r = await q(
+      `SELECT u.id,u.email,u.name,u.phone,u.role,u.is_active,u.created_at,u.last_login_at,
+              (SELECT COALESCE(json_agg(json_build_object('id',t.id,'name',t.name)) FILTER (WHERE t.id IS NOT NULL), '[]'::json)
+                 FROM team_members tm JOIN teams t ON t.id = tm.team_id WHERE tm.user_id = u.id) AS teams,
+              (SELECT COUNT(*) FROM leads l WHERE l.assigned_to = u.id AND l.status = ANY($1)) AS open_leads_owned,
+              (SELECT COUNT(*) FROM leads l WHERE l.assigned_to = u.id) AS leads_owned,
+              (SELECT COUNT(*) FROM call_events ce
+                WHERE ce.user_id = u.id
+                  AND ce.timestamp >= date_trunc('month', NOW())) AS calls_this_month,
+              (SELECT COUNT(*) FROM lead_assignees la WHERE la.user_id = u.id) AS assignee_rows,
+              uc.max_open_leads
+         FROM users u
+         LEFT JOIN user_capacity uc ON uc.user_id = u.id
+        ${where}
+        ORDER BY u.id`,
+      params);
+    return r.rows.map(u => ({
+      id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role,
+      is_active: u.is_active, created_at: u.created_at, last_login_at: u.last_login_at,
+      teams: u.teams || [],
+      leads_owned: parseInt(u.leads_owned) || 0,
+      open_leads_owned: parseInt(u.open_leads_owned) || 0,
+      calls_this_month: parseInt(u.calls_this_month) || 0,
+      assignee_count: parseInt(u.assignee_rows) || 0,
+      max_open_leads: u.max_open_leads === null || u.max_open_leads === undefined ? null : parseInt(u.max_open_leads),
+    }));
+  }
+
+  // ADMIN: create a login for a teammate. There is no password: the person signs
+  // in with a 6-digit code emailed to this address, so it must be a real inbox.
+  async create(ctx, body) {
+    const { email, name, phone, role = 'agent', team_ids } = body;
+    if (!email || !EMAIL_RE.test(String(email))) throw new ValidationError('A valid email is required');
+    if (!name || !String(name).trim()) throw new ValidationError('name required');
+    if (!ROLES.includes(role)) throw new ValidationError('Invalid role');
+    const ex = await q('SELECT id FROM users WHERE lower(email) = lower($1)', [email]);
+    if (ex.rows.length > 0) throw new ValidationError('Email already registered');
+    const ids = Array.isArray(team_ids) ? team_ids.map(Number).filter(n => Number.isInteger(n)) : [];
+    // One email belongs to one customer: claim it in the sign-in directory first (fails if another customer has it).
+    const customerId = currentTenant().id;
+    try { await Directory.register(email, customerId); }
+    catch (e) { throw new ValidationError('Email already registered'); }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      const r = await client.query(
+        `INSERT INTO users (email, password_hash, name, phone, role) VALUES ($1,$2,$3,$4,$5)
+         RETURNING id,email,name,phone,role,is_active,created_at`,
+        [String(email).trim(), OTP_ONLY_HASH, String(name).trim(), phone || null, role]);
+      const u = r.rows[0];
+      for (const tid of ids) {
+        await client.query('INSERT INTO team_members (team_id, user_id) VALUES ($1,$2) ON CONFLICT DO NOTHING', [tid, u.id]);
+      }
+      await audit(client, ctx, 'user.created', 'user', u.id,
+        { email: u.email, role: u.role, team_ids: ids, path: 'admin' });
+      await client.query('COMMIT');
+      return {
+        id: u.id, email: u.email, name: u.name, phone: u.phone, role: u.role,
+        is_active: u.is_active, created_at: u.created_at, team_ids: ids,
+        notice: 'They can sign in now: enter this email on the login page and use the 6-digit code that is emailed.',
+      };
+    } catch (e) { await client.query('ROLLBACK'); await Directory.unregister(email, customerId).catch(() => {}); throw e; } finally { client.release(); }
+  }
+
+  // ADMIN: update profile fields / role / active flag.
+  async update(ctx, idRaw, body) {
+    const id = parseInt(idRaw);
+    if (!Number.isInteger(id)) throw new ValidationError('Invalid user id');
+    const { name, phone, role, is_active } = body;
+    if (role !== undefined && !ROLES.includes(role)) throw new ValidationError('Invalid role');
+    const cur = await q('SELECT id,email,name,phone,role,is_active FROM users WHERE id = $1', [id]);
+    if (cur.rows.length === 0) throw new NotFoundError('Not found');
+    const before = cur.rows[0];
+
+    // Locking yourself out is unrecoverable through the UI, so both self-demotion
+    // and self-deactivation are refused. Another admin can still do it for you.
+    if (id === parseInt(ctx.userId) && (is_active === false || (role !== undefined && role !== 'admin'))) {
+      throw new ValidationError('You cannot deactivate or demote your own account');
+    }
+
+    const sets = []; const vals = []; let i = 1;
+    for (const [k, v] of Object.entries({ name, phone, role })) {
+      if (v !== undefined) { sets.push(`${k} = $${i}`); vals.push(v); i++; }
+    }
+    if (is_active !== undefined) { sets.push(`is_active = $${i}`); vals.push(!!is_active); i++; }
+    if (sets.length === 0) throw new ValidationError('No fields to update');
+    vals.push(id);
+    const r = await q(
+      `UPDATE users SET ${sets.join(', ')} WHERE id = $${i}
+       RETURNING id,email,name,phone,role,is_active,created_at,last_login_at`, vals);
+    const u = r.rows[0];
+
+    // One audit row per thing that actually changed, so a role change is never
+    // hidden inside a generic "update".
+    if (role !== undefined && role !== before.role) {
+      await audit(null, ctx, 'user.role_changed', 'user', id, { from: before.role, to: role });
+      // A system-role change detaches any custom role (it was based on the old one).
+      await q('UPDATE users SET custom_role_id = NULL WHERE id = $1', [id]);
+      RbacService.clearCache();
+    }
+    if (is_active !== undefined && !!is_active !== !!before.is_active) {
+      await audit(null, ctx, !!is_active ? 'user.activated' : 'user.deactivated', 'user', id,
+        { email: before.email, was_active: !!before.is_active });
+    }
+    if (name !== undefined || phone !== undefined) {
+      await audit(null, ctx, 'user.updated', 'user', id,
+        { changed: Object.keys({ name, phone }).filter(k => ({ name, phone })[k] !== undefined) });
+    }
+    return { ...u, updated: true };
+  }
+
+  // Legacy endpoint: POST /api/users/:userId/role?role=…
+  async setRoleLegacy(ctx, userId, role) {
+    if (!ROLES.includes(role)) throw new ValidationError('Invalid role');
+    const cur = await q('SELECT id, role FROM users WHERE id = $1', [userId]);
+    if (cur.rows.length === 0) throw new NotFoundError('Not found');
+    await q('UPDATE users SET role = $1 WHERE id = $2', [role, userId]);
+    await audit(null, ctx, 'user.role_changed', 'user', userId,
+      { from: cur.rows[0].role, to: role, via: 'legacy_role_endpoint' });
+    return { message: `Role updated to ${role}` };
+  }
+
+  // ── capacity ──
+  async getCapacity(ctx, idRaw) {
+    const id = parseInt(idRaw);
+    if (ctx.role === 'agent' && id !== parseInt(ctx.userId)) throw new ForbiddenError('Forbidden');
+    const u = await q('SELECT id,name FROM users WHERE id = $1', [id]);
+    if (u.rows.length === 0) throw new NotFoundError('Not found');
+    const cap = await capacityFor(id);
+    const load = await q(
+      'SELECT COUNT(*) AS open FROM leads WHERE assigned_to = $1 AND status = ANY($2)',
+      [id, OPEN_LEAD_STATUSES]);
+    const open = parseInt(load.rows[0].open) || 0;
+    return { user_id: id, name: u.rows[0].name, max_open_leads: cap.max_open_leads,
+      effective_capacity: cap.effective, global_capacity: ASSIGNMENT_CAPACITY,
+      open_leads: open, at_capacity: open >= cap.effective, updated_at: null };
+  }
+
+  async setCapacity(ctx, idRaw, body) {
+    if (ctx.role !== 'admin' && ctx.role !== 'manager') throw new ForbiddenError('Admin or manager only');
+    const id = parseInt(idRaw);
+    const u = await q('SELECT id,name FROM users WHERE id = $1', [id]);
+    if (u.rows.length === 0) throw new NotFoundError('Not found');
+    const b = body || {};
+    let val = b.max_open_leads === undefined ? null : b.max_open_leads;
+    if (val !== null) {
+      val = Number(val);
+      if (!Number.isInteger(val) || val < 0) throw new ValidationError('max_open_leads must be a non-negative integer or null');
+    }
+    const r = await q(
+      `INSERT INTO user_capacity (user_id, max_open_leads, updated_at) VALUES ($1,$2,NOW())
+       ON CONFLICT (user_id) DO UPDATE SET max_open_leads = EXCLUDED.max_open_leads, updated_at = NOW()
+       RETURNING user_id, max_open_leads, updated_at`, [id, val]);
+    await audit(null, ctx, 'user.capacity_set', 'user', id, { max_open_leads: val, name: u.rows[0].name });
+    const cap = await capacityFor(id);
+    return { user_id: r.rows[0].user_id, max_open_leads: r.rows[0].max_open_leads,
+      effective_capacity: cap.effective, global_capacity: ASSIGNMENT_CAPACITY, updated_at: r.rows[0].updated_at };
+  }
+}
+
+module.exports = new UserService();

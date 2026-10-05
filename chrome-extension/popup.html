@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Levoy Quick Call</title>
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; width: 320px; background: #191a1e; color: #fff; font: 14px system-ui, sans-serif; }
+    main { padding: 18px; }
+    h1 { margin: 0 0 4px; font-size: 18px; }
+    p.sub { margin: 0 0 16px; color: #a6a7ad; font-size: 12px; }
+    label { display: block; margin: 12px 0 4px; font-size: 12px; color: #a6a7ad; }
+    input { box-sizing: border-box; width: 100%; padding: 11px 12px; border: 1px solid #3b3c41; border-radius: 10px; background: #2b2c31; color: #fff; font-size: 15px; }
+    input:focus { outline: 2px solid #fdbc00; border-color: transparent; }
+    button { width: 100%; margin-top: 16px; padding: 12px; border: 0; border-radius: 12px; background: #fdbc00; color: #222328; font-size: 15px; font-weight: 700; cursor: pointer; }
+    button:disabled { opacity: .5; cursor: default; }
+    button.link { margin-top: 10px; background: none; color: #a6a7ad; font-weight: 500; font-size: 12px; }
+    .msg { margin-top: 12px; min-height: 18px; font-size: 13px; }
+    .ok { color: #7bd04a; } .err { color: #ff6b6b; }
+    .phones { margin-top: 14px; font-size: 12px; color: #a6a7ad; }
+    .dot { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: #787880; }
+    .dot.on { background: #4cbc18; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<main>
+  <section id="signin" hidden>
+    <h1>Levoy Quick Call</h1>
+    <p class="sub" id="signin-sub">Sign in with your Levoy account. Your phone dials; this only sends the number.</p>
+    <form id="signin-form">
+      <div id="step-email">
+        <label for="server">Server address</label>
+        <input id="server" placeholder="192.168.1.10:3001 or https://crm.example.com" autocomplete="url" required>
+        <label for="email">Email</label>
+        <input id="email" type="email" autocomplete="username" required>
+      </div>
+      <div id="step-code" hidden>
+        <label for="code">6-digit code</label>
+        <input id="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code">
+        <button class="link" id="resend" type="button">Resend code</button>
+        <button class="link" id="change-email" type="button">Use a different email</button>
+      </div>
+      <button id="signin-btn" type="submit">Send code</button>
+    </form>
+    <div class="msg err" id="signin-msg"></div>
+  </section>
+
+  <section id="main" hidden>
+    <h1>Call from your phone</h1>
+    <p class="sub" id="who"></p>
+    <form id="dial-form">
+      <label for="number">Phone number</label>
+      <input id="number" type="tel" placeholder="+91 90000 11111" autocomplete="off" required>
+      <button id="dial-btn" type="submit">Call</button>
+    </form>
+    <div class="msg" id="dial-msg"></div>
+    <div class="phones" id="phones"></div>
+    <button class="link" id="signout" type="button">Sign out</button>
+    <p class="sub" style="margin-top:10px">Tip: click any phone number link on a web page, or select a number and right-click → “Call with Levoy”.</p>
+  </section>
+</main>
+<script type="module" src="popup.js"></script>
+</body>
+</html>

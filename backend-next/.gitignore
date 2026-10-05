@@ -1,0 +1,9 @@
+node_modules/
+*.log
+.DS_Store
+uploads/
+
+# secrets: real env files stay local, the template is committed
+.env
+.env.*
+!.env.example

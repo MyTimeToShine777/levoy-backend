@@ -1,0 +1,2 @@
+bdb7f17 — backend lead engine (163 checks, 0 failures)
+NOTE: frontend/ contains a parallel agent's uncommitted work, included as-is.

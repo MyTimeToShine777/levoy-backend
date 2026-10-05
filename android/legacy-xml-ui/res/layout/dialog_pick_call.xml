@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingBottom="8dp">
+
+    <TextView
+        android:id="@+id/tvPickCallHint"
+        style="@style/Text.RowSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="8dp"
+        android:paddingBottom="12dp"
+        android:text="@string/sim_pick_a_call" />
+
+    <TextView
+        android:id="@+id/tvPickCallEmpty"
+        style="@style/Text.RowSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp"
+        android:gravity="center"
+        android:text="@string/sim_no_outgoing_calls"
+        android:textColor="@color/text_tertiary"
+        android:visibility="gone" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerPickCall"
+        android:layout_width="match_parent"
+        android:layout_height="320dp"
+        android:clipToPadding="false" />
+
+</LinearLayout>

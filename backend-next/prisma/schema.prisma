@@ -1,0 +1,821 @@
+// Levoy data model.
+//
+// Postgres is the database; Prisma is the schema source of truth (migrations live
+// in prisma/migrations, applied with `prisma migrate deploy` at startup — see
+// src/db/migrate.js).
+//
+// NOT expressible in Prisma, therefore defined in the migration SQL only:
+//   • CHECK constraints (roles, statuses, scores…)
+//   • partial unique index idx_lead_assignees_one_owner  (one 'owner' per lead)
+//   • partial index idx_password_resets_active
+//   • expression indexes idx_tags_name, idx_telecaller_map_lower
+// Never drop them when generating a new migration (`migrate dev --create-only`,
+// then review the SQL).
+//
+// Model/field names are idiomatic (PascalCase / camelCase); @@map/@map keep the
+// physical snake_case names that the raw-SQL services (src/services) rely on.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Users, teams, auth
+// ─────────────────────────────────────────────────────────────────────────────
+
+model User {
+  id           Int       @id @default(autoincrement())
+  email        String    @unique @db.VarChar(255)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  name         String    @db.VarChar(255)
+  phone        String?   @db.VarChar(50)
+  role         String?   @default("agent") @db.VarChar(20)
+  isActive     Boolean?  @default(true) @map("is_active")
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  avatarUrl    String?   @map("avatar_url") @db.VarChar(500)
+  lastLoginAt  DateTime? @map("last_login_at") @db.Timestamp(6)
+
+  // RBAC: optional custom role (inherits a base role) + optional per-user override.
+  customRoleId      Int?                   @map("custom_role_id")
+  customRole        CustomRole?            @relation(fields: [customRoleId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  permissionProfile UserPermissionProfile?
+
+  assignmentRulesCreated AssignmentRule[]    @relation("AssignmentRuleCreatedBy")
+  assignmentRulesFixed   AssignmentRule[]    @relation("AssignmentRuleFixedUser")
+  auditLogs              AuditLog[]
+  callEvents             CallEvent[]
+  callRecordings         CallRecording[]
+  reviewsAsAgent         CallReview[]        @relation("ReviewAgent")
+  reviewsAsReviewer      CallReview[]        @relation("ReviewReviewer")
+  exports                Export[]
+  invitationsSent        Invitation[]
+  leadActivities         LeadActivity[]
+  assigneeRows           LeadAssignee[]      @relation("AssigneeUser")
+  assigneeGiven          LeadAssignee[]      @relation("AssigneeAssignedBy")
+  assignmentsReceived    LeadAssignment[]    @relation("AssignmentUser")
+  assignmentsPrevious    LeadAssignment[]    @relation("AssignmentPreviousUser")
+  assignmentsGiven       LeadAssignment[]    @relation("AssignmentAssignedBy")
+  followUps              LeadFollowUp[]
+  telecallerMaps         LeadTelecallerMap[]
+  leadsAssigned          Lead[]              @relation("LeadAssignedTo")
+  leadsOwned             Lead[]              @relation("LeadOwner")
+  importBatches          LeadImportBatch[]
+  notifications          Notification[]
+  passwordResets         PasswordReset[]
+  tagsCreated            Tag[]
+  teamMemberships        TeamMember[]
+  teamsCreated           Team[]
+  capacity               UserCapacity?
+  settings               UserSetting[]
+  whatsappTemplates      WhatsappTemplate[]
+  dailyReports           DailyReport[]
+  callReminders          CallReminder[]
+  sims                   UserSim[]
+  devices                UserDevice[]
+  quickCallDevices       QuickCallDevice[]
+  quickCallCommands      QuickCallCommand[]
+  pushTokens             PushToken[]
+  planPayments           PlanPayment[]
+  contactGroups          ContactGroup[]
+
+  @@index([customRoleId])
+  @@map("users")
+}
+
+model Team {
+  id              Int              @id @default(autoincrement())
+  name            String           @db.VarChar(255)
+  createdBy       Int?             @map("created_by")
+  createdAt       DateTime?        @default(now()) @map("created_at") @db.Timestamp(6)
+  creator         User?            @relation(fields: [createdBy], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  members         TeamMember[]
+  assignmentRules AssignmentRule[]
+
+  @@map("teams")
+}
+
+model TeamMember {
+  id       Int       @id @default(autoincrement())
+  teamId   Int?      @map("team_id")
+  userId   Int?      @map("user_id")
+  joinedAt DateTime? @default(now()) @map("joined_at") @db.Timestamp(6)
+  team     Team?     @relation(fields: [teamId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user     User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([teamId, userId])
+  @@map("team_members")
+}
+
+model Invitation {
+  id         Int       @id @default(autoincrement())
+  email      String    @db.VarChar(255)
+  role       String    @default("agent") @db.VarChar(20)
+  invitedBy  Int?      @map("invited_by")
+  token      String    @unique @db.VarChar(128)
+  status     String    @default("pending") @db.VarChar(20)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamp(6)
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  acceptedAt DateTime? @map("accepted_at") @db.Timestamp(6)
+  inviter    User?     @relation(fields: [invitedBy], references: [id], onUpdate: NoAction)
+
+  @@index([email, status], map: "idx_invitations_email")
+  @@map("invitations")
+}
+
+model PasswordReset {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  token     String    @unique @db.VarChar(128)
+  expiresAt DateTime  @map("expires_at") @db.Timestamp(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamp(6)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  requestIp String?   @map("request_ip") @db.VarChar(64)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "idx_password_resets_user")
+  @@map("password_resets")
+}
+
+model AuditLog {
+  id         Int       @id @default(autoincrement())
+  actorId    Int?      @map("actor_id")
+  action     String    @db.VarChar(80)
+  entityType String    @map("entity_type") @db.VarChar(50)
+  entityId   String?   @map("entity_id") @db.VarChar(64)
+  details    Json?
+  ip         String?   @db.VarChar(64)
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  actor      User?     @relation(fields: [actorId], references: [id], onUpdate: NoAction)
+
+  @@index([action, createdAt(sort: Desc)], map: "idx_audit_log_action")
+  @@index([actorId, createdAt(sort: Desc)], map: "idx_audit_log_actor")
+  @@index([createdAt(sort: Desc)], map: "idx_audit_log_created")
+  @@map("audit_log")
+}
+
+model UserCapacity {
+  userId       Int       @id @map("user_id")
+  maxOpenLeads Int?      @map("max_open_leads")
+  updatedAt    DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_capacity")
+}
+
+model UserSetting {
+  id     Int     @id @default(autoincrement())
+  userId Int?    @map("user_id")
+  key    String  @db.VarChar(100)
+  value  String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, key])
+  @@map("user_settings")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// RBAC — which pages (tabs) and actions each role / user may use.
+//
+// `permissions` JSON shape (same for all three tables):
+//   { "pages": { "<pageKey>": { "view": true, "create": false, ... } } }
+// Resolution order: UserPermissionProfile > CustomRole > RolePermissionProfile >
+// built-in defaults (src/config/rbac.js).
+// ─────────────────────────────────────────────────────────────────────────────
+
+model RolePermissionProfile {
+  id          Int      @id @default(autoincrement())
+  role        String   @unique @db.VarChar(40)
+  permissions Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  @@map("role_permission_profiles")
+}
+
+model CustomRole {
+  id          Int      @id @default(autoincrement())
+  key         String   @unique @db.VarChar(60)
+  name        String   @db.VarChar(120)
+  description String?
+  baseRole    String   @map("base_role") @db.VarChar(20)
+  isActive    Boolean  @default(true) @map("is_active")
+  permissions Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+  users       User[]
+
+  @@index([baseRole])
+  @@map("custom_roles")
+}
+
+model UserPermissionProfile {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique @map("user_id")
+  permissions Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime @default(now()) @map("updated_at") @db.Timestamp(6)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("user_permission_profiles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Calls
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CallEvent {
+  id              Int             @id @default(autoincrement())
+  userId          Int?            @map("user_id")
+  phoneNumber     String          @map("phone_number") @db.VarChar(50)
+  direction       String?         @default("outgoing") @db.VarChar(20)
+  status          String?         @default("connected") @db.VarChar(20)
+  durationSeconds Int?            @default(0) @map("duration_seconds")
+  timestamp       DateTime?       @default(now()) @db.Timestamp(6)
+  callerId        String?         @map("caller_id") @db.VarChar(255)
+  notes           String?
+  isPinned        Boolean?        @default(false) @map("is_pinned")
+  recordingPath   String?         @map("recording_path") @db.VarChar(500)
+  // SIM it was made on (null when unknown) and where it came from: 'sim' or 'whatsapp'.
+  simSlot         Int?            @map("sim_slot")
+  simLabel        String?         @map("sim_label") @db.VarChar(100)
+  source          String          @default("sim") @db.VarChar(20)
+  // Last 10 digits of the number, filled by a trigger (migration 3): one key per person.
+  phoneKey        String?         @map("phone_key") @db.VarChar(10)
+  user            User?           @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  recordings      CallRecording[]
+  reviews         CallReview[]
+  tags            CallEventTag[]
+
+  @@index([phoneNumber], map: "idx_calls_phone")
+  @@index([timestamp], map: "idx_calls_timestamp")
+  @@index([userId], map: "idx_calls_user")
+  @@index([userId, timestamp(sort: Desc)], map: "idx_calls_user_ts")
+  @@index([phoneKey], map: "idx_calls_phone_key")
+  @@map("call_events")
+}
+
+model CallRecording {
+  id              Int        @id @default(autoincrement())
+  callId          Int?       @map("call_id")
+  userId          Int?       @map("user_id")
+  filePath        String     @map("file_path") @db.VarChar(500)
+  fileSize        Int?       @default(0) @map("file_size")
+  durationSeconds Int?       @map("duration_seconds")
+  uploadedAt      DateTime?  @default(now()) @map("uploaded_at") @db.Timestamp(6)
+  call            CallEvent? @relation(fields: [callId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user            User?      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([callId], map: "idx_call_recordings_call")
+  @@map("call_recordings")
+}
+
+model CallReview {
+  id                    Int           @id @default(autoincrement())
+  callId                Int?          @map("call_id")
+  leadId                Int?          @map("lead_id")
+  agentId               Int?          @map("agent_id")
+  reviewerId            Int?          @map("reviewer_id")
+  overallScore          Decimal       @default(0) @map("overall_score") @db.Decimal(6, 2)
+  isComplianceViolation Boolean       @default(false) @map("is_compliance_violation")
+  notes                 String?
+  createdAt             DateTime?     @default(now()) @map("created_at") @db.Timestamp(6)
+  agent                 User?         @relation("ReviewAgent", fields: [agentId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  call                  CallEvent?    @relation(fields: [callId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  lead                  Lead?         @relation(fields: [leadId], references: [id], onUpdate: NoAction)
+  reviewer              User?         @relation("ReviewReviewer", fields: [reviewerId], references: [id], onUpdate: NoAction)
+  scores                ReviewScore[]
+
+  @@index([agentId, createdAt(sort: Desc)], map: "idx_call_reviews_agent")
+  @@index([callId], map: "idx_call_reviews_call")
+  @@map("call_reviews")
+}
+
+model ReviewScore {
+  id       Int         @id @default(autoincrement())
+  reviewId Int?        @map("review_id")
+  category String      @db.VarChar(40)
+  score    Int
+  weight   Int
+  review   CallReview? @relation(fields: [reviewId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([reviewId, category])
+  @@map("review_scores")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Leads
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Lead {
+  id               Int       @id @default(autoincrement())
+  name             String    @db.VarChar(255)
+  phone            String    @db.VarChar(50)
+  email            String?   @db.VarChar(255)
+  status           String?   @default("new") @db.VarChar(20)
+  source           String?   @db.VarChar(255)
+  priority         String?   @default("normal") @db.VarChar(20)
+  ownerId          Int?      @map("owner_id")
+  assignedTo       Int?      @map("assigned_to")
+  notes            String?
+  lastContactedAt  DateTime? @map("last_contacted_at") @db.Timestamp(6)
+  createdAt        DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt        DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  mergedIntoLeadId Int?      @map("merged_into_lead_id")
+  deletedAt        DateTime? @map("deleted_at") @db.Timestamp(6)
+
+  // The 15 imported spreadsheet columns (see LEADS_SPEC.md)
+  segment             String?   @db.VarChar(150)
+  leadAssignedDate    DateTime? @map("lead_assigned_date") @db.Date
+  callAttemptedDate   DateTime? @map("call_attempted_date") @db.Date
+  telecallerName      String?   @map("telecaller_name") @db.VarChar(150)
+  customerName        String?   @map("customer_name") @db.VarChar(255)
+  pharmacyName        String?   @map("pharmacy_name") @db.VarChar(255)
+  locality            String?   @db.VarChar(150)
+  address             String?
+  followupDate        DateTime? @map("followup_date") @db.Date
+  callDone            String?   @map("call_done") @db.VarChar(30)
+  callStatus          String?   @map("call_status") @db.VarChar(80)
+  remarks             String?
+  pharmacyLocalityKey String?   @map("pharmacy_locality_key") @db.VarChar(330)
+  duplicateReasons    String?   @map("duplicate_reasons") @db.VarChar(200)
+
+  // The 12 derived columns (computed by the app, never imported)
+  phoneClean        String?   @map("phone_clean") @db.VarChar(20)
+  isDuplicate       Boolean?  @default(false) @map("is_duplicate")
+  followupClean     DateTime? @map("followup_clean") @db.Date
+  isActiveLead      Boolean?  @default(false) @map("is_active_lead")
+  followupWindow    String?   @map("followup_window") @db.VarChar(20)
+  daysSinceLastCall Int?      @map("days_since_last_call")
+  priorityScore     Int?      @default(0) @map("priority_score")
+  tier              String?   @default("Closed") @db.VarChar(20)
+  nextBestAction    String?   @map("next_best_action")
+  dataCheck         String?   @map("data_check") @db.VarChar(200)
+  queueKey          String?   @map("queue_key") @db.VarChar(80)
+  queueRank         Int?      @map("queue_rank")
+  winProbability    Decimal?  @default(0) @map("win_probability") @db.Decimal(6, 4)
+
+  // Lead-source provenance (Meta Lead Ads exports etc.) + upload batch
+  externalId    String?          @map("external_id") @db.VarChar(80)
+  receivedAt    DateTime?        @map("received_at") @db.Timestamp(6)
+  leadMeta      Json?            @map("lead_meta")
+  importBatchId Int?             @map("import_batch_id")
+  importBatch   LeadImportBatch? @relation(fields: [importBatchId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  assignedUser User?  @relation("LeadAssignedTo", fields: [assignedTo], references: [id], onUpdate: NoAction)
+  owner        User?  @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mergedInto   Lead?  @relation("LeadMerge", fields: [mergedIntoLeadId], references: [id], onUpdate: NoAction)
+  mergedFrom   Lead[] @relation("LeadMerge")
+
+  reviews     CallReview[]
+  activities  LeadActivity[]
+  assignees   LeadAssignee[]
+  assignments LeadAssignment[]
+  followUps   LeadFollowUp[]
+  tags        LeadTag[]
+
+  @@index([assignedTo], map: "idx_leads_assigned_to")
+  @@index([callStatus], map: "idx_leads_call_status")
+  @@index([followupWindow], map: "idx_leads_followup_window")
+  @@index([locality], map: "idx_leads_locality")
+  @@index([mergedIntoLeadId], map: "idx_leads_merged")
+  @@index([ownerId], map: "idx_leads_owner")
+  @@index([phoneClean], map: "idx_leads_phone_clean")
+  @@index([pharmacyLocalityKey], map: "idx_leads_pl_key")
+  @@index([priorityScore(sort: Desc)], map: "idx_leads_priority")
+  @@index([segment], map: "idx_leads_segment")
+  @@index([status], map: "idx_leads_status")
+  @@index([telecallerName], map: "idx_leads_telecaller")
+  @@index([externalId], map: "idx_leads_external_id")
+  @@index([importBatchId], map: "idx_leads_import_batch")
+  @@map("leads")
+}
+
+// One row per spreadsheet/CSV upload. Lets the UI filter "leads from this
+// upload" and shows what the assignment chain did.
+model LeadImportBatch {
+  id         Int      @id @default(autoincrement())
+  filename   String?  @db.VarChar(255)
+  format     String?  @db.VarChar(10)
+  sheet      String?  @db.VarChar(120)
+  profile    String?  @db.VarChar(40)
+  totals     Json?
+  assignment Json?
+  createdBy  Int?     @map("created_by")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  creator    User?    @relation(fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  leads      Lead[]
+
+  @@index([createdAt(sort: Desc)], map: "idx_lead_import_batches_created")
+  @@map("lead_import_batches")
+}
+
+model LeadActivity {
+  id           Int       @id @default(autoincrement())
+  leadId       Int?      @map("lead_id")
+  userId       Int?      @map("user_id")
+  activityType String    @map("activity_type") @db.VarChar(20)
+  summary      String?
+  metadata     Json?
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  lead         Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user         User?     @relation(fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@index([leadId, createdAt(sort: Desc)], map: "idx_lead_activities_lead")
+  @@map("lead_activities")
+}
+
+model LeadAssignee {
+  id             Int       @id @default(autoincrement())
+  leadId         Int?      @map("lead_id")
+  userId         Int?      @map("user_id")
+  role           String    @default("collaborator") @db.VarChar(20)
+  assignedBy     Int?      @map("assigned_by")
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  assignedByUser User?     @relation("AssigneeAssignedBy", fields: [assignedBy], references: [id], onUpdate: NoAction)
+  lead           Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user           User?     @relation("AssigneeUser", fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([leadId, userId])
+  @@index([leadId], map: "idx_lead_assignees_lead")
+  @@index([userId], map: "idx_lead_assignees_user")
+  @@map("lead_assignees")
+}
+
+model LeadAssignment {
+  id             Int       @id @default(autoincrement())
+  leadId         Int?      @map("lead_id")
+  previousUserId Int?      @map("previous_user_id")
+  userId         Int?      @map("user_id")
+  assignedBy     Int?      @map("assigned_by")
+  note           String?
+  createdAt      DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  assignedByUser User?     @relation("AssignmentAssignedBy", fields: [assignedBy], references: [id], onUpdate: NoAction)
+  lead           Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  previousUser   User?     @relation("AssignmentPreviousUser", fields: [previousUserId], references: [id], onUpdate: NoAction)
+  user           User?     @relation("AssignmentUser", fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@index([leadId, id(sort: Desc)], map: "idx_lead_assignments_lead")
+  @@map("lead_assignments")
+}
+
+model LeadFollowUp {
+  id          Int       @id @default(autoincrement())
+  leadId      Int?      @map("lead_id")
+  userId      Int?      @map("user_id")
+  type        String    @default("call") @db.VarChar(20)
+  dueAt       DateTime  @default(now()) @map("due_at") @db.Timestamp(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamp(6)
+  outcome     String?   @db.VarChar(20)
+  notes       String?
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  lead        Lead?     @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user        User?     @relation(fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@index([leadId, dueAt(sort: Desc)], map: "idx_follow_ups_lead")
+  @@index([userId, dueAt], map: "idx_follow_ups_user_due")
+  @@map("lead_follow_ups")
+}
+
+model LeadScoringSetting {
+  key         String    @id @db.VarChar(60)
+  value       Decimal   @db.Decimal(14, 4)
+  description String?
+  updatedAt   DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  @@map("lead_scoring_settings")
+}
+
+model LeadStatusRule {
+  id             Int       @id @default(autoincrement())
+  callStatus     String    @map("call_status") @db.VarChar(80)
+  statusKey      String    @unique @map("status_key") @db.VarChar(80)
+  basePriority   Int       @default(0) @map("base_priority")
+  activePipeline Boolean   @default(false) @map("active_pipeline")
+  winProb        Decimal   @default(0) @map("win_prob") @db.Decimal(6, 4)
+  nextAction     String?   @map("next_action")
+  reached        Boolean   @default(false)
+  interestedPlus Boolean   @default(false) @map("interested_plus")
+  demoPlus       Boolean   @default(false) @map("demo_plus")
+  sortOrder      Int       @default(0) @map("sort_order")
+  updatedAt      DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  @@map("lead_status_rules")
+}
+
+model LeadTag {
+  leadId Int  @map("lead_id")
+  tagId  Int  @map("tag_id")
+  lead   Lead @relation(fields: [leadId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([leadId, tagId])
+  @@index([tagId], map: "idx_lead_tags_tag")
+  @@map("lead_tags")
+}
+
+model Tag {
+  id        Int            @id @default(autoincrement())
+  name      String         @unique @db.VarChar(60)
+  color     String?        @default("#3b82f6") @db.VarChar(20)
+  createdBy Int?           @map("created_by")
+  createdAt DateTime?      @default(now()) @map("created_at") @db.Timestamp(6)
+  leadTags  LeadTag[]
+  callTags  CallEventTag[]
+  creator   User?          @relation(fields: [createdBy], references: [id], onUpdate: NoAction)
+
+  @@map("tags")
+}
+
+model LeadTelecallerMap {
+  name      String    @id @db.VarChar(150)
+  userId    Int?      @map("user_id")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  user      User?     @relation(fields: [userId], references: [id], onUpdate: NoAction)
+
+  @@map("lead_telecaller_map")
+}
+
+model LeadTelecallerUnmatched {
+  name       String    @id @db.VarChar(150)
+  leadsCount Int       @default(0) @map("leads_count")
+  lastSeenAt DateTime? @default(now()) @map("last_seen_at") @db.Timestamp(6)
+
+  @@map("lead_telecaller_unmatched")
+}
+
+model AssignmentRule {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(120)
+  enabled     Boolean   @default(true)
+  priority    Int       @default(100)
+  conditions  Json      @default("{}")
+  strategy    String    @default("round_robin") @db.VarChar(20)
+  fixedUserId Int?      @map("fixed_user_id")
+  teamId      Int?      @map("team_id")
+  stopOnMatch Boolean   @default(true) @map("stop_on_match")
+  createdBy   Int?      @map("created_by")
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  creator     User?     @relation("AssignmentRuleCreatedBy", fields: [createdBy], references: [id], onUpdate: NoAction)
+  fixedUser   User?     @relation("AssignmentRuleFixedUser", fields: [fixedUserId], references: [id], onUpdate: NoAction)
+  team        Team?     @relation(fields: [teamId], references: [id], onUpdate: NoAction)
+
+  @@index([createdAt], map: "idx_assignment_rules_created")
+  @@index([priority, id], map: "idx_assignment_rules_order")
+  @@map("assignment_rules")
+}
+
+model PipelineStage {
+  id          Int       @id @default(autoincrement())
+  name        String    @db.VarChar(60)
+  slug        String    @unique @db.VarChar(60)
+  position    Int       @default(0)
+  color       String?   @default("#64748b") @db.VarChar(20)
+  isWon       Boolean   @default(false) @map("is_won")
+  isLost      Boolean   @default(false) @map("is_lost")
+  probability Int       @default(0)
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+
+  @@index([position, id], map: "idx_pipeline_stages_position")
+  @@map("pipeline_stages")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Misc
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Notification {
+  id        Int       @id @default(autoincrement())
+  userId    Int?      @map("user_id")
+  type      String    @db.VarChar(50)
+  title     String    @db.VarChar(255)
+  message   String?
+  data      Json?
+  isRead    Boolean?  @default(false) @map("is_read")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("notifications")
+}
+
+model Export {
+  id        Int       @id @default(autoincrement())
+  userId    Int?      @map("user_id")
+  type      String    @db.VarChar(50)
+  params    Json?
+  filePath  String?   @map("file_path") @db.VarChar(500)
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("exports")
+}
+
+model WhatsappTemplate {
+  id        Int       @id @default(autoincrement())
+  userId    Int?      @map("user_id")
+  name      String    @db.VarChar(255)
+  category  String?   @db.VarChar(50)
+  language  String?   @default("en") @db.VarChar(20)
+  content   String?
+  variables Json?
+  isActive  Boolean?  @default(true) @map("is_active")
+  createdAt DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@map("whatsapp_templates")
+}
+
+// Snapshot written by POST /api/reports/generate-email (the daily call report).
+// This table was referenced by the API but never created by the old initDB(), so
+// the endpoint always failed; migration 2_daily_reports adds it.
+model DailyReport {
+  id             Int       @id @default(autoincrement())
+  userId         Int?      @map("user_id")
+  date           DateTime  @db.Date
+  totalCalls     Int       @default(0) @map("total_calls")
+  incoming       Int       @default(0)
+  outgoing       Int       @default(0)
+  missed         Int       @default(0)
+  rejected       Int       @default(0)
+  totalDuration  Int       @default(0) @map("total_duration")
+  uniqueContacts Int       @default(0) @map("unique_contacts")
+  sentAt         DateTime? @map("sent_at") @db.Timestamp(6)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([userId, date(sort: Desc)], map: "idx_daily_reports_user_date")
+  @@map("daily_reports")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Call analytics, contacts and premium features (migration 3_call_analytics).
+// The phone_key trigger and the CHECK constraints live only in the migration SQL.
+// ─────────────────────────────────────────────────────────────────────────────
+
+model CallEventTag {
+  callId Int       @map("call_id")
+  tagId  Int       @map("tag_id")
+  call   CallEvent @relation(fields: [callId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tag    Tag       @relation(fields: [tagId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([callId, tagId])
+  @@index([tagId], map: "idx_call_event_tags_tag")
+  @@map("call_event_tags")
+}
+
+model ContactGroup {
+  id        Int                  @id @default(autoincrement())
+  name      String               @unique @db.VarChar(80)
+  color     String?              @default("#f59e0b") @db.VarChar(20)
+  createdBy Int?                 @map("created_by")
+  createdAt DateTime?            @default(now()) @map("created_at") @db.Timestamp(6)
+  creator   User?                @relation(fields: [createdBy], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  members   ContactGroupMember[]
+
+  @@map("contact_groups")
+}
+
+model ContactGroupMember {
+  groupId  Int          @map("group_id")
+  phoneKey String       @map("phone_key") @db.VarChar(10)
+  addedAt  DateTime?    @default(now()) @map("added_at") @db.Timestamp(6)
+  group    ContactGroup @relation(fields: [groupId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([groupId, phoneKey])
+  @@index([phoneKey], map: "idx_group_members_phone")
+  @@map("contact_group_members")
+}
+
+model CallReminder {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  phoneNumber String    @map("phone_number") @db.VarChar(50)
+  note        String
+  remindAt    DateTime? @map("remind_at") @db.Timestamp(6)
+  done        Boolean   @default(false)
+  notifiedAt  DateTime? @map("notified_at") @db.Timestamp(6)
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, done, remindAt], map: "idx_call_reminders_user")
+  @@map("call_reminders")
+}
+
+model UserSim {
+  id           Int       @id @default(autoincrement())
+  userId       Int       @map("user_id")
+  slot         Int
+  label        String?   @db.VarChar(100)
+  number       String?   @db.VarChar(30)
+  verified     Boolean   @default(false)
+  verifyMethod String?   @map("verify_method") @db.VarChar(20)
+  verifiedAt   DateTime? @map("verified_at") @db.Timestamp(6)
+  createdAt    DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, slot])
+  @@map("user_sims")
+}
+
+model UserDevice {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  deviceName       String    @map("device_name") @db.VarChar(120)
+  appVersion       String?   @map("app_version") @db.VarChar(30)
+  lastSyncAt       DateTime? @map("last_sync_at") @db.Timestamp(6)
+  permissions      Json?
+  batteryOptimized Boolean?  @map("battery_optimized")
+  defaultDialer    Boolean?  @map("default_dialer")
+  updatedAt        DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, deviceName])
+  @@map("user_devices")
+}
+
+model WorkspacePlan {
+  id               Int       @id @default(1)
+  plan             String    @default("free") @db.VarChar(20)
+  status           String    @default("active") @db.VarChar(20)
+  trialStartedAt   DateTime? @map("trial_started_at") @db.Timestamp(6)
+  trialEndsAt      DateTime? @map("trial_ends_at") @db.Timestamp(6)
+  currentPeriodEnd DateTime? @map("current_period_end") @db.Timestamp(6)
+  changedBy        Int?      @map("changed_by")
+  updatedAt        DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  @@map("workspace_plan")
+}
+
+model WorkspaceSetting {
+  key       String    @id @db.VarChar(80)
+  value     String?
+  updatedAt DateTime? @default(now()) @map("updated_at") @db.Timestamp(6)
+
+  @@map("workspace_settings")
+}
+
+model QuickCallDevice {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  deviceName String    @map("device_name") @db.VarChar(120)
+  linkedAt   DateTime? @default(now()) @map("linked_at") @db.Timestamp(6)
+  lastSeenAt DateTime? @map("last_seen_at") @db.Timestamp(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([userId, deviceName])
+  @@map("quick_call_devices")
+}
+
+model QuickCallCommand {
+  id          Int       @id @default(autoincrement())
+  userId      Int       @map("user_id")
+  phoneNumber String    @map("phone_number") @db.VarChar(50)
+  name        String?   @db.VarChar(120)
+  source      String?   @db.VarChar(30)
+  createdAt   DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  deliveredAt DateTime? @map("delivered_at") @db.Timestamp(6)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId, deliveredAt], map: "idx_quick_call_pending")
+  @@map("quick_call_commands")
+}
+
+model PushToken {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  token      String    @unique
+  platform   String    @default("android") @db.VarChar(20)
+  deviceName String?   @map("device_name") @db.VarChar(120)
+  createdAt  DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  lastSeenAt DateTime? @default(now()) @map("last_seen_at") @db.Timestamp(6)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([userId], map: "idx_push_tokens_user")
+  @@map("push_tokens")
+}
+
+model PlanPayment {
+  id                  Int       @id @default(autoincrement())
+  userId              Int?      @map("user_id")
+  plan                String    @db.VarChar(20)
+  months              Int
+  amount              Int
+  currency            String    @db.VarChar(10)
+  stripeSessionId     String    @unique @map("stripe_session_id") @db.VarChar(255)
+  stripePaymentIntent String?   @map("stripe_payment_intent") @db.VarChar(255)
+  status              String    @default("pending") @db.VarChar(20)
+  createdAt           DateTime? @default(now()) @map("created_at") @db.Timestamp(6)
+  paidAt              DateTime? @map("paid_at") @db.Timestamp(6)
+  refundedAmount      Int       @default(0) @map("refunded_amount")
+  refundedAt          DateTime? @map("refunded_at") @db.Timestamp(6)
+  stripeRefundId      String?   @map("stripe_refund_id") @db.VarChar(255)
+  refundNote          String?   @map("refund_note")
+  user                User?     @relation(fields: [userId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@map("plan_payments")
+}

@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- Direction filter ("All" must be first: the fragment maps it to null). -->
+    <string-array name="call_direction_filter">
+        <item>All</item>
+        <item>Incoming</item>
+        <item>Outgoing</item>
+    </string-array>
+
+    <string-array name="call_status_filter">
+        <item>All</item>
+        <item>Connected</item>
+        <item>Missed</item>
+        <item>Rejected</item>
+        <item>No Answer</item>
+    </string-array>
+
+    <!-- Source / app the call came from. "All" maps to null. -->
+    <string-array name="call_source_filter">
+        <item>All</item>
+        <item>Phone app</item>
+        <item>WhatsApp Call</item>
+        <item>Other app</item>
+    </string-array>
+
+    <string-array name="call_contact_type_filter">
+        <item>All</item>
+        <item>Saved</item>
+        <item>Unsaved</item>
+    </string-array>
+
+    <string-array name="call_duration_presets">
+        <item>All Time</item>
+        <item>Today</item>
+        <item>Last 7 days</item>
+        <item>Last 30 days</item>
+        <item>Custom range</item>
+    </string-array>
+
+    <string-array name="followup_scopes">
+        <item>Today</item>
+        <item>Overdue</item>
+        <item>Upcoming</item>
+        <item>All</item>
+    </string-array>
+
+    <string-array name="report_range_labels">
+        <item>Last 7 days</item>
+        <item>Last 14 days</item>
+        <item>Last 30 days</item>
+    </string-array>
+
+    <string-array name="report_range_days">
+        <item>7</item>
+        <item>14</item>
+        <item>30</item>
+    </string-array>
+
+    <string-array name="time_format_labels">
+        <item>12 hr</item>
+        <item>24 hr</item>
+    </string-array>
+
+    <string-array name="lead_status_filter">
+        <item>All</item>
+        <item>New</item>
+        <item>Contacted</item>
+        <item>Converted</item>
+        <item>Lost</item>
+    </string-array>
+
+    <!-- Values stored in the DB / sent to the API are lowercased on read. -->
+    <string-array name="lead_status_values">
+        <item>new</item>
+        <item>contacted</item>
+        <item>converted</item>
+        <item>lost</item>
+    </string-array>
+
+    <string-array name="lead_status_spinner">
+        <item>New</item>
+        <item>Contacted</item>
+        <item>Converted</item>
+        <item>Lost</item>
+    </string-array>
+
+    <string-array name="lead_priority_values">
+        <item>low</item>
+        <item>normal</item>
+        <item>high</item>
+        <item>urgent</item>
+    </string-array>
+
+    <string-array name="lead_priority_spinner">
+        <item>Low</item>
+        <item>Normal</item>
+        <item>High</item>
+        <item>Urgent</item>
+    </string-array>
+
+    <string-array name="team_role_values">
+        <item>agent</item>
+        <item>manager</item>
+        <item>admin</item>
+    </string-array>
+
+    <string-array name="team_role_spinner">
+        <item>Agent</item>
+        <item>Manager</item>
+        <item>Admin</item>
+    </string-array>
+
+    <string-array name="followup_reschedule_options">
+        <item>In 2 hours</item>
+        <item>Tomorrow</item>
+        <item>Next week</item>
+    </string-array>
+
+</resources>

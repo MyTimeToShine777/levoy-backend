@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Layout constants lifted from DESIGN_REFERENCE.md "Layout conventions". -->
+<resources>
+    <dimen name="screen_padding">16dp</dimen>
+    <dimen name="card_radius">16dp</dimen>
+    <dimen name="card_padding">16dp</dimen>
+    <dimen name="gap">12dp</dimen>
+    <dimen name="gap_sm">8dp</dimen>
+    <dimen name="gap_lg">20dp</dimen>
+    <dimen name="hairline">1dp</dimen>
+    <dimen name="button_radius">12dp</dimen>
+    <dimen name="row_min_height">64dp</dimen>
+    <dimen name="touch_target">48dp</dimen>
+    <dimen name="app_bar_height">56dp</dimen>
+    <dimen name="bottom_nav_height">60dp</dimen>
+    <dimen name="icon_sm">16dp</dimen>
+    <dimen name="icon_md">24dp</dimen>
+    <dimen name="icon_lg">40dp</dimen>
+    <dimen name="avatar_size">40dp</dimen>
+    <dimen name="stat_bar_height">6dp</dimen>
+</resources>

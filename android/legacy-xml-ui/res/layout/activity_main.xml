@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@color/background">
+
+    <!-- App bar: matches the surface colour, not a saturated brand bar. -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/app_bar_height"
+        android:background="@color/background"
+        android:elevation="0dp"
+        app:navigationIconTint="@color/text_primary"
+        app:titleTextColor="@color/text_primary"
+        app:titleTextAppearance="@style/Text.ScreenTitle"
+        app:popupTheme="@style/Theme.Levoy" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/hairline"
+        android:background="@color/divider" />
+
+    <FrameLayout
+        android:id="@+id/fragment_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/hairline"
+        android:background="@color/divider" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/bottom_nav_height"
+        android:orientation="horizontal"
+        android:background="@color/surface">
+
+        <LinearLayout
+            android:id="@+id/nav_dashboard"
+            style="@style/Widget.Levoy.NavItem"
+            android:contentDescription="@string/cd_nav_dashboard">
+
+            <ImageView
+                android:id="@+id/iconNavDashboard"
+                style="@style/Widget.Levoy.NavIcon"
+                android:src="@drawable/ic_dashboard"
+                android:contentDescription="@string/dashboard"
+                android:tint="@color/nav_icon_tint" />
+
+            <TextView
+                android:id="@+id/labelNavDashboard"
+                style="@style/Widget.Levoy.NavLabel"
+                android:text="@string/dashboard"
+                android:textColor="@color/nav_label_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/nav_calls"
+            style="@style/Widget.Levoy.NavItem"
+            android:contentDescription="@string/cd_nav_calls">
+
+            <ImageView
+                android:id="@+id/iconNavCalls"
+                style="@style/Widget.Levoy.NavIcon"
+                android:src="@drawable/ic_calls"
+                android:contentDescription="@string/calls"
+                android:tint="@color/nav_icon_tint" />
+
+            <TextView
+                android:id="@+id/labelNavCalls"
+                style="@style/Widget.Levoy.NavLabel"
+                android:text="@string/calls"
+                android:textColor="@color/nav_label_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/nav_leads"
+            style="@style/Widget.Levoy.NavItem"
+            android:contentDescription="@string/cd_nav_leads">
+
+            <ImageView
+                android:id="@+id/iconNavLeads"
+                style="@style/Widget.Levoy.NavIcon"
+                android:src="@drawable/ic_leads"
+                android:contentDescription="@string/leads"
+                android:tint="@color/nav_icon_tint" />
+
+            <TextView
+                android:id="@+id/labelNavLeads"
+                style="@style/Widget.Levoy.NavLabel"
+                android:text="@string/leads"
+                android:textColor="@color/nav_label_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/nav_followups"
+            style="@style/Widget.Levoy.NavItem"
+            android:contentDescription="@string/cd_nav_followups">
+
+            <ImageView
+                android:id="@+id/iconNavFollowups"
+                style="@style/Widget.Levoy.NavIcon"
+                android:src="@drawable/ic_followups"
+                android:contentDescription="@string/follow_ups"
+                android:tint="@color/nav_icon_tint" />
+
+            <TextView
+                android:id="@+id/labelNavFollowups"
+                style="@style/Widget.Levoy.NavLabel"
+                android:text="@string/follow_ups"
+                android:textColor="@color/nav_label_color" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/nav_more"
+            style="@style/Widget.Levoy.NavItem"
+            android:contentDescription="@string/cd_nav_more">
+
+            <ImageView
+                android:id="@+id/iconNavMore"
+                style="@style/Widget.Levoy.NavIcon"
+                android:src="@drawable/ic_more"
+                android:contentDescription="@string/more"
+                android:tint="@color/nav_icon_tint" />
+
+            <TextView
+                android:id="@+id/labelNavMore"
+                style="@style/Widget.Levoy.NavLabel"
+                android:text="@string/more"
+                android:textColor="@color/nav_label_color" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>

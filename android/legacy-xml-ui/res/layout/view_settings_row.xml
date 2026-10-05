@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Settings row: icon + title + description, with a control (switch /
+    amber check / chevron) trailing. The hairline divider is a sibling below
+    the row, not a child of the horizontal band.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/settingsRow"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="@dimen/row_min_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="?attr/selectableItemBackground"
+        android:paddingStart="@dimen/screen_padding"
+        android:paddingEnd="@dimen/screen_padding"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
+
+        <ImageView
+            android:id="@+id/rowIcon"
+            android:layout_width="@dimen/icon_md"
+            android:layout_height="@dimen/icon_md"
+            android:layout_marginEnd="16dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/text_secondary"
+            android:contentDescription="@string/cd_leading_icon" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/rowTitle"
+                style="@style/Text.RowTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <TextView
+                android:id="@+id/rowDescription"
+                style="@style/Text.RowSubtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/rowControl"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="12dp"
+            android:visibility="gone">
+
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/rowSwitch"
+                style="@style/Widget.Levoy.Switch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:clickable="false"
+                android:focusable="false"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/rowCheck"
+                style="@style/Widget.Levoy.RadioCheck"
+                android:contentDescription="@string/cd_selected" />
+
+            <ImageView
+                android:id="@+id/rowChevron"
+                android:layout_width="@dimen/icon_md"
+                android:layout_height="@dimen/icon_md"
+                android:layout_gravity="center"
+                android:src="@drawable/ic_chevron_right"
+                android:tint="@color/text_tertiary"
+                android:visibility="gone"
+                android:contentDescription="@string/more" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <View
+        android:id="@+id/rowDivider"
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/hairline"
+        android:layout_marginStart="@dimen/screen_padding"
+        android:background="@color/divider" />
+
+</LinearLayout>

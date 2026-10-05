@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:id="@+id/simContent"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/screen_padding">
+
+        <ImageView
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_avatar"
+            android:padding="12dp"
+            android:src="@drawable/ic_sim"
+            android:tint="@color/accent"
+            android:contentDescription="@string/sim_title" />
+
+        <TextView
+            android:id="@+id/tvSimTitle"
+            style="@style/Text.ScreenTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="18dp"
+            android:text="@string/sim_title" />
+
+        <TextView
+            android:id="@+id/tvSimSubtitle"
+            style="@style/Text.RowSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:lineSpacingMultiplier="1.2"
+            android:text="@string/sim_subtitle" />
+
+        <!-- Device number -->
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.Levoy.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/card_padding">
+
+                <TextView
+                    style="@style/Text.Eyebrow"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/sim_your_number" />
+
+                <TextView
+                    android:id="@+id/tvSimNumber"
+                    style="@style/Text.StatValue"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:textSize="24sp"
+                    android:text="—" />
+
+                <TextView
+                    android:id="@+id/tvSimNumberHint"
+                    style="@style/Text.RowSubtitle"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:textColor="@color/text_tertiary"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
+            android:id="@+id/tvSimStatus"
+            style="@style/Text.RowSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:gravity="center"
+            android:textColor="@color/accent"
+            android:visibility="gone" />
+
+        <ProgressBar
+            android:id="@+id/progressSim"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="12dp"
+            android:indeterminateTint="@color/accent"
+            android:visibility="gone" />
+
+        <!-- Option cards -->
+        <include
+            android:id="@+id/optionCallLog"
+            layout="@layout/view_option_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp" />
+
+        <include
+            android:id="@+id/optionViaCall"
+            layout="@layout/view_option_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gap" />
+
+        <include
+            android:id="@+id/optionSkip"
+            layout="@layout/view_option_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/gap" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSimLater"
+            style="@style/Widget.Levoy.Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:text="@string/sim_later" />
+    </LinearLayout>
+
+</ScrollView>

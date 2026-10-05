@@ -1,0 +1,39 @@
+[Unit]
+# Rapid crash-loops back off instead of hot-spinning the CPU.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+Description=Levoy web frontend (Next.js production build, port 3000)
+Documentation=file:///root/callyzer-clone/README.md
+After=network.target levoy-backend.service
+Wants=levoy-backend.service
+# Deliberately NOT Requires=postgresql.service: the frontend never touches the DB,
+# so a Postgres blip must not take the UI down with it.
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/callyzer-clone/frontend
+
+Environment=NODE_ENV=production
+Environment=PORT=3000
+Environment=HOSTNAME=0.0.0.0
+Environment=PATH=/root/.hermes/tools/node-26.7.0-linux-x64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+# `next start` needs a production build. Fail fast with an actionable message
+# instead of running a multi-minute build inside ExecStartPre on every restart.
+ExecStartPre=/bin/bash -c 'test -f /root/callyzer-clone/frontend/.next/BUILD_ID || { echo "levoy-frontend: missing production build (.next/BUILD_ID). Run: make -C /root/callyzer-clone build"; exit 1; }'
+
+ExecStart=/root/.hermes/tools/node-26.7.0-linux-x64/bin/npx next start -p 3000
+
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+KillMode=mixed
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=levoy-frontend
+
+[Install]
+WantedBy=multi-user.target

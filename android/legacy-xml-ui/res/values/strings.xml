@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Levoy</string>
+
+    <!-- ═══ Navigation / chrome ═══ -->
+    <string name="tracking_active">Call tracking active</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="logout">Logout</string>
+    <string name="sign_out">Sign out</string>
+    <string name="dashboard">Dashboard</string>
+    <string name="call_logs">Call Logs</string>
+    <string name="calls">Calls</string>
+    <string name="leads">Leads</string>
+    <string name="reports">Reports</string>
+    <string name="team">Team</string>
+    <string name="follow_ups">Follow-ups</string>
+    <string name="performance">Performance</string>
+    <string name="quality">Quality</string>
+    <string name="settings">Settings</string>
+    <string name="more">More</string>
+    <string name="sync">Sync Now</string>
+    <string name="refresh">Refresh</string>
+    <string name="cancel">Cancel</string>
+    <string name="done">Done</string>
+    <string name="reset">Reset</string>
+    <string name="save">Save</string>
+    <string name="apply">Apply</string>
+    <string name="retry">Retry</string>
+    <string name="close">Close</string>
+    <string name="search">Search</string>
+    <string name="filters">Filters</string>
+    <string name="back">Back</string>
+    <string name="menu">Menu</string>
+    <string name="loading">Loading…</string>
+
+    <!-- ═══ Content descriptions ═══ -->
+    <string name="cd_back">Navigate up</string>
+    <string name="cd_selected">Selected</string>
+    <string name="cd_more">More options</string>
+    <string name="cd_filters">Open filters</string>
+    <string name="cd_empty_state">Empty state illustration</string>
+    <string name="cd_nav_dashboard">Dashboard</string>
+    <string name="cd_nav_calls">Call history</string>
+    <string name="cd_nav_leads">Leads</string>
+    <string name="cd_nav_followups">Follow-ups</string>
+    <string name="cd_nav_more">More</string>
+
+    <!-- ═══ Login ═══ -->
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="welcome_back">Welcome back</string>
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="login_subtitle">Sign in to sync your call activity and leads.</string>
+    <string name="need_an_account">Need an account?</string>
+    <string name="logging_in">Signing in…</string>
+    <string name="enter_email">Enter your email</string>
+    <string name="password_too_short">Password must be at least 6 characters</string>
+    <string name="sign_in_failed">Could not sign in</string>
+    <string name="register_failed">Could not create the account</string>
+
+    <!-- ═══ Permissions ═══ -->
+    <string name="permission_required">Permission Required</string>
+    <string name="permission_explanation">Levoy needs Call Log and Phone State permissions to track your call activity.</string>
+    <string name="open_settings">Open Settings</string>
+    <string name="tracking_started">Call tracking started</string>
+
+    <!-- ═══ Notifications ═══ -->
+    <string name="notification_channel_sync">Call Sync</string>
+    <string name="notification_channel_sync_desc">Background call log synchronization</string>
+    <string name="notification_channel_alert">Call Alerts</string>
+    <string name="notification_channel_alert_desc">Missed call and important call alerts</string>
+
+    <!-- ═══ Empty states (never a bare "0") ═══ -->
+    <string name="empty_calls_title">No calls yet</string>
+    <string name="empty_calls_body">Once you make or receive a call from this device it will appear here automatically.</string>
+    <string name="empty_calls_filtered_title">No calls match these filters</string>
+    <string name="empty_calls_filtered_body">Try widening the date range or clearing a filter to see older calls.</string>
+    <string name="empty_leads_title">No leads yet</string>
+    <string name="empty_leads_body">Add your first lead to start tracking your sales pipeline.</string>
+    <string name="empty_leads_filtered_title">No leads match</string>
+    <string name="empty_leads_filtered_body">Try a different search term or clear the status filter.</string>
+    <string name="empty_reports_title">No report data yet</string>
+    <string name="empty_reports_body">Daily totals appear here once call activity has been synced.</string>
+    <string name="empty_team_title">No team members</string>
+    <string name="empty_team_body">Invite the first agent to start sharing call activity and leads.</string>
+    <string name="empty_followups_title">You\'re all caught up</string>
+    <string name="empty_followups_body">There are no follow-ups due right now. Check the Upcoming tab to see what is scheduled next.</string>
+    <string name="empty_followups_overdue_title">Nothing overdue</string>
+    <string name="empty_followups_overdue_body">Every follow-up scheduled for a previous day has been completed.</string>
+    <string name="empty_performance_title">No performance data</string>
+    <string name="empty_performance_body">Agent performance appears once the team has recorded calls or leads.</string>
+    <string name="empty_quality_title">No QA reviews</string>
+    <string name="empty_quality_body">Quality scores appear once a manager has reviewed an agent\'s calls.</string>
+    <string name="empty_tags">No tags yet</string>
+    <string name="error_title">Something went wrong</string>
+    <string name="error_body">We couldn\'t reach the server. Check your connection and try again.</string>
+
+    <!-- ═══ Dashboard ═══ -->
+    <string name="dash_calls_today">Calls today</string>
+    <string name="dash_connected">Connected</string>
+    <string name="dash_missed">Missed</string>
+    <string name="dash_avg_duration">Avg duration</string>
+    <string name="dash_talk_time">Talk time</string>
+    <string name="dash_connect_rate">Connect rate</string>
+    <string name="dash_rejected">Rejected</string>
+    <string name="dash_pipeline">Pipeline</string>
+    <string name="dash_pipeline_sub">Leads by stage</string>
+    <string name="dash_recent_calls">Recent calls</string>
+    <string name="dash_recent_calls_sub">Your latest activity</string>
+    <string name="dash_view_all">View all</string>
+    <string name="dash_today">Today</string>
+    <string name="dash_no_calls_hint">No calls recorded yet today</string>
+
+    <!-- ═══ Calls ═══ -->
+    <string name="search_calls_hint">Search number or name</string>
+    <string name="filter_title">Filters</string>
+    <string name="filter_apply_hint">Filters apply to the whole call history.</string>
+    <string name="filter_duration">Duration</string>
+    <string name="filter_direction">Direction</string>
+    <string name="filter_status">Status</string>
+    <string name="filter_source">Source / app</string>
+    <string name="filter_contact_type">Contact type</string>
+    <string name="filter_notes">Notes</string>
+    <string name="filter_tags">Tags</string>
+    <string name="filter_all_time">All Time</string>
+    <string name="filter_today">Today</string>
+    <string name="filter_last_7">Last 7 days</string>
+    <string name="filter_last_30">Last 30 days</string>
+    <string name="filter_custom">Custom range</string>
+    <string name="filter_custom_from">From</string>
+    <string name="filter_custom_to">To</string>
+    <string name="filter_has_notes">Has notes</string>
+    <string name="filter_has_notes_sub">Only calls you annotated</string>
+    <string name="filter_contact_saved">Saved</string>
+    <string name="filter_contact_unsaved">Unsaved</string>
+    <string name="filter_active_count">%1$d active</string>
+    <string name="filter_results_label">Showing %1$s</string>
+    <string name="filter_notes_hint">Filter by note text</string>
+    <string name="call_incoming">Incoming</string>
+    <string name="call_outgoing">Outgoing</string>
+    <string name="call_connected">Connected</string>
+    <string name="call_missed">Missed</string>
+    <string name="call_rejected">Rejected</string>
+    <string name="call_no_answer">No Answer</string>
+    <string name="call_pinned">Pinned</string>
+    <string name="pin_call">Pin call</string>
+    <string name="unpin_call">Unpin call</string>
+    <string name="call_number">Call number</string>
+    <string name="call_notes">Notes</string>
+    <string name="call_notes_hint">Add a note to this call</string>
+    <string name="notes_saved">Note saved</string>
+    <string name="pin_failed">Could not update the call</string>
+    <string name="page_info">Page %1$d · %2$d calls</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
+    <string name="load_failed">Could not load calls</string>
+    <string name="no_app_handles_call">No app on this device can place calls</string>
+
+    <!-- ═══ Leads ═══ -->
+    <string name="add_lead">Add Lead</string>
+    <string name="edit_lead">Edit Lead</string>
+    <string name="delete_lead">Delete Lead</string>
+    <string name="lead_name">Name</string>
+    <string name="lead_phone">Phone</string>
+    <string name="lead_email">Email</string>
+    <string name="lead_notes">Notes</string>
+    <string name="lead_status">Status</string>
+    <string name="lead_priority">Priority</string>
+    <string name="lead_source">Source</string>
+    <string name="lead_name_required">Name is required</string>
+    <string name="lead_phone_required">Phone is required</string>
+    <string name="lead_saved">Lead saved</string>
+    <string name="lead_updated">Lead updated</string>
+    <string name="lead_deleted">Lead deleted</string>
+    <string name="mark_contacted">Mark contacted</string>
+    <string name="marked_contacted">Marked as contacted</string>
+    <string name="delete_lead_confirm">Delete %1$s? This cannot be undone.</string>
+    <string name="delete">Delete</string>
+    <string name="search_leads_hint">Search leads</string>
+    <string name="lead_total">Total</string>
+    <string name="lead_new">New</string>
+    <string name="lead_contacted">Contacted</string>
+    <string name="lead_converted">Converted</string>
+    <string name="lead_never_contacted">Never contacted</string>
+    <string name="leads_load_failed">Could not load leads</string>
+
+    <!-- ═══ Follow-ups ═══ -->
+    <string name="followups_scope_today">Today</string>
+    <string name="followups_scope_overdue">Overdue</string>
+    <string name="followups_scope_upcoming">Upcoming</string>
+    <string name="followups_scope_all">All</string>
+    <string name="followups_count">%1$d due</string>
+    <string name="followup_complete">Complete</string>
+    <string name="followup_complete_with_note">Complete with note…</string>
+    <string name="followup_reschedule">Reschedule</string>
+    <string name="followup_reschedule_tomorrow">Tomorrow</string>
+    <string name="followup_reschedule_next_week">Next week</string>
+    <string name="followup_reschedule_in_2h">In 2 hours</string>
+    <string name="followup_completed">Follow-up completed</string>
+    <string name="followup_rescheduled">Follow-up rescheduled</string>
+    <string name="followup_note_hint">What happened?</string>
+    <string name="followup_type_call">Call</string>
+    <string name="followup_type_meeting">Meeting</string>
+    <string name="followup_type_whatsapp">WhatsApp</string>
+    <string name="followup_type_other">Other</string>
+    <string name="followup_overdue_badge">Overdue</string>
+    <string name="followup_due_badge">Due today</string>
+    <string name="followup_upcoming_badge">Upcoming</string>
+    <string name="followups_load_failed">Could not load follow-ups</string>
+    <string name="followup_for">For %1$s</string>
+
+    <!-- ═══ Reports ═══ -->
+    <string name="generate_report">Generate Report</string>
+    <string name="report_total_calls">Total calls</string>
+    <string name="report_missed">Missed</string>
+    <string name="report_avg_duration">Avg duration</string>
+    <string name="report_connect_rate">Connect rate</string>
+    <string name="report_last_7">Last 7 days</string>
+    <string name="report_last_14">Last 14 days</string>
+    <string name="report_last_30">Last 30 days</string>
+    <string name="report_days_format">Last %1$d days</string>
+    <string name="report_table_date">Date</string>
+    <string name="report_table_in">In</string>
+    <string name="report_table_out">Out</string>
+    <string name="report_table_missed">Missed</string>
+    <string name="report_table_time">Talk time</string>
+    <string name="report_table_contacts">Contacts</string>
+    <string name="reports_load_failed">Could not load reports</string>
+    <string name="report_generated">Report queued for delivery</string>
+
+    <!-- ═══ Team ═══ -->
+    <string name="invite_member">Invite Member</string>
+    <string name="invite_email">Work email</string>
+    <string name="invite_role">Role</string>
+    <string name="invite_send">Send invite</string>
+    <string name="team_load_failed">Could not load the team</string>
+    <string name="team_open_leads">Open leads</string>
+    <string name="team_calls_today">Calls today</string>
+    <string name="team_capacity">%1$d / %2$d leads</string>
+    <string name="team_at_capacity">At capacity</string>
+    <string name="team_workload">Workload</string>
+    <string name="team_workload_sub">Open leads per agent against capacity</string>
+    <string name="team_last_active">Active %1$s</string>
+    <string name="team_never_active">No activity yet</string>
+    <string name="role_admin">Admin</string>
+    <string name="role_manager">Manager</string>
+    <string name="role_agent">Agent</string>
+
+    <!-- ═══ Performance / Quality ═══ -->
+    <string name="perf_calls">Calls</string>
+    <string name="perf_connect_rate">Connect rate</string>
+    <string name="perf_conversion">Conversion</string>
+    <string name="perf_avg_duration">Avg duration</string>
+    <string name="perf_qa_score">QA score</string>
+    <string name="perf_period_delta">%1$s vs previous 30d</string>
+    <string name="perf_period_delta_up">+%1$s%% vs previous 30d</string>
+    <string name="perf_period_delta_down">−%1$s%% vs previous 30d</string>
+    <string name="perf_no_delta">No prior period to compare</string>
+    <string name="perf_view_quality">View quality detail</string>
+    <string name="perf_open_leads">%1$d open</string>
+    <string name="perf_won_leads">%1$d won</string>
+    <string name="perf_reviews">%1$d reviews</string>
+    <string name="perf_not_reviewed">Not reviewed yet</string>
+    <string name="perf_only_agents">Agents only</string>
+    <string name="perf_admin_only">Performance is available to managers and admins.</string>
+
+    <string name="quality_score">QA score</string>
+    <string name="quality_30d">30-day score</string>
+    <string name="quality_reviews_count">Reviews</string>
+    <string name="quality_violations">Compliance violations</string>
+    <string name="quality_range">Range</string>
+    <string name="quality_categories">Category breakdown</string>
+    <string name="quality_trend">Score trend</string>
+    <string name="quality_recent_reviews">Recent reviews</string>
+    <string name="quality_worst_category">Weakest area: %1$s</string>
+    <string name="quality_score_out_of">%1$s / 100</string>
+    <string name="quality_category_of_5">%1$s / 5</string>
+    <string name="quality_weight">%1$d%% weight</string>
+    <string name="quality_score_of">%1$d / 100</string>
+    <string name="quality_violation">Violation</string>
+    <string name="perf_violations_count">%1$d compliance violations</string>
+    <string name="perf_violations_clean">Fully compliant</string>
+    <string name="quality_clean">No violations</string>
+    <string name="quality_clean_sub">This agent is fully compliant.</string>
+    <string name="quality_by">By %1$s</string>
+    <string name="quality_review_notes_none">No notes on this review</string>
+
+    <!-- ═══ Settings ═══ -->
+    <string name="settings_display">Display</string>
+    <string name="settings_tracking">Tracking</string>
+    <string name="settings_account">Account</string>
+    <string name="settings_about">About</string>
+    <string name="settings_time_format">Time Format</string>
+    <string name="settings_time_format_sub">How timestamps are shown across the app</string>
+    <string name="settings_time_12">12 hr</string>
+    <string name="settings_time_24">24 hr</string>
+    <string name="settings_dark_theme">Dark theme</string>
+    <string name="settings_dark_theme_sub">Levoy is dark-first; this keeps every screen consistent</string>
+    <string name="settings_dark_theme_on">Dark theme is always on in Levoy.</string>
+    <string name="settings_sim_verification">SIM Number Verification</string>
+    <string name="settings_sim_verification_sub">Confirm this device is calling from your number</string>
+    <string name="settings_sim_verified">Verified</string>
+    <string name="settings_sim_unverified">Not verified</string>
+    <string name="settings_quick_action">Quick Action</string>
+    <string name="settings_quick_action_sub">Show actions while a call is in progress</string>
+    <string name="settings_sync_now">Sync now</string>
+    <string name="settings_sync_now_sub">Upload any calls waiting in the queue</string>
+    <string name="settings_account_sub">Signed in as %1$s</string>
+    <string name="settings_version">Levoy %1$s</string>
+    <string name="settings_signed_out">Signed out</string>
+    <string name="settings_logout_confirm">Sign out of Levoy on this device?</string>
+    <string name="settings_time_format_title">Time Format</string>
+
+    <!-- ═══ SIM verification ═══ -->
+    <string name="sim_title">Verify your number</string>
+    <string name="sim_subtitle">Verifying the SIM number helps Levoy attribute calls to you correctly and keeps your reports accurate.</string>
+    <string name="sim_your_number">Your number</string>
+    <string name="sim_unknown_number">Could not read this device\'s number</string>
+    <string name="sim_read_device_number">Read device number</string>
+    <string name="sim_verify_via_call_log">Verify via Call Log</string>
+    <string name="sim_verify_via_call_log_sub">Pick a call you placed from this number — we match it against your call history.</string>
+    <string name="sim_verify_via_call">Verify via Call</string>
+    <string name="sim_verify_via_call_sub">Place a dummy call to your own number and we\'ll detect it automatically.</string>
+    <string name="sim_skip">Skip Verification</string>
+    <string name="sim_skip_sub">(Not Recommended)</string>
+    <string name="sim_skip_body">Without verification, call reports may be attributed to the wrong number and your performance stats can be inaccurate.</string>
+    <string name="sim_skip_confirm">Skip verification anyway?</string>
+    <string name="sim_pick_a_call">Select the call you placed</string>
+    <string name="sim_no_outgoing_calls">No outgoing calls found in your history yet.</string>
+    <string name="sim_no_matching_call">No call matched this device\'s number. Place a call from this device and try again.</string>
+    <string name="sim_looking">Looking for your verification call…</string>
+    <string name="sim_verified_title">Number verified</string>
+    <string name="sim_verified_body">Your device number %1$s is now verified.</string>
+    <string name="sim_placing_call">Placing a call to %1$s…</string>
+    <string name="sim_call_failed">Could not place the self-call on this device.</string>
+    <string name="sim_continue">Continue</string>
+    <string name="sim_later">Verify later</string>
+    <string name="sim_confirm">Confirm this call</string>
+    <string name="sim_call_detail">%1$s · %2$s</string>
+
+    <!-- ═══ Quick Action overlay ═══ -->
+    <string name="quick_action_save_contact">Save Contact</string>
+    <string name="quick_action_save_contact_sub">Add this number to your device contacts</string>
+    <string name="quick_action_view_details">View Details</string>
+    <string name="quick_action_view_details_sub">Open this call in Levoy\'s history</string>
+    <string name="quick_action_dismiss">Dismiss</string>
+    <string name="quick_action_in_call">Call in progress</string>
+    <string name="quick_action_unknown_number">Unknown number</string>
+    <string name="quick_action_contact_saved">Saved %1$s to contacts</string>
+    <string name="quick_action_contact_failed">Could not save the contact</string>
+    <string name="quick_action_contact_name_prompt">Save contact</string>
+    <string name="quick_action_contact_name_hint">Name</string>
+    <string name="quick_action_already_saved">This number is already in your contacts</string>
+    <string name="quick_action_contact_permission_rationale">Allow Levoy to write contacts so it can save this caller.</string>
+    <string name="quick_action_enabled">Quick Action enabled</string>
+    <string name="quick_action_disabled">Quick Action turned off</string>
+    <string name="quick_action_needs_overlay">Allow Levoy to draw over other apps to show Quick Action.</string>
+
+    <!-- ═══ Misc ═══ -->
+    <string name="generate_report_confirm">Generate and email the latest call report?</string>
+    <string name="invite_member_confirm">Invite %1$s as %2$s?</string>
+    <string name="cd_leading_icon">Leading icon</string>
+    <string name="more_reports_sub">Daily call totals and trends</string>
+    <string name="more_performance_sub">Agent activity, conversion and deltas</string>
+    <string name="more_quality_sub">QA leaderboard and score breakdowns</string>
+    <string name="more_settings_sub">Time format, tracking and account</string>
+    <string name="duration_minutes">%1$d min</string>
+    <string name="duration_seconds">%1$ds</string>
+    <string name="percent_value">%1$d%%</string>
+    <string name="just_now">Just now</string>
+    <string name="minutes_ago">%1$d min ago</string>
+    <string name="hours_ago">%1$d hr ago</string>
+    <string name="days_ago">%1$d d ago</string>
+    <string name="syncing">Syncing…</string>
+    <string name="queued_calls">%1$d call(s) queued</string>
+    <string name="nothing_queued">Nothing waiting to sync</string>
+</resources>

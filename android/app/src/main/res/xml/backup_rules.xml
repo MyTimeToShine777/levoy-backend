@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android Auto Backup (API 30 and lower): only the call-history backup file travels to Google Drive. -->
+<full-backup-content>
+    <include domain="file" path="backups" />
+</full-backup-content>

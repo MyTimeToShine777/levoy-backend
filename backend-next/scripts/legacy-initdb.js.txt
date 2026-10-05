@@ -1,0 +1,505 @@
+'use strict';
+
+// Schema bootstrap. Hand-rolled, idempotent CREATE TABLE IF NOT EXISTS /
+// ADD COLUMN IF NOT EXISTS statements — no migration framework. Safe to run on
+// every start. Moved verbatim from the former server.js.
+
+const bcrypt = require('bcryptjs');
+const { pool } = require('../config/db');
+const { BOOTSTRAP_ADMIN_EMAIL, BOOTSTRAP_ADMIN_PASSWORD } = require('../config/env');
+
+async function initDB() {
+  const client = await pool.connect();
+  try {
+    await client.query(`CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, email VARCHAR(255) UNIQUE NOT NULL, password_hash VARCHAR(255) NOT NULL, name VARCHAR(255) NOT NULL, phone VARCHAR(50), role VARCHAR(20) DEFAULT 'agent', is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW())`);
+    await client.query(`CREATE TABLE IF NOT EXISTS teams (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, created_by INTEGER REFERENCES users(id), created_at TIMESTAMP DEFAULT NOW())`);
+    await client.query(`CREATE TABLE IF NOT EXISTS team_members (id SERIAL PRIMARY KEY, team_id INTEGER REFERENCES teams(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, joined_at TIMESTAMP DEFAULT NOW(), UNIQUE(team_id, user_id))`);
+    await client.query(`CREATE TABLE IF NOT EXISTS call_events (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, phone_number VARCHAR(50) NOT NULL, direction VARCHAR(20) DEFAULT 'outgoing', status VARCHAR(20) DEFAULT 'connected', duration_seconds INTEGER DEFAULT 0, timestamp TIMESTAMP DEFAULT NOW(), caller_id VARCHAR(255), notes TEXT, is_pinned BOOLEAN DEFAULT false, recording_path VARCHAR(500))`);
+    await client.query(`CREATE TABLE IF NOT EXISTS leads (id SERIAL PRIMARY KEY, name VARCHAR(255) NOT NULL, phone VARCHAR(50) NOT NULL, email VARCHAR(255), status VARCHAR(20) DEFAULT 'new', source VARCHAR(255), priority VARCHAR(20) DEFAULT 'normal', owner_id INTEGER REFERENCES users(id) ON DELETE CASCADE, assigned_to INTEGER REFERENCES users(id) ON DELETE SET NULL, notes TEXT, last_contacted_at TIMESTAMP, created_at TIMESTAMP DEFAULT NOW(), updated_at TIMESTAMP DEFAULT NOW())`);
+    await client.query(`CREATE TABLE IF NOT EXISTS notifications (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, type VARCHAR(50) NOT NULL, title VARCHAR(255) NOT NULL, message TEXT, data JSONB, is_read BOOLEAN DEFAULT false, created_at TIMESTAMP DEFAULT NOW())`);
+    await client.query(`CREATE TABLE IF NOT EXISTS whatsapp_templates (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, name VARCHAR(255) NOT NULL, category VARCHAR(50), language VARCHAR(20) DEFAULT 'en', content TEXT, variables JSONB, is_active BOOLEAN DEFAULT true, created_at TIMESTAMP DEFAULT NOW())`);
+    await client.query(`CREATE TABLE IF NOT EXISTS call_recordings (id SERIAL PRIMARY KEY, call_id INTEGER REFERENCES call_events(id) ON DELETE CASCADE, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, file_path VARCHAR(500) NOT NULL, file_size INTEGER DEFAULT 0, duration_seconds INTEGER, uploaded_at TIMESTAMP DEFAULT NOW())`);
+    await client.query(`CREATE TABLE IF NOT EXISTS user_settings (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, key VARCHAR(100) NOT NULL, value TEXT, UNIQUE(user_id, key))`);
+    await client.query(`CREATE TABLE IF NOT EXISTS exports (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id) ON DELETE CASCADE, type VARCHAR(50) NOT NULL, params JSONB, file_path VARCHAR(500), created_at TIMESTAMP DEFAULT NOW())`);
+
+    // Idempotent migrations for columns added after the initial schema was created.
+    // CREATE TABLE IF NOT EXISTS will not add new columns to an existing table, so
+    // each ALTER must be guarded against "already exists" errors.
+    const migrations = [
+      ['users', 'avatar_url', 'VARCHAR(500)'],
+      ['leads', 'assigned_to', 'INTEGER REFERENCES users(id) ON DELETE SET NULL'],
+      ['call_events', 'recording_path', 'VARCHAR(500)'],
+      ['users', 'last_login_at', 'TIMESTAMP'],
+    ];
+    for (const [table, column, type] of migrations) {
+      await client.query(
+        `ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS ${column} ${type}`
+      );
+    }
+    // ─── Lead management + agent quality tables ───
+    // Same hand-rolled, idempotent style as the migrations array above: plain
+    // CREATE TABLE IF NOT EXISTS inside initDB(), no migration framework.
+    //
+    // lead_assignments — append-only history. `previous_user_id` is the owner
+    // the lead had before this row was written (NULL = first assignment), so
+    // reassignment never loses the audit trail.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_assignments (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+      previous_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      note TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // lead_follow_ups — a task on a lead (call back, email, meeting...).
+    // `user_id` is who owns the task; completed_at stays NULL while open.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_follow_ups (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      type VARCHAR(20) NOT NULL DEFAULT 'call' CHECK (type IN ('call','email','meeting','whatsapp','other')),
+      due_at TIMESTAMP NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMP,
+      outcome VARCHAR(20) CHECK (outcome IN ('completed','no_answer','rescheduled','cancelled')),
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // call_reviews — header row for a QA review of one agent on one call.
+    // overall_score is ALWAYS computed server-side from the fixed weight table
+    // (see QA_WEIGHTS) and is forced to 0 when is_compliance_violation is true.
+    await client.query(`CREATE TABLE IF NOT EXISTS call_reviews (
+      id SERIAL PRIMARY KEY,
+      call_id INTEGER REFERENCES call_events(id) ON DELETE CASCADE,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL,
+      agent_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      reviewer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      overall_score NUMERIC(6,2) NOT NULL DEFAULT 0,
+      is_compliance_violation BOOLEAN NOT NULL DEFAULT false,
+      notes TEXT,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // review_scores — one row per QA category per review. UNIQUE(review_id,
+    // category) makes a re-score an upsert instead of a duplicate row.
+    await client.query(`CREATE TABLE IF NOT EXISTS review_scores (
+      id SERIAL PRIMARY KEY,
+      review_id INTEGER REFERENCES call_reviews(id) ON DELETE CASCADE,
+      category VARCHAR(40) NOT NULL,
+      score INTEGER NOT NULL CHECK (score BETWEEN 1 AND 5),
+      weight INTEGER NOT NULL,
+      UNIQUE (review_id, category)
+    )`);
+
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_lead_assignments_lead ON lead_assignments(lead_id, id DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_follow_ups_lead ON lead_follow_ups(lead_id, due_at DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_follow_ups_user_due ON lead_follow_ups(user_id, due_at)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_call_reviews_agent ON call_reviews(agent_id, created_at DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_call_reviews_call ON call_reviews(call_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_assigned_to ON leads(assigned_to)`);
+
+    // lead_assignees — MANY-TO-MANY assignment set for a lead. The old
+    // single-assignee model lived only in leads.assigned_to; this table is the
+    // real source of truth and exactly ONE row per lead may carry
+    // role='owner'. leads.assigned_to is then kept in sync with that row so all
+    // the pre-existing single-assignee code keeps working untouched.
+    //   owner        — primary, mirrors leads.assigned_to
+    //   collaborator — actively working the lead alongside the owner
+    //   watcher      — read-only visibility, not doing work
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_assignees (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      role VARCHAR(20) NOT NULL DEFAULT 'collaborator' CHECK (role IN ('owner','collaborator','watcher')),
+      assigned_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE (lead_id, user_id)
+    )`);
+    // Exactly one owner per lead. A partial unique index is the only way to
+    // express this in Postgres: UNIQUE(lead_id) WHERE role='owner' would
+    // collide with the plain (lead_id,user_id) uniqueness otherwise.
+    await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_lead_assignees_one_owner
+      ON lead_assignees(lead_id) WHERE role = 'owner'`);
+
+    // invitations — an admin invites someone by email; the invitee sets their
+    // own password via the token. Lets us close open self-signup as the only
+    // way to get an account while still letting an admin pre-create logins.
+    await client.query(`CREATE TABLE IF NOT EXISTS invitations (
+      id SERIAL PRIMARY KEY,
+      email VARCHAR(255) NOT NULL,
+      role VARCHAR(20) NOT NULL DEFAULT 'agent' CHECK (role IN ('admin','manager','agent')),
+      invited_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      token VARCHAR(128) NOT NULL UNIQUE,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','revoked')),
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      accepted_at TIMESTAMP
+    )`);
+
+    // audit_log — append-only trail of every mutating admin/manager action.
+    // actor_id is ON DELETE SET NULL so deleting a user never destroys the
+    // record that they (or someone) did the thing.
+    await client.query(`CREATE TABLE IF NOT EXISTS audit_log (
+      id SERIAL PRIMARY KEY,
+      actor_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      action VARCHAR(80) NOT NULL,
+      entity_type VARCHAR(50) NOT NULL,
+      entity_id VARCHAR(64),
+      details JSONB,
+      ip VARCHAR(64),
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // user_capacity — per-agent cap on OPEN leads. NULL max_open_leads means
+    // unlimited (the only sensible default), in which case the global
+    // ASSIGNMENT_CAPACITY still applies as a backstop.
+    await client.query(`CREATE TABLE IF NOT EXISTS user_capacity (
+      user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      max_open_leads INTEGER,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_lead_assignees_lead ON lead_assignees(lead_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_lead_assignees_user ON lead_assignees(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_log_actor ON audit_log(actor_id, created_at DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_log_action ON audit_log(action, created_at DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_invitations_email ON invitations(email, status)`);
+
+    // Backfill: leads assigned before lead_assignees existed have an
+    // assigned_to but no owner row. Without this the very first syncLeadOwner()
+    // on such a lead would NULL the column and silently orphan the lead.
+    await client.query(
+      `INSERT INTO lead_assignees (lead_id, user_id, role, assigned_by)
+       SELECT l.id, l.assigned_to, 'owner', l.owner_id
+         FROM leads l
+        WHERE l.assigned_to IS NOT NULL
+          AND NOT EXISTS (SELECT 1 FROM lead_assignees la WHERE la.lead_id = l.id)
+       ON CONFLICT (lead_id, user_id) DO NOTHING`);
+
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_calls_user ON call_events(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_calls_timestamp ON call_events(timestamp)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_calls_phone ON call_events(phone_number)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_owner ON leads(owner_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_status ON leads(status)`);
+
+    // ─── Lead tools: activities, tags, rules, pipeline ───
+    // ── leads: merge + soft-delete columns ──
+    // merged_into_lead_id is set when this lead was merged into another one.
+    // The row is NEVER hard-deleted (history has to stay auditable), so every
+    // list query filters on `merged_into_lead_id IS NULL` and detail responses
+    // expose the pointer instead of 404-ing.
+    await client.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS merged_into_lead_id INTEGER REFERENCES leads(id) ON DELETE SET NULL`);
+    await client.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_merged ON leads(merged_into_lead_id)`);
+
+    // ── lead_activities ──
+    // Stores ONLY activity that has no other home table: notes, status changes,
+    // manual email/whatsapp/meeting log entries. Calls, follow-ups, assignments
+    // and reviews already live in their own tables and are SYNTHESISED into the
+    // timeline at read time — duplicating them here would double-count.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_activities (
+      id SERIAL PRIMARY KEY,
+      lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      activity_type VARCHAR(20) NOT NULL CHECK (activity_type IN
+        ('call','follow_up','assignment','status_change','note','email','whatsapp','meeting','review','system')),
+      summary TEXT,
+      metadata JSONB,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_lead_activities_lead ON lead_activities(lead_id, created_at DESC)`);
+
+    // ── tags / lead_tags ──
+    // lead_tags is a plain join table (composite PK) rather than a surrogate
+    // key: re-tagging is INSERT ... ON CONFLICT DO NOTHING and removal is a
+    // single DELETE, both of which are cheaper without an id column.
+    await client.query(`CREATE TABLE IF NOT EXISTS tags (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(60) NOT NULL UNIQUE,
+      color VARCHAR(20) DEFAULT '#3b82f6',
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_tags (
+      lead_id INTEGER REFERENCES leads(id) ON DELETE CASCADE,
+      tag_id INTEGER REFERENCES tags(id) ON DELETE CASCADE,
+      PRIMARY KEY (lead_id, tag_id)
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_lead_tags_tag ON lead_tags(tag_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(LOWER(name))`);
+
+    // ── assignment_rules ──
+    // priority is an INTEGER where LOWER runs FIRST (0 before 100), so rules can
+    // be reordered without renumbering. conditions is JSONB:
+    //   { source:[..], status:[..], priority:[..], tag_ids:[..], min_priority:2 }
+    // Every key that is PRESENT must match (logical AND); absent keys are
+    // ignored. See matchRuleConditions() for the evaluation rules.
+    await client.query(`CREATE TABLE IF NOT EXISTS assignment_rules (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(120) NOT NULL,
+      enabled BOOLEAN NOT NULL DEFAULT true,
+      priority INTEGER NOT NULL DEFAULT 100,
+      conditions JSONB NOT NULL DEFAULT '{}'::jsonb,
+      strategy VARCHAR(20) NOT NULL DEFAULT 'round_robin'
+        CHECK (strategy IN ('round_robin','least_loaded','fixed')),
+      fixed_user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      team_id INTEGER REFERENCES teams(id) ON DELETE SET NULL,
+      stop_on_match BOOLEAN NOT NULL DEFAULT true,
+      created_by INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_assignment_rules_order ON assignment_rules(priority, id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_assignment_rules_created ON assignment_rules(created_at)`);
+
+    // ── pipeline_stages ──
+    // The kanban columns are data, not an enum: sales teams add their own
+    // ("Trial", "Contracting"). leads.status stores the stage SLUG.
+    await client.query(`CREATE TABLE IF NOT EXISTS pipeline_stages (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(60) NOT NULL,
+      slug VARCHAR(60) NOT NULL UNIQUE,
+      position INTEGER NOT NULL DEFAULT 0,
+      color VARCHAR(20) DEFAULT '#64748b',
+      is_won BOOLEAN NOT NULL DEFAULT false,
+      is_lost BOOLEAN NOT NULL DEFAULT false,
+      probability INTEGER NOT NULL DEFAULT 0,
+      created_at TIMESTAMP DEFAULT NOW()
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_pipeline_stages_position ON pipeline_stages(position, id)`);
+    // ON CONFLICT DO NOTHING makes the seed idempotent across restarts and
+    // never clobbers edits an admin made to a stage's colour or probability.
+    const DEFAULT_STAGES = [
+      ['New', 'new', 0, '#3b82f6', false, false, 5],
+      ['Contacted', 'contacted', 1, '#8b5cf6', false, false, 20],
+      ['Qualified', 'qualified', 2, '#0ea5e9', false, false, 40],
+      ['Proposal', 'proposal', 3, '#f59e0b', false, false, 70],
+      ['Won', 'won', 4, '#22c55e', true, false, 100],
+      ['Lost', 'lost', 5, '#ef4444', false, true, 0],
+    ];
+    for (const [name, slug, position, color, isWon, isLost, probability] of DEFAULT_STAGES) {
+      await client.query(
+        `INSERT INTO pipeline_stages (name, slug, position, color, is_won, is_lost, probability)
+         VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (slug) DO NOTHING`,
+        [name, slug, position, color, isWon, isLost, probability]);
+    }
+
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // ─── LEAD OPS: the 27-column spreadsheet engine ───
+    //
+    // The status table, the five assumptions, the 15 imported columns and the
+    // 12 derived columns are all DATA, not application constants: the spec
+    // (LEADS_SPEC.md) is a settings tab an admin edits, so it lives in tables
+    // the engine reads and admin endpoints can retune.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    // ── leads: 15 imported columns ──
+    // The generic CRM columns (name, phone, email, source, notes) already
+    // exist and are kept in sync with the sheet's own columns, so every
+    // pre-existing query keeps working on imported rows.
+    const leadImportCols = [
+      ['segment', 'VARCHAR(150)'],
+      ['lead_assigned_date', 'DATE'],
+      ['call_attempted_date', 'DATE'],
+      ['telecaller_name', 'VARCHAR(150)'],
+      ['customer_name', 'VARCHAR(255)'],
+      ['pharmacy_name', 'VARCHAR(255)'],
+      ['locality', 'VARCHAR(150)'],
+      ['address', 'TEXT'],
+      ['followup_date', 'DATE'],
+      ['call_done', 'VARCHAR(30)'],
+      ['call_status', 'VARCHAR(80)'],
+      ['remarks', 'TEXT'],
+      // Computed key for the pharmacy+locality duplicate check. Stored so the
+      // check is a single indexed equality instead of two LOWER() rewrites.
+      ['pharmacy_locality_key', 'VARCHAR(330)'],
+      ['duplicate_reasons', 'VARCHAR(200)'],
+      // ── the 12 derived columns ──
+      ['phone_clean', 'VARCHAR(20)'],
+      ['is_duplicate', 'BOOLEAN DEFAULT false'],
+      ['followup_clean', 'DATE'],
+      ['is_active_lead', 'BOOLEAN DEFAULT false'],
+      ['followup_window', 'VARCHAR(20)'],
+      ['days_since_last_call', 'INTEGER'],
+      ['priority_score', 'INTEGER DEFAULT 0'],
+      ['tier', 'VARCHAR(20) DEFAULT \'Closed\''],
+      ['next_best_action', 'TEXT'],
+      ['data_check', 'VARCHAR(200)'],
+      ['queue_key', 'VARCHAR(80)'],
+      ['queue_rank', 'INTEGER'],
+      ['win_probability', 'NUMERIC(6,4) DEFAULT 0'],
+    ];
+    for (const [column, type] of leadImportCols) {
+      await client.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS ${column} ${type}`);
+    }
+
+    // ── lead_status_rules ──
+    // The spec's 9-row Settings tab. status_key is the NORMALISED status name
+    // ("not answered" → notanswered) and is the real key: it is what the engine
+    // and every analytics query join on, so "Not Answered", "not answered" and
+    // "NotAnswered" are one status rather than three.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_status_rules (
+      id SERIAL PRIMARY KEY,
+      call_status VARCHAR(80) NOT NULL,
+      status_key VARCHAR(80) NOT NULL UNIQUE,
+      base_priority INTEGER NOT NULL DEFAULT 0,
+      active_pipeline BOOLEAN NOT NULL DEFAULT false,
+      win_prob NUMERIC(6,4) NOT NULL DEFAULT 0 CHECK (win_prob >= 0 AND win_prob <= 1),
+      next_action TEXT,
+      reached BOOLEAN NOT NULL DEFAULT false,
+      interested_plus BOOLEAN NOT NULL DEFAULT false,
+      demo_plus BOOLEAN NOT NULL DEFAULT false,
+      sort_order INTEGER NOT NULL DEFAULT 0,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // The 9 rows exactly as LEADS_SPEC.md records them. ON CONFLICT DO NOTHING
+    // so an admin's retune is never clobbered by a restart.
+    const DEFAULT_STATUS_RULES = [
+      ['Not Answered',                 'notanswered',                 25, true,  0.03, 'Retry call at a different time',                        false, false, false, 1],
+      ['Under Consideration',          'underconsideration',          60, true,  0.15, 'Follow up on WhatsApp and confirm a demo slot',         true,  false, false, 2],
+      ['Interested',                   'interested',                   80, true,  0.30, 'Book the demo',                                        true,  true,  false, 3],
+      ['Not Interested',               'notinterested',                 0, false, 0.00, 'Closed – no action',                                   true,  false, false, 4],
+      ['Call Back Later',              'callbacklater',                40, true,  0.08, 'Call back at the promised time',                       true,  false, false, 5],
+      ['Demo Done',                    'demodone',                     90, true,  0.50, 'Close the deal – share payment',                      true,  true,  true,  6],
+      ['Converted',                    'converted',                   100, false, 1.00, 'Won – support & onboarding',                          true,  true,  true,  7],
+      ['Switched Off / Invalid Number','switchedoffinvalidnumber',      0, false, 0.00, 'Verify the number or drop the lead',                   false, false, false, 8],
+      ['(Not called yet)',             'notcalledyet',                 10, true,  0.01, 'Make the first call',                                 false, false, false, 9],
+    ];
+    for (const r of DEFAULT_STATUS_RULES) {
+      await client.query(
+        `INSERT INTO lead_status_rules
+           (call_status, status_key, base_priority, active_pipeline, win_prob,
+            next_action, reached, interested_plus, demo_plus, sort_order)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+         ON CONFLICT (status_key) DO NOTHING`,
+        r);
+    }
+
+    // ── lead_scoring_settings ──
+    // The spec's five assumptions, as rows rather than constants so an admin
+    // can change the plan price or the tier cut-offs without a deploy.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_scoring_settings (
+      key VARCHAR(60) PRIMARY KEY,
+      value NUMERIC(14,4) NOT NULL,
+      description TEXT,
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+    const DEFAULT_SCORING_SETTINGS = [
+      ['plan_price',              499, '₹ per conversion (weighted pipeline)'],
+      ['daily_call_target',        60, 'calls per telecaller per day'],
+      ['hot_threshold',            80, 'tier = Hot at or above this score'],
+      ['warm_threshold',           50, 'tier = Warm at or above this score'],
+      ['followup_urgency_bonus',   30, 'added when a follow-up is Overdue'],
+      ['this_week_days',            7, 'follow-up window width for "This Week"'],
+    ];
+    for (const [k, v, d] of DEFAULT_SCORING_SETTINGS) {
+      await client.query(
+        `INSERT INTO lead_scoring_settings (key, value, description) VALUES ($1,$2,$3)
+         ON CONFLICT (key) DO NOTHING`, [k, v, d]);
+    }
+
+    // ── lead_telecaller_map ──
+    // An admin's explicit binding of a spreadsheet name to a real user. It is
+    // consulted BEFORE name matching so a deliberate mapping is never silently
+    // overridden by the next import. user_id NULL = the row is unbound.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_telecaller_map (
+      name VARCHAR(150) PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+      created_at TIMESTAMP DEFAULT NOW(),
+      updated_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    // ── lead_telecaller_unmatched ──
+    // Names seen in imports that matched no user. Kept so they stay VISIBLE and
+    // listable until an admin binds them, instead of vanishing into the book.
+    await client.query(`CREATE TABLE IF NOT EXISTS lead_telecaller_unmatched (
+      name VARCHAR(150) PRIMARY KEY,
+      leads_count INTEGER NOT NULL DEFAULT 0,
+      last_seen_at TIMESTAMP DEFAULT NOW()
+    )`);
+
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_phone_clean ON leads(phone_clean)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_pl_key ON leads(pharmacy_locality_key)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_call_status ON leads(call_status)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_telecaller ON leads(telecaller_name)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_segment ON leads(segment)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_locality ON leads(locality)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_priority ON leads(priority_score DESC)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_leads_followup_window ON leads(followup_window)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_telecaller_map_lower ON lead_telecaller_map(lower(btrim(name)))`);
+
+    // password_resets — one row per issued reset link. Tokens are stored in the
+    // clear (like invitations) because a reset link is bearer-authenticated
+    // exactly like an invite token: whoever holds it can take over the account.
+    // Hashing it would buy nothing here and would break the admin
+    // password-reset-link flow, which has to re-display the link.
+    // used_at is what makes a token single-use: the read path always filters
+    // `used_at IS NULL AND expires_at > NOW()`.
+    await client.query(`CREATE TABLE IF NOT EXISTS password_resets (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token VARCHAR(128) NOT NULL UNIQUE,
+      expires_at TIMESTAMP NOT NULL,
+      used_at TIMESTAMP,
+      created_at TIMESTAMP DEFAULT NOW(),
+      request_ip VARCHAR(64)
+    )`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id)`);
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_password_resets_active ON password_resets(token) WHERE used_at IS NULL`);
+    // Supports the correlated recording_count subquery in GET /api/calls.
+    await client.query(`CREATE INDEX IF NOT EXISTS idx_call_recordings_call ON call_recordings(call_id)`);
+
+    // ─── First-admin bootstrap ───
+    // Runs only when the database has no active admin. This is the ONLY place
+    // an admin account is ever created implicitly, and it is driven purely by
+    // env vars set by the operator — never by an inbound request. If the env
+    // vars are missing the install simply has no admin until one is invited,
+    // which is the safe direction to fail.
+    const adminCount = await client.query(
+      `SELECT count(*)::int AS n FROM users WHERE role = 'admin' AND is_active = true`);
+    if (adminCount.rows[0].n === 0) {
+      if (BOOTSTRAP_ADMIN_EMAIL && BOOTSTRAP_ADMIN_PASSWORD) {
+        const hash = await bcrypt.hash(BOOTSTRAP_ADMIN_PASSWORD, 12);
+        const existing = await client.query('SELECT id,role,is_active FROM users WHERE email = $1', [BOOTSTRAP_ADMIN_EMAIL]);
+        if (existing.rows.length === 0) {
+          await client.query(
+            `INSERT INTO users (email, password_hash, name, role, is_active)
+             VALUES ($1,$2,$3,'admin',true)`,
+            [BOOTSTRAP_ADMIN_EMAIL, hash, 'Bootstrap Administrator']);
+          // Loud on purpose: an operator must never have to guess which account
+          // holds admin, or whether one was created at all.
+          console.log('┌──────────────────────────────────────────────────────────────┐');
+          console.log(`│ BOOTSTRAP ADMIN CREATED: ${BOOTSTRAP_ADMIN_EMAIL.padEnd(45)}│`);
+          console.log('│ Password came from BOOTSTRAP_ADMIN_PASSWORD. Change it now.  │');
+          console.log('└──────────────────────────────────────────────────────────────┘');
+          await client.query(
+            `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, details, ip)
+             VALUES (NULL,'user.bootstrap_admin','user',NULL,$1,NULL)`,
+            [JSON.stringify({ email: BOOTSTRAP_ADMIN_EMAIL, path: 'bootstrap' })]);
+        } else {
+          // The account exists but holds no admin role (e.g. it was demoted).
+          // Promote rather than create a second account on the same address.
+          await client.query(
+            `UPDATE users SET role = 'admin', is_active = true WHERE id = $1`, [existing.rows[0].id]);
+          console.log(`BOOTSTRAP: promoted existing account ${BOOTSTRAP_ADMIN_EMAIL} to admin (no active admin existed)`);
+          await client.query(
+            `INSERT INTO audit_log (actor_id, action, entity_type, entity_id, details, ip)
+             VALUES (NULL,'user.bootstrap_admin_promoted','user',$1,$2,NULL)`,
+            [String(existing.rows[0].id), JSON.stringify({ email: BOOTSTRAP_ADMIN_EMAIL, path: 'bootstrap' })]);
+        }
+      } else {
+        console.warn('WARNING: no active admin exists and BOOTSTRAP_ADMIN_EMAIL/BOOTSTRAP_ADMIN_PASSWORD are unset.');
+        console.warn('         Registration is closed, so NOBODY can log in. Set the env vars and restart,');
+        console.warn('         or insert an admin row directly into the database.');
+      }
+    }
+
+    console.log('DB initialized');
+  } finally { client.release(); }
+}
+
+module.exports = { initDB };

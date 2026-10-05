@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Dark-first palette. Values sampled from the 50 reference screenshots
+    (see DESIGN_REFERENCE.md). The reference app has NO light theme, so these
+    are the DEFAULT tokens - values-night would be a no-op duplicate.
+-->
+<resources>
+
+    <!-- Core surfaces -->
+    <color name="background">#101010</color>
+    <color name="surface">#1F1F1F</color>
+    <color name="surface_variant">#2A2A2A</color>
+    <color name="surface_sunken">#0A0A0A</color>
+    <color name="divider">#3A3A3A</color>
+    <color name="outline">#3A3A3A</color>
+
+    <!-- Text -->
+    <color name="text_primary">#F2F2F2</color>
+    <color name="text_secondary">#A0A0A0</color>
+    <color name="text_tertiary">#707070</color>
+
+    <!-- Amber accent: selected states, active tab, primary CTA -->
+    <color name="accent">#F0B000</color>
+    <color name="accent_pressed">#C99400</color>
+    <color name="accent_dim">#2E2410</color>
+    <color name="on_accent">#101010</color>
+
+    <!-- Semantic -->
+    <color name="danger">#E5484D</color>
+    <color name="danger_dim">#2E1516</color>
+    <color name="success">#3DD68C</color>
+    <color name="success_dim">#10261C</color>
+    <color name="warning">#F0B000</color>
+    <color name="info">#4A9EFF</color>
+    <color name="info_dim">#10202E</color>
+
+    <!-- Ripple / press -->
+    <color name="ripple_light">#22FFFFFF</color>
+    <color name="scrim">#B3000000</color>
+    <color name="transparent">#00000000</color>
+
+    <!--
+        Legacy aliases. Kept so older code and pre-existing layouts keep
+        compiling; each now points at a dark-theme token instead of the old
+        light-theme value.
+    -->
+    <color name="primary">#F0B000</color>
+    <color name="primary_dark">#101010</color>
+    <color name="green">#3DD68C</color>
+    <color name="red">#E5484D</color>
+    <color name="blue">#4A9EFF</color>
+    <color name="orange">#F0B000</color>
+    <color name="purple">#9B7BFF</color>
+    <color name="gray">#A0A0A0</color>
+    <color name="white">#F2F2F2</color>
+    <color name="black">#000000</color>
+
+</resources>

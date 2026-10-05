@@ -1,0 +1,24 @@
+node_modules/
+.next/
+out/
+build/
+dist/
+*.log
+.env
+.env.local
+.DS_Store
+__pycache__/
+*.pyc
+venv/
+.venv/
+uploads/
+*.apk
+*.aab
+# integration credentials
+backend-next/.env.integrations
+android/google-services.local.json
+android/app/google-services.json
+
+# real lead data and local test files (never commit)
+*.csv
+.playwright-mcp/

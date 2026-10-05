@@ -1,0 +1,229 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Levoy Marketing Site — Design System
+   Single source of truth for colour, type, radius, elevation and motion.
+   Consumed as Tailwind utilities: bg-brand-500, text-ink-600, rounded-card…
+   ========================================================================== */
+
+@theme {
+  /* --- Brand: crimson ---------------------------------------------------- */
+  --color-brand-50: #fff1f1;
+  --color-brand-100: #ffe1e1;
+  --color-brand-200: #ffc7c7;
+  --color-brand-300: #ff9e9e;
+  --color-brand-400: #ff7070;
+  --color-brand-500: #ff4444;
+  --color-brand-600: #ee2b2b;
+  --color-brand-700: #c91c1c;
+  --color-brand-800: #9d1919;
+  --color-brand-900: #7d1a1a;
+  --color-brand-950: #460909;
+
+  /* --- Ink: cool neutral scale ------------------------------------------- */
+  --color-ink-50: #f7f7f9;
+  --color-ink-100: #eeeef2;
+  --color-ink-200: #dbdce3;
+  --color-ink-300: #b9bcc7;
+  --color-ink-400: #8c909e;
+  --color-ink-500: #676c7c;
+  --color-ink-600: #4c5162;
+  --color-ink-700: #393d4b;
+  --color-ink-800: #23262f;
+  --color-ink-900: #14161d;
+  --color-ink-950: #0b0c11;
+
+  /* --- Support hues used only inside illustrations ------------------------ */
+  --color-signal-400: #3ecf8e;
+  --color-signal-500: #17a866;
+  --color-signal-600: #0f8552;
+  --color-info-400: #4d9fff;
+  --color-info-500: #2b7fe0;
+  --color-warn-400: #ffb020;
+  --color-warn-500: #e08c00;
+
+  /* --- Typography -------------------------------------------------------- */
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+
+  /* --- Radius ------------------------------------------------------------ */
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-card: 1.125rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-pill: 999px;
+
+  /* --- Elevation --------------------------------------------------------- */
+  --shadow-xs: 0 1px 2px 0 rgb(11 12 17 / 0.05);
+  --shadow-card: 0 1px 2px 0 rgb(11 12 17 / 0.04),
+    0 8px 24px -12px rgb(11 12 17 / 0.16);
+  --shadow-lift: 0 2px 4px 0 rgb(11 12 17 / 0.05),
+    0 18px 40px -18px rgb(11 12 17 / 0.26);
+  --shadow-glow: 0 10px 30px -12px rgb(255 68 68 / 0.55);
+
+  /* --- Motion ------------------------------------------------------------ */
+  --animate-marquee: marquee 38s linear infinite;
+  --animate-marquee-rev: marquee-rev 38s linear infinite;
+  --animate-float: float 7s ease-in-out infinite;
+  --animate-pulse-ring: pulse-ring 2.4s ease-out infinite;
+
+  @keyframes marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+  @keyframes marquee-rev {
+    from {
+      transform: translateX(-50%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-14px);
+    }
+  }
+  @keyframes pulse-ring {
+    0% {
+      box-shadow: 0 0 0 0 rgb(255 68 68 / 0.45);
+    }
+    70% {
+      box-shadow: 0 0 0 14px rgb(255 68 68 / 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgb(255 68 68 / 0);
+    }
+  }
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    /* Offset anchor jumps so the sticky header never covers a heading. */
+    scroll-padding-top: 6rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--color-white);
+    color: var(--color-ink-800);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    color: var(--color-ink-900);
+    font-weight: 800;
+    letter-spacing: -0.022em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Shared surface used by every card-like block on the page. */
+  .surface-card {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--color-ink-200);
+    background-color: var(--color-white);
+    box-shadow: var(--shadow-card);
+  }
+}
+
+/* ==========================================================================
+   Component-level utilities (kept here so markup stays declarative)
+   ========================================================================== */
+
+@utility container-page {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem; /* 1280px */
+  padding-inline: 1.25rem;
+
+  @media (width >= 40rem) {
+    padding-inline: 2rem;
+  }
+  @media (width >= 80rem) {
+    padding-inline: 2.5rem;
+  }
+}
+
+@utility eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: var(--radius-pill);
+  background-color: var(--color-brand-50);
+  padding: 0.375rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-brand-700);
+}
+
+/* Fades marquee edges so logos appear to scroll in from nowhere. */
+@utility mask-edges {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 8%,
+    black 92%,
+    transparent
+  );
+}
+
+@utility text-gradient-brand {
+  background-image: linear-gradient(
+    100deg,
+    var(--color-brand-500),
+    var(--color-brand-700) 55%,
+    var(--color-brand-900)
+  );
+  background-clip: text;
+  color: transparent;
+}
+
+/* ==========================================================================
+   Accessibility helpers
+   ========================================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

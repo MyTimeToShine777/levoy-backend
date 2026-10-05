@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Levoy Quick Call",
+  "version": "1.0.0",
+  "description": "Click a phone number on any web page and your linked Levoy phone dials it.",
+  "permissions": ["storage", "contextMenus"],
+  "optional_host_permissions": ["http://*/*", "https://*/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Levoy Quick Call", "default_popup": "popup.html" },
+  "content_scripts": [
+    { "matches": ["http://*/*", "https://*/*"], "js": ["content.js"], "run_at": "document_idle" }
+  ],
+  "icons": { "128": "icons/icon128.png" }
+}

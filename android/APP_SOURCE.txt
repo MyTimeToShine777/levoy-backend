@@ -1,0 +1,2713 @@
+# Levoy Clone — Android App (Kotlin)
+# Complete source: call log tracking, sync to backend, dialer, lead management
+
+# ─── Project Config ───
+# File: android/app/build.gradle (or build.gradle.kts)
+#
+# plugins {
+#     id 'com.android.application'
+#     id 'org.jetbrains.kotlin.android'
+#     id 'kotlin-parcelize'
+# }
+#
+# android {
+#     namespace 'com.levoy.app'
+#     compileSdk 34
+#
+#     defaultConfig {
+#         applicationId "com.levoy.app"
+#         minSdk 26
+#         targetSdk 34
+#         versionCode 1
+#         versionName "1.0.0"
+#
+#         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+#         buildConfigField "String", "API_BASE_URL", '"http://your-server-ip:8080/api"'
+#     }
+#
+#     buildTypes {
+#         release {
+#             minifyEnabled true
+#             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+#         }
+#     }
+# }
+#
+# dependencies {
+#     implementation 'androidx.core:core-ktx:1.12.0'
+#     implementation 'androidx.appcompat:appcompat:1.6.1'
+#     implementation 'com.google.android.material:material:1.11.0'
+#     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+#     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+#     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.7.0'
+#     implementation 'androidx.work:work-runtime-ktx:2.9.0'
+#     implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+#     implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+#     implementation 'com.google.code.gson:gson:2.10.1'
+#     implementation 'io.github.michaelbull:disruptor-typeclasses-kotlin:0.3.0' // for result type
+#     testImplementation 'junit:junit:4.13.2'
+#     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+#     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+# }
+
+# ─── Android Manifest ───
+# File: android/app/src/main/AndroidManifest.xml
+#
+# <?xml version="1.0" encoding="utf-8"?>
+# <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+#     xmlns:tools="http://schemas.android.com/tools">
+#
+#     <!-- CRITICAL PERMISSIONS for call tracking -->
+#     <uses-permission android:name="android.permission.READ_CALL_LOG" />
+#     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+#     <uses-permission android:name="android.permission.CALL_PHONE" />
+#     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+#         android:maxSdkVersion="32" />
+#     <uses-permission android:name="android.permission.INTERNET" />
+#     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+#     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+#     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+#     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+#     <uses-permission android:name="android.permission.WAKE_LOCK" />
+#
+#     <application
+#         android:name=".LevoyApp"
+#         android:allowBackup="true"
+#         android:icon="@mipmap/ic_launcher"
+#         android:label="@string/app_name"
+#         android:roundIcon="@mipmap/ic_launcher_round"
+#         android:supportsRtl="true"
+#         android:theme="@style/Theme.Levoy"
+#         android:usesCleartextTraffic="true"
+#         tools:targetApi="34">
+#
+#         <activity
+#             android:name=".MainActivity"
+#             android:exported="true"
+#             android:theme="@style/Theme.Levoy">
+#             <intent-filter>
+#                 <action android:name="android.intent.action.MAIN" />
+#                 <category android:name="android.intent.category.LAUNCHER" />
+#             </intent-filter>
+#         </activity>
+#
+#         <service
+#             android:name=".service.CallSyncService"
+#             android:enabled="true"
+#             android:exported="false"
+#             android:foregroundServiceType="dataSync" />
+#
+#         <receiver
+#             android:name=".receiver.BootReceiver"
+#             android:enabled="true"
+#             android:exported="true">
+#             <intent-filter>
+#                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+#             </intent-filter>
+#         </receiver>
+#
+#         <receiver
+#             android:name=".receiver.CallLogReceiver"
+#             android:enabled="true"
+#             android:exported="false">
+#             <intent-filter>
+#                 <action android:name="android.intent.action.PHONE_STATE" />
+#             </intent-filter>
+#         </receiver>
+#
+#     </application>
+# </manifest>
+
+# ─── Proguard Rules ───
+# File: android/app/proguard-rules.pro
+#
+# -keep class com.levoy.app.model.** { *; }
+# -keep class com.levoy.app.network.** { *; }
+# -dontwarn okhttp3.**
+# -dontwarn javax.annotation.**
+
+# ════════════════════════════════════════════════════════════════
+# 1. APP / APPLICATION CLASS
+# ════════════════════════════════════════════════════════════════
+# File: android/app/src/main/java/com/levoy/app/LevoyApp.kt
+
+package com.levoy.app
+
+import android.app.Application
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+
+class LevoyApp : Application() {
+
+    companion object {
+        const val CHANNEL_SYNC = "call_sync_channel"
+        const val CHANNEL_ALERT = "call_alert_channel"
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+        createNotificationChannels()
+    }
+
+    private fun createNotificationChannels() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val syncChannel = NotificationChannel(
+                CHANNEL_SYNC,
+                "Call Sync",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Background call log synchronization"
+                setShowBadge(false)
+            }
+            val alertChannel = NotificationChannel(
+                CHANNEL_ALERT,
+                "Call Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Missed call and important call alerts"
+            }
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(syncChannel)
+            manager.createNotificationChannel(alertChannel)
+        }
+    }
+}
+
+# ════════════════════════════════════════════════════════════════
+# 2. MODELS (Data classes for API + local DB)
+# ════════════════════════════════════════════════════════════════
+
+# ─── File: android/app/src/main/java/com/levoy/app/model/Models.kt ───
+
+package com.levoy.app.model
+
+import android.os.Parcelable
+import kotlinx.parcelize.Parcelize
+
+@Parcelize
+data class User(
+    val id: Int,
+    val email: String,
+    val name: String,
+    val phone: String? = null,
+    val role: String = "agent",
+    val is_active: Boolean = true,
+    val created_at: String? = null
+) : Parcelable
+
+@Parcelize
+data class AuthResponse(
+    val access_token: String,
+    val token_type: String = "bearer",
+    val user: User
+) : Parcelable
+
+@Parcelize
+data class CallEvent(
+    val id: Int = 0,
+    val phone_number: String,
+    val direction: String = "outgoing",
+    val status: String = "connected",
+    val duration_seconds: Int = 0,
+    val timestamp: String,
+    val caller_id: String? = null,
+    val notes: String? = null,
+    val is_pinned: Boolean = false,
+    val recording_path: String? = null
+) : Parcelable {
+    // Local-only fields (not sent to server)
+    var locally_synced: Boolean = false
+    var local_id: Long = 0
+}
+
+@Parcelize
+data class CallEventBatch(
+    val events: List<CallEventUpload>
+)
+
+@Parcelize
+data class CallEventUpload(
+    val phone_number: String,
+    val direction: String = "outgoing",
+    val status: String = "connected",
+    val duration_seconds: Int = 0,
+    val timestamp: String? = null,
+    val caller_id: String? = null,
+    val notes: String? = null,
+    val is_pinned: Boolean = false,
+    val recording_path: String? = null
+)
+
+@Parcelize
+data class Lead(
+    val id: Int = 0,
+    val name: String,
+    val phone: String,
+    val email: String? = null,
+    val status: String = "new",
+    val source: String? = null,
+    val priority: String = "normal",
+    val owner_id: Int = 0,
+    val assigned_to: Int? = null,
+    val notes: String? = null,
+    val last_contacted_at: String? = null,
+    val created_at: String,
+    val updated_at: String
+) : Parcelable
+
+@Parcelize
+data class DashboardStats(
+    val total_calls_today: Int = 0,
+    val incoming_today: Int = 0,
+    val outgoing_today: Int = 0,
+    val missed_today: Int = 0,
+    val rejected_today: Int = 0,
+    val connected_today: Int = 0,
+    val total_duration_today: Int = 0,
+    val unique_contacts_today: Int = 0,
+    val total_calls_all: Int = 0,
+    val total_leads: Int = 0,
+    val converted_leads: Int = 0,
+    val team_members: Int = 0,
+    val avg_call_duration: Double = 0.0
+) : Parcelable
+
+@Parcelize
+data class DailyReportData(
+    val date: String,
+    val total_calls: Int,
+    val incoming: Int,
+    val outgoing: Int,
+    val missed: Int,
+    val rejected: Int,
+    val total_duration: Int,
+    val unique_contacts: Int
+) : Parcelable
+
+// ════════════════════════════════════════════════════════════════
+# 3. NETWORK / API CLIENT
+# ════════════════════════════════════════════════════════════════
+
+# ─── File: android/app/src/main/java/com/levoy/app/network/ApiClient.kt ───
+
+package com.levoy.app.network
+
+import android.content.Context
+import com.levoy.app.model.*
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import java.io.File
+import java.util.concurrent.TimeUnit
+
+class ApiClient(context: Context) {
+
+    private val gson: Gson = GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss").create()
+    private val baseUrl: String = BuildConfig.API_BASE_URL
+
+    private val authInterceptor = Interceptor { chain ->
+        val token = TokenStorage.getInstance(context).getToken()
+        val request = chain.request().newBuilder()
+        if (token != null) {
+            request.addHeader("Authorization", "Bearer $token")
+        }
+        chain.proceed(request.build())
+    }
+
+    private val client: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor(authInterceptor)
+        .addInterceptor(LoggingInterceptor())
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
+
+    // ─── Auth ───
+
+    fun login(email: String, password: String): Result<AuthResponse> {
+        return executeRequest<AuthResponse>(
+            "POST",
+            "/auth/login",
+            mapOf("email" to email, "password" to password)
+        )
+    }
+
+    fun register(email: String, password: String, name: String, phone: String? = null): Result<AuthResponse> {
+        val body = mutableMapOf("email" to email, "password" to password, "name" to name)
+        phone?.let { body["phone"] = it }
+        return executeRequest<AuthResponse>("POST", "/auth/register", body)
+    }
+
+    fun getMe(): Result<User> {
+        return executeRequest<User>("GET", "/auth/me")
+    }
+
+    // ─── Calls ───
+
+    fun uploadCallBatch(events: List<CallEventUpload>): Result<Map<String, Any>> {
+        val body = mapOf("events" to events)
+        return executeRequest<Map<String, Any>>("POST", "/calls/batch", body)
+    }
+
+    fun getCalls(limit: Int = 100, offset: Int = 0, direction: String? = null,
+                 status: String? = null, phone: String? = null,
+                 dateFrom: String? = null, dateTo: String? = null,
+                 pinned: Boolean? = null): Result<List<CallEvent>> {
+        val params = mutableMapOf<String, String>(
+            "limit" to limit.toString(),
+            "offset" to offset.toString()
+        )
+        direction?.let { params["direction"] = it }
+        status?.let { params["status"] = it }
+        phone?.let { params["phone"] = it }
+        dateFrom?.let { params["date_from"] = it }
+        dateTo?.let { params["date_to"] = it }
+        if (pinned != null) params["pinned"] = pinned.toString()
+        return executeRequest<List<CallEvent>>("GET", "/calls?${params.entries.joinToString("&") { "${it.key}=${it.value}" }}")
+    }
+
+    fun getStats(): Result<DashboardStats> {
+        return executeRequest<DashboardStats>("GET", "/calls/stats")
+    }
+
+    fun togglePin(callId: Int, pinned: Boolean): Result<Map<String, Any>> {
+        return executeRequest<Map<String, Any>>("PUT", "/calls/$callId/pin?pinned=$pinned")
+    }
+
+    fun updateCallNotes(callId: Int, notes: String): Result<Map<String, Any>> {
+        return executeRequest<Map<String, Any>>("PUT", "/calls/$callId/notes?notes=${notes.replace(" ", "%20")}")
+    }
+
+    // ─── Leads ───
+
+    fun createLead(lead: Lead): Result<Lead> {
+        val body = mapOf(
+            "name" to lead.name,
+            "phone" to lead.phone,
+            "email" to (lead.email ?: ""),
+            "status" to lead.status,
+            "source" to (lead.source ?: ""),
+            "priority" to lead.priority,
+            "notes" to (lead.notes ?: ""),
+            "assigned_to" to (lead.assigned_to ?: -1).toString()
+        )
+        return executeRequest<Lead>("POST", "/leads", body)
+    }
+
+    fun getLeads(status: String? = null, priority: String? = null,
+                 search: String? = null, limit: Int = 200, offset: Int = 0): Result<List<Lead>> {
+        val params = mutableMapOf<String, String>("limit" to limit.toString(), "offset" to offset.toString())
+        status?.let { params["status"] = it }
+        priority?.let { params["priority"] = it }
+        search?.let { params["search"] = it }
+        return executeRequest<List<Lead>>("GET", "/leads?${params.entries.joinToString("&") { "${it.key}=${it.value}" }}")
+    }
+
+    fun getLead(id: Int): Result<Lead> {
+        return executeRequest<Lead>("GET", "/leads/$id")
+    }
+
+    fun updateLead(id: Int, lead: Lead): Result<Lead> {
+        val body = mapOf(
+            "name" to lead.name,
+            "phone" to lead.phone,
+            "email" to (lead.email ?: ""),
+            "status" to lead.status,
+            "source" to (lead.source ?: ""),
+            "priority" to lead.priority,
+            "notes" to (lead.notes ?: "")
+        )
+        return executeRequest<Lead>("PUT", "/leads/$id", body)
+    }
+
+    fun markLeadContacted(id: Int): Result<Map<String, Any>> {
+        return executeRequest<Map<String, Any>>("POST", "/leads/$id/contact")
+    }
+
+    // ─── Reports ───
+
+    fun getDailyReports(days: Int = 30): Result<List<DailyReportData>> {
+        return executeRequest<List<DailyReportData>>("GET", "/reports/daily?days=$days")
+    }
+
+    fun generateReport(): Result<Map<String, Any>> {
+        return executeRequest<Map<String, Any>>("POST", "/reports/generate-email", null)
+    }
+
+    // ─── Team ───
+
+    fun getUsers(): Result<List<User>> {
+        return executeRequest<List<User>>("GET", "/users")
+    }
+
+    fun updateUserRole(userId: Int, role: String): Result<Map<String, Any>> {
+        return executeRequest<Map<String, Any>>("POST", "/users/$userId/role?role=$role")
+    }
+
+    // ─── Helpers ───
+
+    private fun <T> executeRequest(
+        method: String,
+        endpoint: String,
+        body: Map<String, Any>? = null
+    ): Result<T> {
+        return try {
+            val requestBody = if (body != null) {
+                val json = gson.toJson(body)
+                RequestBody.create(json, "application/json".toMediaType())
+            } else null
+
+            val request = Request.Builder()
+                .url("$baseUrl$endpoint")
+                .method(method, requestBody)
+                .build()
+
+            val response = client.newCall(request).execute()
+            if (response.isSuccessful) {
+                val responseBody = response.body?.string()
+                if (responseBody != null) {
+                    val result = gson.fromJson(responseBody, object : com.google.gson.reflect.TypeToken<T>() {}.type)
+                    Result.success(result)
+                } else {
+                    Result.success(null as T)
+                }
+            } else {
+                val errorBody = response.body?.string() ?: "Unknown error"
+                val errorJson = gson.fromJson(errorBody, Map::class.java)
+                val detail = errorJson["detail"] as? String ?: errorBody
+                Result.failure(Exception(detail))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+}
+
+class LoggingInterceptor : Interceptor {
+    override fun intercept(chain: Chain): Response {
+        val request = chain.request()
+        println("API REQUEST: ${request.method} ${request.url}")
+        val startTime = System.currentTimeMillis()
+        val response = chain.proceed(request)
+        val elapsed = System.currentTimeMillis() - startTime
+        println("API RESPONSE: ${response.code} in ${elapsed}ms")
+        return response
+    }
+}
+
+// ─── File: android/app/src/main/java/com/levoy/app/network/TokenStorage.kt ───
+
+package com.levoy.app.network
+
+import android.content.Context
+import android.content.SharedPreferences
+
+class TokenStorage(context: Context) {
+    private val prefs: SharedPreferences = context.getSharedPreferences("levoy_prefs", Context.MODE_PRIVATE)
+
+    companion object {
+        private const val KEY_TOKEN = "auth_token"
+        private const val KEY_USER = "user_json"
+        private const val KEY_USER_ID = "user_id"
+        private const val KEY_USER_NAME = "user_name"
+
+        @Volatile
+        private var instance: TokenStorage? = null
+
+        fun getInstance(context: Context): TokenStorage {
+            return instance ?: synchronized(this) {
+                instance ?: TokenStorage(context).also { instance = it }
+            }
+        }
+    }
+
+    fun getToken(): String? = prefs.getString(KEY_TOKEN, null)
+
+    fun saveToken(token: String) = prefs.edit().putString(KEY_TOKEN, token).apply()
+
+    fun clearToken() = prefs.edit().remove(KEY_TOKEN).apply()
+
+    fun saveUser(userId: Int, name: String, email: String) {
+        prefs.edit()
+            .putInt(KEY_USER_ID, userId)
+            .putString(KEY_USER_NAME, name)
+            .putString(KEY_USER_EMAIL, email)
+            .apply()
+    }
+
+    fun getUser(): UserInfo? {
+        val id = prefs.getInt(KEY_USER_ID, -1)
+        if (id == -1) return null
+        return UserInfo(
+            id = id,
+            name = prefs.getString(KEY_USER_NAME, "Unknown") ?: "Unknown",
+            email = prefs.getString(KEY_USER_EMAIL, "") ?: ""
+        )
+    }
+
+    fun clearAll() = prefs.edit().clear().apply()
+}
+
+data class UserInfo(val id: Int, val name: String, val email: String)
+
+# ════════════════════════════════════════════════════════════════
+# 4. CALL LOG TRACKING (THE CORE)
+# ════════════════════════════════════════════════════════════════
+
+# ─── File: android/app/src/main/java/com/levoy/app/calllog/CallLogTracker.kt ───
+
+package com.levoy.app.calllog
+
+import android.content.ContentObserver
+import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.os.Handler
+import android.os.Looper
+import com.levoy.app.model.CallEvent
+import com.levoy.app.model.CallEventUpload
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+import java.text.SimpleDateFormat
+import java.util.*
+
+/**
+ * Core class: reads Android call log and uploads to backend.
+ *
+ * Strategy: Uses ContentObserver on CallLog.Calls content URI to get real-time
+ * notifications of new/changed calls, then fetches the call details from the
+ * content provider.
+ *
+ * Fallback: If ContentObserver isn't sufficient, uses WorkManager periodic sync
+ * to poll for new calls since last sync.
+ */
+class CallLogTracker private constructor(private val context: Context) {
+
+    companion object {
+        @Volatile
+        private var instance: CallLogTracker? = null
+
+        fun getInstance(context: Context): CallLogTracker {
+            return instance ?: synchronized(this) {
+                instance ?: CallLogTracker(context.applicationContext).also { instance = it }
+            }
+        }
+    }
+
+    private val api: ApiClient = ApiClient(context)
+    private val tokenStorage = TokenStorage.getInstance(context)
+    private val dateFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+
+    // Track last sync timestamp to avoid re-uploading
+    private var lastSyncTimestamp: Long = 0L
+
+    private val callLogObserver = CallLogContentObserver(Handler(Looper.getMainLooper()))
+
+    fun startTracking() {
+        context.contentResolver.registerContentObserver(
+            Uri.parse("content://com.android.contacts/call_log"),
+            false,
+            callLogObserver
+        )
+        // Also observe the standard call log URI
+        context.contentResolver.registerContentObserver(
+            Uri.parse("content://call_log/calls"),
+            false,
+            callLogObserver
+        )
+        // Initial sync of existing calls
+        syncExistingCalls()
+    }
+
+    fun stopTracking() {
+        context.contentResolver.unregisterContentObserver(callLogObserver)
+    }
+
+    /**
+     * Called when call log changes. Picks up new/modified calls and queues them.
+     */
+    private fun onCallLogChanged() {
+        val pendingCalls = fetchNewCalls()
+        if (pendingCalls.isEmpty()) return
+        // Queue for background upload
+        CallUploadQueue.getInstance(context).addCalls(pendingCalls)
+        // Try immediate upload if online
+        if (tokenStorage.getToken() != null) {
+            uploadPendingCalls()
+        }
+    }
+
+    /**
+     * Fetch calls newer than lastSyncTimestamp.
+     * Uses the Android CallLog.Calls content provider.
+     */
+    private fun fetchNewCalls(): List<CallEventUpload> {
+        val calls = mutableListOf<CallEventUpload>()
+        val cursor: Cursor? = try {
+            context.contentResolver.query(
+                Uri.parse("content://call_log/calls"),
+                arrayOf(
+                    CallsColumns._ID,
+                    CallsColumns.NUMBER,
+                    CallsColumns.DATE,
+                    CallsColumns.DURATION,
+                    CallsColumns.TYPE,
+                    CallsColumns.NAME,
+                    CallsColumns.STATUS
+                ),
+                "${CallsColumns.DATE} > ?",
+                arrayOf(lastSyncTimestamp.toString()),
+                "${CallsColumns.DATE} DESC"
+            )
+        } catch (e: SecurityException) {
+            // Permission not granted
+            Log.e("CallLogTracker", "READ_CALL_LOG permission not granted", e)
+            null
+        }
+
+        cursor?.use {
+            val idCol = it.getColumnIndex(CallsColumns._ID)
+            val numberCol = it.getColumnIndex(CallsColumns.NUMBER)
+            val dateCol = it.getColumnIndex(CallsColumns.DATE)
+            val durationCol = it.getColumnIndex(CallsColumns.DURATION)
+            val typeCol = it.getColumnIndex(CallsColumns.TYPE)
+            val nameCol = it.getColumnIndex(CallsColumns.NAME)
+            val statusCol = it.getColumnIndex(CallsColumns.STATUS)
+
+            while (it.moveToNext()) {
+                val id = it.getLong(idCol)
+                val number = it.getString(numberCol) ?: ""
+                val date = it.getLong(dateCol)
+                val duration = it.getInt(durationCol)
+                val type = it.getInt(typeCol) // 1=incoming, 2=outgoing, 3=missed, 5=rejected
+                val name = it.getString(nameCol)
+                val status = if (statusCol >= 0) it.getInt(statusCol) else 0
+
+                // Map Android call type to our direction/status
+                val (direction, callStatus) = mapCallType(type, status)
+
+                val event = CallEventUpload(
+                    phone_number = normalizePhoneNumber(number),
+                    direction = direction,
+                    status = callStatus,
+                    duration_seconds = duration,
+                    timestamp = dateFormat.format(Date(date)),
+                    caller_id = name,
+                    is_pinned = false
+                )
+                calls.add(event)
+
+                // Update last sync timestamp
+                if (date > lastSyncTimestamp) {
+                    lastSyncTimestamp = date
+                }
+            }
+        }
+        return calls
+    }
+
+    /**
+     * Maps Android call log types/statuses to our schema.
+     *
+     * Android Types:
+     *   INCOMING = 1
+     *   OUTGOING = 2
+     *   MISSED = 3
+     *   VOICEMAIL = 4
+     *   REJECTED = 5
+     *   BLOCKED = 6
+     *   ANSWER = 7
+     *
+     * Status values from CallLog.Calls.STATUS (Android 5+):
+     *   IDLE = 0
+     *   IN_PROGRESS = 1
+     *   OFFHOOK = 2
+     *   RUNNING = 3
+     *   UNKNOWN = 4
+     *   CALL_STATUS_MISSED = 5
+     *   CALL_STATUS_NO_ANSWER = 6
+     *   CALL_STATUS_REJECTED = 7
+     *   CALL_STATUS_COMPLETED = 8
+     */
+    private fun mapCallType(type: Int, status: Int): Pair<String, String> {
+        val direction = when (type) {
+            CallsColumns.TYPE_INCOMING -> "incoming"
+            CallsColumns.TYPE_OUTGOING -> "outgoing"
+            CallsColumns.TYPE_MISSED -> "incoming"  // missed is still incoming direction
+            CallsColumns.TYPE_REJECTED -> "outgoing" // rejected is outgoing direction
+            CallsColumns.TYPE_BLOCKED -> "outgoing"
+            else -> "outgoing"
+        }
+
+        val callStatus = when {
+            type == CallsColumns.TYPE_MISSED -> "missed"
+            type == CallsColumns.TYPE_REJECTED -> "rejected"
+            type == CallsColumns.TYPE_BLOCKED -> "rejected"
+            status == CallsColumns.CALL_STATUS_MISSED -> "missed"
+            status == CallsColumns.CALL_STATUS_NO_ANSWER -> "no_answer"
+            status == CallsColumns.CALL_STATUS_REJECTED -> "rejected"
+            else -> "connected"
+        }
+
+        return Pair(direction, callStatus)
+    }
+
+    private fun normalizePhoneNumber(number: String): String {
+        // Remove extensions, special chars, keep digits and +
+        return number.replace(Regex("[^\\d+]"), "").take(20)
+    }
+
+    /**
+     * Syncs all existing calls from the device (first-time setup).
+     */
+    fun syncExistingCalls() {
+        lastSyncTimestamp = 0L
+        val calls = fetchNewCalls()
+        if (calls.isNotEmpty()) {
+            CallUploadQueue.getInstance(context).addCalls(calls)
+            uploadPendingCalls()
+        }
+    }
+
+    /**
+     * Uploads queued calls to the backend.
+     */
+    fun uploadPendingCalls(): Int {
+        val queue = CallUploadQueue.getInstance(context)
+        val pending = queue.getPendingCalls()
+        if (pending.isEmpty()) return 0
+        if (tokenStorage.getToken() == null) {
+            // Not logged in — can't upload
+            return 0
+        }
+
+        val result = api.uploadCallBatch(pending)
+        if (result.isSuccess) {
+            queue.markAsSynced(pending.size)
+            val stats = result.getOrNull()
+            stats?.let {
+                android.util.Log.d("CallLogTracker", "Uploaded ${it["received"]} calls")
+            }
+            return pending.size
+        } else {
+            android.util.Log.e("CallLogTracker", "Upload failed: ${result.exceptionOrNull()?.message}")
+            return 0
+        }
+    }
+
+    /**
+     * Periodic full sync (called by WorkManager).
+     */
+    fun fullSync(): Int {
+        // Re-sync everything since lastSyncTimestamp
+        val calls = fetchNewCalls()
+        if (calls.isNotEmpty()) {
+            CallUploadQueue.getInstance(context).addCalls(calls)
+        }
+        return uploadPendingCalls()
+    }
+}
+
+// Inner helper classes
+private class CallLogContentObserver(handler: Handler) : ContentObserver(handler) {
+    override fun onChange(selfChange: Boolean, uri: Uri?) {
+        super.onChange(selfChange, uri)
+        // Small delay to let the call log entry fully write
+        handler.postDelayed({
+            CallLogTracker.getInstance(handler.looper?.thread?.context ?: return@postDelayed)
+                .onCallLogChanged()
+        }, 2000)
+    }
+
+    override fun onChange(selfChange: Boolean) {
+        onChange(selfChange, null)
+    }
+}
+
+// Simulated CallsColumns (the real ones are in android.provider.CallLog)
+object CallsColumns {
+    val _ID = "_id"
+    val NUMBER = "number"
+    val DATE = "date"
+    val DURATION = "duration"
+    val TYPE = "type"
+    val NAME = "name"
+    val STATUS = "status"
+
+    const val TYPE_INCOMING = 1
+    const val TYPE_OUTGOING = 2
+    const val TYPE_MISSED = 3
+    const val TYPE_VOICEMAIL = 4
+    const val TYPE_REJECTED = 5
+    const val TYPE_BLOCKED = 6
+    const val TYPE_ANSWER = 7
+
+    const val CALL_STATUS_IDLE = 0
+    const val CALL_STATUS_IN_PROGRESS = 1
+    const val CALL_STATUS_OFFHOOK = 2
+    const val CALL_STATUS_RUNNING = 3
+    const val CALL_STATUS_UNKNOWN = 4
+    const val CALL_STATUS_MISSED = 5
+    const val CALL_STATUS_NO_ANSWER = 6
+    const val CALL_STATUS_REJECTED = 7
+    const val CALL_STATUS_COMPLETED = 8
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/calllog/CallUploadQueue.kt ───
+
+package com.levoy.app.calllog
+
+import android.content.Context
+import android.content.SharedPreferences
+import com.levoy.app.model.CallEventUpload
+import java.util.concurrent.ConcurrentLinkedQueue
+
+/**
+ * In-memory + persisted queue of call events waiting to be uploaded.
+ * Persists to SharedPreferences for durability across app restarts.
+ */
+class CallUploadQueue private constructor(private val context: Context) {
+
+    companion object {
+        @Volatile
+        private var instance: CallUploadQueue? = null
+
+        fun getInstance(context: Context): CallUploadQueue {
+            return instance ?: synchronized(this) {
+                instance ?: CallUploadQueue(context.applicationContext).also { instance = it }
+            }
+        }
+    }
+
+    private val prefs = context.getSharedPreferences("call_queue", Context.MODE_PRIVATE)
+    private val pendingCalls = ConcurrentLinkedQueue<CallEventUpload>()
+
+    init {
+        // Load persisted queue from disk
+        val stored = prefs.getString("pending_calls", null)
+        stored?.let {
+            val list = com.google.gson.Gson().fromJson(it, Array<CallEventUpload>::class.java)
+            list.forEach { pendingCalls.add(it) }
+        }
+    }
+
+    fun addCalls(calls: List<CallEventUpload>) {
+        calls.forEach { pendingCalls.add(it) }
+        persistQueue()
+    }
+
+    fun getPendingCalls(): List<CallEventUpload> {
+        return pendingCalls.toList()
+    }
+
+    fun markAsSynced(count: Int) {
+        repeat(count) {
+            pendingCalls.poll()
+        }
+        persistQueue()
+    }
+
+    fun clear() {
+        pendingCalls.clear()
+        prefs.edit().remove("pending_calls").apply()
+    }
+
+    private fun persistQueue() {
+        val json = com.google.gson.Gson().toJson(pendingCalls.toList())
+        prefs.edit().putString("pending_calls", json).apply()
+    }
+
+    fun size(): Int = pendingCalls.size
+}
+
+# ════════════════════════════════════════════════════════════════
+# 5. FOREGROUND SERVICE (for background sync)
+# ════════════════════════════════════════════════════════════════
+
+# ─── File: android/app/src/main/java/com/levoy/app/service/CallSyncService.kt ───
+
+package com.levoy.app.service
+
+import android.app.Notification
+import android.app.PendingIntent
+import android.app.Service
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.os.IBinder
+import android.os.PowerManager
+import androidx.core.app.NotificationCompat
+import com.levoy.app.LevoyApp
+import com.levoy.app.MainActivity
+import com.levoy.app.calllog.CallLogTracker
+import com.levoy.app.network.TokenStorage
+import java.util.concurrent.Executors
+
+/**
+ * Foreground service that keeps call log sync alive in background.
+ * Shows a persistent notification: "Levoy is tracking calls".
+ */
+class CallSyncService : Service() {
+
+    private var wakeLock: PowerManager.WakeLock? = null
+    private val executor = Executors.newSingleThreadExecutor()
+    private var isRunning = false
+
+    override fun onCreate() {
+        super.onCreate()
+        createWakeLock()
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_UPLOAD_PENDING -> executor.execute { uploadPendingCalls() }
+            ACTION_FULL_SYNC -> executor.execute { fullSync() }
+            ACTION_STOP -> stopSelf()
+        }
+        startForeground(NOTIFICATION_ID, createNotification())
+        if (!isRunning) {
+            isRunning = true
+            startPeriodicSync()
+        }
+        return START_STICKY
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        super.onDestroy()
+        isRunning = false
+        wakeLock?.let { it.release(); wakeLock = null }
+        executor.shutdown()
+    }
+
+    private fun createWakeLock() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            wakeLock = getSystemService(Context.POWER_SERVICE) as PowerManager
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Levoy::CallSyncLock")
+                .apply { setReferenceCounted(false) }
+        }
+    }
+
+    private fun createNotification(): Notification {
+        val intent = Intent(this, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(this, LevoyApp.CHANNEL_SYNC)
+            .setContentTitle("Levoy")
+            .setContentText("Tracking your call activity")
+            .setSmallIcon(android.R.drawable.stat_call_made)
+            .setContentIntent(pendingIntent)
+            .set Ongoing(true)
+            .build()
+    }
+
+    private fun startPeriodicSync() {
+        // Use WorkManager for periodic sync (more reliable than AlarmManager)
+        // This is handled by CallSyncWorker — see below
+    }
+
+    private fun uploadPendingCalls() {
+        if (TokenStorage.getInstance(this).getToken() == null) return
+        val tracker = CallLogTracker.getInstance(this)
+        val uploaded = tracker.uploadPendingCalls()
+        android.util.Log.d("CallSyncService", "Uploaded $uploaded pending calls")
+    }
+
+    private fun fullSync() {
+        val tracker = CallLogTracker.getInstance(this)
+        val uploaded = tracker.fullSync()
+        android.util.Log.d("CallSyncService", "Full sync: $uploaded calls uploaded")
+    }
+
+    companion object {
+        const val NOTIFICATION_ID = 1001
+        const val ACTION_UPLOAD_PENDING = "com.levoy.app.UPLOAD_PENDING"
+        const val ACTION_FULL_SYNC = "com.levoy.app.FULL_SYNC"
+        const val ACTION_STOP = "com.levoy.app.STOP"
+
+        fun start(context: Context) {
+            val intent = Intent(context, CallSyncService::class.java).apply {
+                action = ACTION_UPLOAD_PENDING
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                context.startForegroundService(intent)
+            } else {
+                context.startService(intent)
+            }
+        }
+
+        fun uploadPending(context: Context) {
+            val intent = Intent(context, CallSyncService::class.java).apply {
+                action = ACTION_UPLOAD_PENDING
+            }
+            context.startService(intent)
+        }
+
+        fun fullSync(context: Context) {
+            val intent = Intent(context, CallSyncService::class.java).apply {
+                action = ACTION_FULL_SYNC
+            }
+            context.startService(intent)
+        }
+
+        fun stop(context: Context) {
+            val intent = Intent(context, CallSyncService::class.java).apply {
+                action = ACTION_STOP
+            }
+            context.startService(intent)
+        }
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/service/CallSyncWorker.kt ───
+
+package com.levoy.app.service
+
+import android.content.Context
+import androidx.work.*
+import com.levoy.app.calllog.CallLogTracker
+import com.levoy.app.network.TokenStorage
+import java.util.concurrent.TimeUnit
+
+/**
+ * WorkManager worker: periodic background sync of call logs.
+ * Runs every 15 minutes (or as configured).
+ */
+class CallSyncWorker(
+    private val context: Context,
+    workerParams: WorkerParameters
+) : Worker(context, workerParams) {
+
+    override fun doWork(): Result {
+        val token = TokenStorage.getInstance(context).getToken()
+        if (token == null) {
+            // Not logged in — skip sync
+            return Result.success()
+        }
+
+        try {
+            val tracker = CallLogTracker.getInstance(context)
+            val uploaded = tracker.fullSync()
+            android.util.Log.d("CallSyncWorker", "Synced $uploaded call events")
+            return Result.success()
+        } catch (e: Exception) {
+            android.util.Log.e("CallSyncWorker", "Sync failed", e)
+            return Result.retry()
+        }
+    }
+
+    companion object {
+        private const val WORK_NAME = "call_sync_worker"
+
+        fun schedule(context: Context) {
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED)
+                .build()
+
+            val workRequest = PeriodicWorkRequestBuilder<CallSyncWorker>(
+                15, TimeUnit.MINUTES,  // minimum interval for periodic work
+                5, TimeUnit.MINUTES     // flex interval
+            )
+                .setConstraints(constraints)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 1, TimeUnit.MINUTES)
+                .setRequiresCharging(false)
+                .build()
+
+            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
+                WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP,
+                workRequest
+            )
+        }
+
+        fun cancel(context: Context) {
+            WorkManager.getInstance(context).cancelUniqueWork(WORK_NAME)
+        }
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/receiver/BootReceiver.kt ───
+
+package com.levoy.app.receiver
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import com.levoy.app.calllog.CallLogTracker
+import com.levoy.app.service.CallSyncService
+import com.levoy.app.service.CallSyncWorker
+
+/**
+ * Restarts call tracking after device reboot.
+ */
+class BootReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == Intent.ACTION_BOOT_COMPLETED ||
+            intent.action == Intent.ACTION_LOCKED_BOOT_COMPLETED) {
+
+            // Restart the foreground service
+            CallSyncService.start(context)
+
+            // Reschedule periodic work
+            CallSyncWorker.schedule(context)
+
+            // Re-register call log observer via the tracker
+            CallLogTracker.getInstance(context).startTracking()
+        }
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/receiver/CallLogReceiver.kt ───
+
+package com.levoy.app.receiver
+
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.telephony.TelephonyManager
+import com.levoy.app.calllog.CallLogTracker
+
+/**
+ * Alternative: use PhoneStateListener / BroadcastReceiver for real-time
+ * call state detection. Useful as a supplement to ContentObserver.
+ */
+class CallLogReceiver : BroadcastReceiver() {
+
+    override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == TelephonyManager.ACTION_PHONE_STATE_CHANGED) {
+            val state = intent.getStringExtra(TelephonyManager.EXTRA_STATE)
+            when (state) {
+                TelephonyManager.EXTRA_STATE_RINGING -> {
+                    // Call coming in — we'll pick it up from call log after it ends
+                }
+                TelephonyManager.EXTRA_STATE_OFFHOOK -> {
+                    // Call in progress
+                }
+                TelephonyManager.EXTRA_STATE_IDLE -> {
+                    // Call ended — trigger call log sync
+                    CallLogTracker.getInstance(context).onCallLogChanged()
+                }
+            }
+        }
+    }
+}
+
+# ════════════════════════════════════════════════════════════════
+# 6. MAIN ACTIVITY (UI)
+# ════════════════════════════════════════════════════════════════
+
+# ─── File: android/app/src/main/java/com/levoy/app/MainActivity.kt ───
+
+package com.levoy.app
+
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.*
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.Toolbar
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.commit
+import com.levoy.app.fragment.*
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var toolbar: Toolbar
+    private lateinit var api: ApiClient
+
+    // Permission request launcher
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val allGranted = permissions.entries.all { it.value }
+        if (allGranted) {
+            startTracking()
+        } else {
+            showPermissionDenied()
+        }
+    }
+
+    private val requestNotificationPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (!granted) {
+            // App will still work — just no foreground service notification
+        }
+    }
+
+    private val requestCallLogPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val readCallLog = permissions[Manifest.permission.READ_CALL_LOG] ?: false
+        val readPhoneState = permissions[Manifest.permission.READ_PHONE_STATE] ?: false
+
+        if (readCallLog && readPhoneState) {
+            startTracking()
+        } else {
+            showPermissionDenied()
+        }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        toolbar = findViewById(R.id.toolbar)
+        setSupportActionBar(toolbar)
+        supportActionBar?.setDisplayShowTitleEnabled(false)
+
+        api = ApiClient(this)
+
+        // Check if already logged in
+        val token = TokenStorage.getInstance(this).getToken()
+        if (token != null) {
+            // Load user info
+            val userInfo = TokenStorage.getInstance(this).getUser()
+            supportActionBar?.title = userInfo?.name ?: "Levoy"
+            loadDashboard()
+        } else {
+            showLoginScreen()
+        }
+
+        // Setup navigation
+        setupNavigation()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (TokenStorage.getInstance(this).getToken() != null) {
+            refreshCurrentFragment()
+        }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_login -> {
+                showLoginScreen()
+                true
+            }
+            R.id.action_logout -> {
+                logout()
+                true
+            }
+            R.id.action_sync -> {
+                syncNow()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    private fun setupNavigation() {
+        val navItems = mapOf(
+            R.id.nav_dashboard to DashboardFragment::class.java,
+            R.id.nav_calls to CallsFragment::class.java,
+            R.id.nav_leads to LeadsFragment::class.java,
+            R.id.nav_reports to ReportsFragment::class.java,
+            R.id.nav_team to TeamFragment::class.java
+        )
+
+        navItems.forEach { (menuId, fragmentClass) ->
+            findViewById<ImageButton>(menuId).setOnClickListener {
+                navigateTo(fragmentClass)
+            }
+        }
+    }
+
+    private fun navigateTo(fragmentClass: Class<out Fragment>) {
+        supportActionBar?.title = getTitleForFragment(fragmentClass)
+        val transaction = supportFragmentManager.beginTransaction()
+        transaction.replace(R.id.fragment_container, fragmentClass.newInstance())
+        transaction.commit()
+    }
+
+    private fun getTitleForFragment(fragmentClass: Class<out Fragment>): String {
+        return when (fragmentClass) {
+            DashboardFragment::class.java -> "Dashboard"
+            CallsFragment::class.java -> "Call Logs"
+            LeadsFragment::class.java -> "Leads"
+            ReportsFragment::class.java -> "Reports"
+            TeamFragment::class.java -> "Team"
+            else -> "Levoy"
+        }
+    }
+
+    private fun showLoginScreen() {
+        supportActionBar?.title = "Login"
+        loadFragment(LoginFragment())
+    }
+
+    private fun loadDashboard() {
+        navigateTo(DashboardFragment::class.java)
+    }
+
+    private fun refreshCurrentFragment() {
+        val current = supportFragmentManager.findFragmentById(R.id.fragment_container)
+        when (current) {
+            is DashboardFragment -> current.refresh()
+            is CallsFragment -> current.refresh()
+            is LeadsFragment -> current.refresh()
+            is ReportsFragment -> current.refresh()
+            is TeamFragment -> current.refresh()
+        }
+    }
+
+    private fun startTracking() {
+        // Request notification permission (Android 13+)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            requestNotificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        // Start the foreground service
+        com.levoy.app.service.CallSyncService.start(this)
+
+        // Start periodic sync
+        com.levoy.app.service.CallSyncWorker.schedule(this)
+
+        // Start call log tracking
+        com.levoy.app.calllog.CallLogTracker.getInstance(this).startTracking()
+
+        Toast.makeText(this, "Call tracking started", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showPermissionDenied() {
+        AlertDialog.Builder(this)
+            .setTitle("Permission Required")
+            .setMessage("Levoy needs Call Log and Phone State permissions to track calls. Please enable them in Settings.")
+            .setPositiveButton("Open Settings") { _, _ ->
+                val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                intent.data = android.net.Uri.fromParts("package", packageName, null)
+                startActivity(intent)
+            }
+            .setNegativeButton("Cancel") { _, _ ->
+                finish()
+            }
+            .show()
+    }
+
+    private fun logout() {
+        com.levoy.app.service.CallSyncWorker.cancel(this)
+        com.levoy.app.service.CallSyncService.stop(this)
+        com.levoy.app.calllog.CallLogTracker.getInstance(this).stopTracking()
+        com.levoy.app.calllog.CallUploadQueue.getInstance(this).clear()
+        TokenStorage.getInstance(this).clearAll()
+
+        supportActionBar?.title = "Levoy"
+        showLoginScreen()
+        Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun syncNow() {
+        com.levoy.app.service.CallSyncService.uploadPending(this)
+        Toast.makeText(this, "Syncing...", Toast.LENGTH_SHORT).show()
+    }
+
+    private fun loadFragment(fragment: Fragment) {
+        supportFragmentManager.commit {
+            replace(R.id.fragment_container, fragment)
+        }
+    }
+
+    companion object {
+        private const val PERMISSION_REQUEST_CODE = 1001
+    }
+}
+
+# ════════════════════════════════════════════════════════════════
+# 7. FRAGMENTS (UI screens)
+# ════════════════════════════════════════════════════════════════
+
+# ─── File: android/app/src/main/java/com/levoy/app/fragment/DashboardFragment.kt ───
+
+package com.levoy.app.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.fragment.app.Fragment
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.levoy.app.R
+import com.levoy.app.model.DashboardStats
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+
+class DashboardFragment : Fragment() {
+
+    private var api: ApiClient? = null
+    private var stats: DashboardStats? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_dashboard, container, false)
+
+        api = ApiClient(requireContext())
+
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh.setOnRefreshListener { refresh() }
+
+        view.findViewById<Button>(R.id.btnRefresh).setOnClickListener {
+            refresh()
+        }
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        refresh()
+    }
+
+    fun refresh() {
+        val swipeRefresh = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.isRefreshing = true
+
+        api?.getStats()?.onSuccess { stats ->
+            this.stats = stats
+            updateUI(stats)
+            swipeRefresh?.isRefreshing = false
+        }?.onFailure { error ->
+            Toast.makeText(context, "Failed to load: ${error.message}", Toast.LENGTH_SHORT).show()
+            swipeRefresh?.isRefreshing = false
+        }
+    }
+
+    private fun updateUI(stats: DashboardStats) {
+        view?.findViewById<TextView>(R.id.tvTotalCalls).text = stats.total_calls_today.toString()
+        view?.findViewById<TextView>(R.id.tvConnected).text = stats.connected_today.toString()
+        view?.findViewById<TextView>(R.id.tvMissed).text = stats.missed_today.toString()
+        view?.findViewById<TextView>(R.id.tvAvgDuration).text =
+            if (stats.avg_call_duration > 0)
+                "${stats.avg_call_duration.toInt()}s"
+            else "-"
+
+        // Update subtexts
+        view?.findViewById<TextView>(R.id.tvTotalSub).text =
+            "${stats.incoming_today} in / ${stats.outgoing_today} out"
+        view?.findViewById<TextView>(R.id.tvConnectedSub).text =
+            "${(stats.connected_today.toFloat() / (stats.total_calls_today.coerceAtLeast(1)) * 100).toInt()}% connect rate"
+        view?.findViewById<TextView>(R.id.tvMissedSub).text =
+            "${stats.rejected_today} rejected"
+        view?.findViewById<TextView>(R.id.tvAvgSub).text =
+            "${stats.total_calls_all} total calls"
+    }
+
+    companion object {
+        fun newInstance() = DashboardFragment()
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/fragment/CallsFragment.kt ───
+
+package com.levoy.app.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.fragment.app.Fragment
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.levoy.app.R
+import com.levoy.app.model.CallEvent
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+import java.text.SimpleDateFormat
+import java.util.*
+
+class CallsFragment : Fragment() {
+
+    private var api: ApiClient? = null
+    private var calls: List<CallEvent> = emptyList()
+    private var currentPage = 1
+    private val pageSize = 50
+    private val dateFormat = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault())
+
+    private var adapter: CallsAdapter? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_calls, container, false)
+
+        api = ApiClient(requireContext())
+
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh.setOnRefreshListener { refresh() }
+
+        view.findViewById<Button>(R.id.btnRefresh).setOnClickListener { refresh() }
+
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerCalls)
+        adapter = CallsAdapter { call ->
+            view?.findViewById<TextView>(R.id.tvCallDetail)?.text =
+                "${call.caller_id ?: call.phone_number}\n${call.direction} / ${call.status} / ${call.duration_seconds}s"
+        }
+        recyclerView.adapter = adapter
+        recyclerView.layoutManager = LinearLayoutManager(context)
+
+        // Search
+        view.findViewById<SearchView>(R.id.searchCalls).setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?) = false
+            override fun onQueryTextChange(newText: String?): Boolean {
+                currentPage = 1
+                loadCalls(newText?.trim()?.takeIf { it.isNotEmpty() })
+                return true
+            }
+        })
+
+        // Direction filter
+        view.findViewById<Spinner>(R.id.filterDirection).onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                currentPage = 1
+                val filter = parent.getItemAtPosition(position).toString()
+                loadCalls(phoneQuery = null, direction = if (filter == "All") null else filter.lowercase())
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        // Status filter
+        view.findViewById<Spinner>(R.id.filterStatus).onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                currentPage = 1
+                val filter = parent.getItemAtPosition(position).toString()
+                loadCalls(phoneQuery = null, status = if (filter == "All") null else filter.lowercase())
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        // Pagination
+        view.findViewById<Button>(R.id.btnPrevPage).setOnClickListener {
+            if (currentPage > 1) {
+                currentPage--
+                loadCalls()
+            }
+        }
+        view.findViewById<Button>(R.id.btnNextPage).setOnClickListener {
+            currentPage++
+            loadCalls()
+        }
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        refresh()
+    }
+
+    fun refresh() {
+        currentPage = 1
+        loadCalls()
+    }
+
+    private fun loadCalls(phoneQuery: String? = null, direction: String? = null, status: String? = null) {
+        val swipeRefresh = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.isRefreshing = true
+
+        api?.getCalls(
+            limit = pageSize,
+            offset = (currentPage - 1) * pageSize,
+            direction = direction,
+            status = status,
+            phone = phoneQuery
+        )?.onSuccess { newCalls ->
+            calls = newCalls
+            adapter?.submitList(newCalls)
+            updatePaginationUI(newCalls.size)
+            swipeRefresh?.isRefreshing = false
+        }?.onFailure { error ->
+            Toast.makeText(context, "Load failed: ${error.message}", Toast.LENGTH_SHORT).show()
+            swipeRefresh?.isRefreshing = false
+        }
+    }
+
+    private fun updatePaginationUI(callsOnPage: Int) {
+        view?.findViewById<TextView>(R.id.tvPageInfo)?.text =
+            "Page $currentPage — ${callsOnPage} calls"
+        view?.findViewById<Button>(R.id.btnPrevPage)?.isEnabled = currentPage > 1
+        view?.findViewById<Button>(R.id.btnNextPage)?.isEnabled = callsOnPage == pageSize
+    }
+
+    inner class CallsAdapter(private val onItemClick: (CallEvent) -> Unit) :
+        RecyclerView.Adapter<CallsAdapter.ViewHolder>() {
+
+        private var items: List<CallEvent> = emptyList()
+
+        fun submitList(list: List<CallEvent>) {
+            items = list
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_call, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            private val tvContact: TextView = itemView.findViewById(R.id.tvContact)
+            private val tvDirection: TextView = itemView.findViewById(R.id.tvDirection)
+            private val tvStatus: TextView = itemView.findViewById(R.id.tvStatus)
+            private val tvDuration: TextView = itemView.findViewById(R.id.tvDuration)
+            private val tvTime: TextView = itemView.findViewById(R.id.tvTime)
+
+            fun bind(call: CallEvent) {
+                tvContact.text = call.caller_id ?: call.phone_number
+                tvDirection.text = when (call.direction) {
+                    "incoming" -> "Incoming"
+                    "outgoing" -> "Outgoing"
+                    else -> call.direction
+                }
+                tvStatus.text = when (call.status) {
+                    "connected" -> "Connected"
+                    "missed" -> "Missed"
+                    "rejected" -> "Rejected"
+                    "no_answer" -> "No Answer"
+                    else -> call.status
+                }
+                tvDuration.text = if (call.duration_seconds > 0)
+                    "${call.duration_seconds / 60}m ${call.duration_seconds % 60}s"
+                else {
+                    if (call.status == "connected") "-" else "0s"
+                }
+
+                val date = try { Date.parse(call.timestamp) } catch (e: Exception) { Date() }
+                tvTime.text = dateFormat.format(date)
+
+                // Color coding
+                val dirColor = if (call.direction == "incoming")
+                    ContextCompat.getColor(itemView.context, R.color.green)
+                else
+                    ContextCompat.getColor(itemView.context, R.color.blue)
+                tvDirection.setTextColor(dirColor)
+
+                val statusColor = when (call.status) {
+                    "connected" -> ContextCompat.getColor(itemView.context, R.color.green)
+                    "missed" -> ContextCompat.getColor(itemView.context, R.color.red)
+                    "rejected" -> ContextCompat.getColor(itemView.context, R.color.red)
+                    else -> ContextCompat.getColor(itemView.context, R.color.orange)
+                }
+                tvStatus.setTextColor(statusColor)
+
+                itemView.setOnClickListener { onItemClick(call) }
+            }
+        }
+    }
+
+    companion object {
+        fun newInstance() = CallsFragment()
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/fragment/LeadsFragment.kt ───
+
+package com.levoy.app.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.fragment.app.Fragment
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.levoy.app.R
+import com.levoy.app.model.Lead
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+import java.text.SimpleDateFormat
+import java.util.*
+
+class LeadsFragment : Fragment() {
+
+    private var api: ApiClient? = null
+    private var leads: List<Lead> = emptyListList()
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_leads, container, false)
+
+        api = ApiClient(requireContext())
+
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh.setOnRefreshListener { refresh() }
+
+        view.findViewById<Button>(R.id.btnRefresh).setOnClickListener { refresh() }
+        view.findViewById<Button>(R.id.btnAddLead).setOnClickListener {
+            showAddLeadDialog(view)
+        }
+
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerLeads)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        recyclerView.adapter = LeadsAdapter()
+
+        // Status filter
+        view.findViewById<Spinner>(R.id.filterLeadStatus).onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                refresh()
+            }
+            override fun onNothingSelected(parent: AdapterView<*>?) {}
+        }
+
+        // Search
+        view.findViewById<SearchView>(R.id.searchLeads).setOnQueryTextListener(object : SearchView.OnQueryTextListener {
+            override fun onQueryTextSubmit(query: String?) = false
+            override fun onQueryTextChange(newText: String?): Boolean {
+                refresh()
+                return true
+            }
+        })
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        refresh()
+    }
+
+    fun refresh() {
+        val swipeRefresh = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.isRefreshing = true
+
+        val statusFilter = (view?.findViewById<Spinner>(R.id.filterLeadStatus)?.selectedItem?.toString()?.lowercase())
+        val searchQuery = (view?.findViewById<SearchView>(R.id.searchLeads)?.query?.text?.toString()?.trim()?.takeIf { it.isNotEmpty() })
+
+        api?.getLeads(status = statusFilter, search = searchQuery)?.onSuccess { newLeads ->
+            leads = newLeads
+            (view?.findViewById<RecyclerView>(R.id.recyclerLeads)?.adapter as? LeadsAdapter)?.submitList(newLeads)
+            updateLeadStats(newLeads)
+            swipeRefresh?.isRefreshing = false
+        }?.onFailure { error ->
+            Toast.makeText(context, "Load failed: ${error.message}", Toast.LENGTH_SHORT).show()
+            swipeRefresh?.isRefreshing = false
+        }
+    }
+
+    private fun updateLeadStats(leads: List<Lead>) {
+        view?.findViewById<TextView>(R.id.tvLeadTotal)?.text = leads.size.toString()
+        view?.findViewById<TextView>(R.id.tvLeadNew)?.text = leads.count { it.status == "new" }.toString()
+        view?.findViewById<TextView>(R.id.tvLeadContacted)?.text = leads.count { it.status == "contacted" }.toString()
+        view?.findViewById<TextView>(R.id.tvLeadConverted)?.text = leads.count { it.status == "converted" }.toString()
+    }
+
+    private fun showAddLeadDialog(rootView: View) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_lead, null)
+        val etName = dialogView.findViewById<EditText>(R.id.etLeadName)
+        val etPhone = dialogView.findViewById<EditText>(R.id.etLeadPhone)
+        val etEmail = dialogView.findViewById<EditText>(R.id.etLeadEmail)
+        val etNotes = dialogView.findViewById<EditText>(R.id.etLeadNotes)
+        val spinnerStatus = dialogView.findViewById<Spinner>(R.id.spinnerLeadStatus)
+        val spinnerPriority = dialogView.findViewById<Spinner>(R.id.spinnerLeadPriority)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Add Lead")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val lead = Lead(
+                    name = etName.text.toString().trim(),
+                    phone = etPhone.text.toString().trim(),
+                    email = etEmail.text.toString().trim().takeIf { it.isNotEmpty() },
+                    status = spinnerStatus.selectedItem.toString().lowercase(),
+                    priority = spinnerPriority.selectedItem.toString().lowercase(),
+                    notes = etNotes.text.toString().trim().takeIf { it.isNotEmpty() }
+                )
+
+                if (lead.name.isNotEmpty() && lead.phone.isNotEmpty()) {
+                    api?.createLead(lead)?.onSuccess {
+                        refresh()
+                        Toast.makeText(context, "Lead saved", Toast.LENGTH_SHORT).show()
+                    }?.onFailure { error ->
+                        Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    Toast.makeText(context, "Name and phone required", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    inner class LeadsAdapter : RecyclerView.Adapter<LeadsAdapter.ViewHolder>() {
+        private var items: List<Lead> = emptyList()
+
+        fun submitList(list: List<Lead>) {
+            items = list
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_lead, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        inner class ViewHolder(itemView: View) {
+            private val tvName: TextView = itemView.findViewById(R.id.tvLeadName)
+            private val tvPhone: TextView = itemView.findViewById(R.id.tvLeadPhone)
+            private val tvStatus: TextView = itemView.findViewById(R.id.tvLeadStatus)
+            private val tvPriority: TextView = itemView.findViewById(R.id.tvLeadPriority)
+            private val tvLastContact: TextView = itemView.findViewById(R.id.tvLastContact)
+            private val btnContact: Button = itemView.findViewById(R.id.btnContact)
+            private val btnEdit: ImageButton = itemView.findViewById(R.id.btnEdit)
+            private val btnDelete: ImageButton = itemView.findViewById(R.id.btnDelete)
+
+            fun bind(lead: Lead) {
+                tvName.text = lead.name
+                tvPhone.text = lead.phone
+                tvStatus.text = lead.status.replaceFirstChar { it.uppercase() }
+                tvPriority.text = lead.priority.replaceFirstChar { it.uppercase() }
+                tvLastContact.text = lead.last_contacted_at?.let {
+                    try { SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date.parse(it)) }
+                    catch (e: Exception) { "—" }
+                } ?: "—"
+
+                // Color status
+                val statusColor = when (lead.status) {
+                    "new" -> ContextCompat.getColor(itemView.context, R.color.purple)
+                    "contacted" -> ContextCompat.getColor(itemView.context, R.color.blue)
+                    "connected" -> ContextCompat.getColor(itemView.context, R.color.green)
+                    "converted" -> ContextCompat.getColor(itemView.context, R.color.green)
+                    "lost" -> ContextCompat.getColor(itemView.context, R.color.red)
+                    else -> ContextCompat.getColor(itemView.context, R.color.gray)
+                }
+                tvStatus.setTextColor(statusColor)
+
+                btnContact.setOnClickListener {
+                    api?.markLeadContacted(lead.id)?.onSuccess {
+                        refresh()
+                        Toast.makeText(context, "Marked as contacted", Toast.LENGTH_SHORT).show()
+                    }
+                }
+
+                btnEdit.setOnClickListener {
+                    showEditLeadDialog(lead)
+                }
+
+                btnDelete.setOnClickListener {
+                    AlertDialog.Builder(requireContext())
+                        .setTitle("Delete Lead")
+                        .setMessage("Delete ${lead.name}?")
+                        .setPositiveButton("Delete") { _, _ ->
+                            // In production: DELETE endpoint. Here, remove locally.
+                            leads = leads.filter { it.id != lead.id }
+                            (view?.findViewById<RecyclerView>(R.id.recyclerLeads)?.adapter as? LeadsAdapter)?.submitList( leads)
+                            updateLeadStats(leads)
+                        }
+                        .setNegativeButton("Cancel", null)
+                        .show()
+                }
+            }
+        }
+    }
+
+    private fun showEditLeadDialog(lead: Lead) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_add_lead, null)
+        val etName = dialogView.findViewById<EditText>(R.id.etLeadName)
+        val etPhone = dialogView.findViewById<EditText>(R.id.etLeadPhone)
+        val etEmail = dialogView.findViewById<EditText>(R.id.etLeadEmail)
+        val etNotes = dialogView.findViewById<EditText>(R.id.etLeadNotes)
+        val spinnerStatus = dialogView.findViewById<Spinner>(R.id.spinnerLeadStatus)
+        val spinnerPriority = dialogView.findViewById<Spinner>(R.id.spinnerLeadPriority)
+
+        etName.setText(lead.name)
+        etPhone.setText(lead.phone)
+        etEmail.setText(lead.email ?: "")
+        etNotes.setText(lead.notes ?: "")
+        spinnerStatus.setSelection(lead.status.lowercase())
+        spinnerPriority.setSelection(lead.priority.lowercase())
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Edit Lead")
+            .setView(dialogView)
+            .setPositiveButton("Save") { _, _ ->
+                val updated = lead.copy(
+                    name = etName.text.toString().trim(),
+                    phone = etPhone.text.toString().trim(),
+                    email = etEmail.text.toString().trim().takeIf { it.isNotEmpty() },
+                    status = spinnerStatus.selectedItem.toString().lowercase(),
+                    priority = spinnerPriority.selectedItem.toString().lowercase(),
+                    notes = etNotes.text.toString().trim().takeIf { it.isNotEmpty() }
+                )
+                api?.updateLead(lead.id, updated)?.onSuccess {
+                    refresh()
+                    Toast.makeText(context, "Lead updated", Toast.LENGTH_SHORT).show()
+                }?.onFailure { error ->
+                    Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    companion object {
+        fun newInstance() = LeadsFragment()
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/fragment/ReportsFragment.kt ───
+
+package com.levoy.app.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.fragment.app.Fragment
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.levoy.app.R
+import com.levoy.app.model.DailyReportData
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+import java.text.SimpleDateFormat
+import java.util.*
+
+class ReportsFragment : Fragment() {
+
+    private var api: ApiClient? = null
+    private var reports: List<DailyReportData> = emptyList()
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_reports, container, false)
+
+        api = ApiClient(requireContext())
+
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh.setOnRefreshListener { refresh() }
+
+        view.findViewById<Button>(R.id.btnRefresh).setOnClickListener { refresh() }
+        view.findViewById<Button>(R.id.btnGenerateReport).setOnClickListener { generateReport() }
+
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerReports)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        recyclerView.adapter = ReportsAdapter()
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        refresh()
+    }
+
+    fun refresh() {
+        val swipeRefresh = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.isRefreshing = true
+
+        api?.getDailyReports(days = 30)?.onSuccess { newReports ->
+            reports = newReports
+            (view?.findViewById<RecyclerView>(R.id.recyclerReports)?.adapter as? ReportsAdapter)?.submitList(newReports)
+            updateReportSummary(newReports)
+            swipeRefresh?.isRefreshing = false
+        }?.onFailure { error ->
+            Toast.makeText(context, "Load failed: ${error.message}", Toast.LENGTH_SHORT).show()
+            swipeRefresh?.isRefreshing = false
+        }
+    }
+
+    private fun updateReportSummary(reports: List<DailyReportData>) {
+        val total = reports.sumOf { it.total_calls }
+        val missed = reports.sumOf { it.missed }
+        val avgDur = if (reports.isNotEmpty()) {
+            (reports.sumOf { it.total_duration }.toFloat() / reports.sumOf { it.total_calls }.coerceAtLeast(1) / 60).toInt()
+        } else 0
+
+        view?.findViewById<TextView>(R.id.tvReportTotalCalls)?.text = total.toString()
+        view?.findViewById<TextView>(R.id.tvReportMissed)?.text = missed.toString()
+        view?.findViewById<TextView>(R.id.tvReportAvgDuration)?.text = "${avgDur} min"
+    }
+
+    private fun generateReport() {
+        val swipeRefresh = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        val swipeRefresh?.isRefreshing = true
+
+        api?.generateReport()?.onSuccess {
+            Toast.makeText(context, "Report generated! (email sent in production)", Toast.LENGTH_SHORT).show()
+            val swipeRefresh?.isRefreshing = false
+        }?.onFailure { error ->
+            Toast.makeText(context, "Failed: ${error.message}", Toast.LENGTH_SHORT).show()
+            val swipeRefresh?.isRefreshing = false
+        }
+    }
+
+    inner class ReportsAdapter : RecyclerView.Adapter<ReportsAdapter.ViewHolder>() {
+        private var items: List<DailyReportData> = emptyList()
+
+        fun submitList(list: List<DailyReportData>) {
+            items = list
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_report, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        inner class ViewHolder(itemView: View) {
+            private val tvDate: TextView = itemView.findViewById(R.id.tvReportDate)
+            private val tvTotal: TextView = itemView.findViewById(R.id.tvReportTotal)
+            private val tvIncoming: TextView = itemView.findViewById(R.id.tvReportIncoming)
+            private val tvOutgoing: TextView = itemView.findViewById(R.id.tvReportOutgoing)
+            private val tvMissed: TextView = itemView.findViewById(R.id.tvReportMissed)
+            private val tvDuration: TextView = itemView.findViewById(R.id.tvReportDuration)
+            private val tvUnique: TextView = itemView.findViewById(R.id.tvReportUnique)
+
+            fun bind(report: DailyReportData) {
+                val date = try { SimpleDateFormat("yyyy-MM-dd", Locale.US).parse(report.date) }
+                    .catch (e: Exception) { null } ?: Date()
+                tvDate.text = SimpleDateFormat("MMM dd, yyyy", Locale.getDefault()).format(date)
+                tvTotal.text = report.total_calls.toString()
+                tvIncoming.text = report.incoming.toString()
+                tvOutgoing.text = report.outgoing.toString()
+                tvMissed.text = report.missed.toString()
+                tvDuration.text = "${report.total_duration / 60} min"
+                tvUnique.text = report.unique_contacts.toString()
+            }
+        }
+    }
+
+    companion object {
+        fun newInstance() = ReportsFragment()
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/fragment/TeamFragment.kt ───
+
+package com.levoy.app.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.fragment.app.Fragment
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+import com.levoy.app.R
+import com.levoy.app.model.User
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+
+class TeamFragment : Fragment() {
+
+    private var api: ApiClient? = null
+    private var users: List<User> = emptyList()
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_team, container, false)
+
+        api = ApiClient(requireContext())
+
+        val swipeRefresh = view.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh.setOnRefreshListener { refresh() }
+
+        view.findViewById<Button>(R.id.btnRefresh).setOnClickListener { refresh() }
+        view.findViewById<Button>(R.id.btnInvite).setOnClickListener { showInviteDialog() }
+
+        val recyclerView = view.findViewById<RecyclerView>(R.id.recyclerTeam)
+        recyclerView.layoutManager = LinearLayoutManager(context)
+        recyclerView.adapter = TeamAdapter()
+
+        return view
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        refresh()
+    }
+
+    fun refresh() {
+        val swipeRefresh = view?.findViewById<SwipeRefreshLayout>(R.id.swipeRefresh)
+        swipeRefresh?.isRefreshing = true
+
+        api?.getUsers()?.onSuccess { newUsers ->
+            users = newUsers
+            (view?.findViewById<RecyclerView>(R.id.recyclerTeam)?.adapter as? TeamAdapter)?.submitList(newUsers)
+            swipeRefresh?.isRefreshing = false
+        }?.onFailure { error ->
+            // Non-admin users may get 403 — that's OK, just show current user
+            val userInfo = TokenStorage.getInstance(requireContext()).getUser()
+            userInfo?.let {
+                users = listOf(User(it.id, it.email, it.name, null, "agent", true, null))
+                (view?.findViewById<RecyclerView>(R.id.recyclerTeam)?.adapter as? TeamAdapter)?.submitList(users)
+            }
+            swipeRefresh?.isRefreshing = false
+        }
+    }
+
+    private fun showInviteDialog() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_invite, null)
+        val etEmail = dialogView.findViewById<EditText>(R.id.etInviteEmail)
+        val spinnerRole = dialogView.findViewById<Spinner>(R.id.spinnerInviteRole)
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Invite Team Member")
+            .setView(dialogView)
+            .setPositiveButton("Invite") { _, _ ->
+                val email = etEmail.text.toString().trim()
+                val role = spinnerRole.selectedItem.toString().lowercase()
+                if (email.isNotEmpty()) {
+                    // In production: send invite email. Here: register directly.
+                    api?.register(email, "invite123", email.substringBefore("@"), null)?.onSuccess { resp ->
+                        api?.updateUserRole(resp.user.id, role)?.onSuccess {
+                            refresh()
+                            Toast.makeText(context, "$email invited as $role", Toast.LENGTH_SHORT).show()
+                        }
+                    }?.onFailure { error ->
+                        Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+
+    inner class TeamAdapter : RecyclerView.Adapter<TeamAdapter.ViewHolder>() {
+        private var items: List<User> = emptyList()
+
+        fun submitList(list: List<User>) {
+            items = list
+            notifyDataSetChanged()
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+            val view = LayoutInflater.from(parent.context)
+                .inflate(R.layout.item_team, parent, false)
+            return ViewHolder(view)
+        }
+
+        override fun onBindViewHolder(holder: ViewHolder, position: Int) {
+            holder.bind(items[position])
+        }
+
+        override fun getItemCount(): Int = items.size
+
+        inner class ViewHolder(itemView: View) {
+            private val tvName: TextView = itemView.findViewById(R.id.tvTeamName)
+            private val tvEmail: TextView = itemView.findViewById(R.id.tvTeamEmail)
+            private val tvRole: TextView = itemView.findViewById(R.id.tvTeamRole)
+            private val tvCallsToday: TextView = itemView.findViewById(R.id.tvTeamCallsToday)
+            private val tvTotalCalls: TextView = itemView.findViewById(R.id.tvTeamTotalCalls)
+
+            fun bind(user: User) {
+                tvName.text = user.name
+                tvEmail.text = user.email
+                tvRole.text = user.role.replaceFirstChar { it.uppercase() }
+
+                // Role badge color
+                val roleColor = when (user.role) {
+                    "admin" -> ContextCompat.getColor(itemView.context, R.color.red)
+                    "manager" -> ContextCompat.getColor(itemView.context, R.color.blue)
+                    else -> ContextCompat.getColor(itemView.context, R.color.gray)
+                }
+                tvRole.setTextColor(roleColor)
+            }
+        }
+    }
+
+    companion object {
+        fun newInstance() = TeamFragment()
+    }
+}
+
+# ─── File: android/app/src/main/java/com/levoy/app/fragment/LoginFragment.kt ───
+
+package com.levoy.app.fragment
+
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.*
+import androidx.fragment.app.Fragment
+import com.levoy.app.R
+import com.levoy.app.network.ApiClient
+import com.levoy.app.network.TokenStorage
+
+class LoginFragment : Fragment() {
+
+    private var api: ApiClient? = null
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
+        val view = inflater.inflate(R.layout.fragment_login, container, false)
+
+        api = ApiClient(requireContext())
+
+        view.findViewById<EditText>(R.id.etLoginEmail).setText("rajesh@company.com")
+        view.findViewById<EditText>(R.id.etLoginPassword).setText("rajesh123")
+
+        view.findViewById<Button>(R.id.btnLogin).setOnClickListener {
+            val email = view.findViewById<EditText>(R.id.etLoginEmail).text.toString().trim()
+            val password = view.findViewById<EditText>(R.id.etLoginPassword).text.toString().trim()
+
+            if (email.isEmpty()) {
+                Toast.makeText(context, "Enter email", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            view.findViewById<ProgressBar>(R.id.progressLogin).visibility = View.VISIBLE
+            view.findViewById<Button>(R.id.btnLogin).isEnabled = false
+
+            // Try login first
+            api?.login(email, password)?.onSuccess { resp ->
+                TokenStorage.getInstance(requireContext()).saveToken(resp.access_token)
+                TokenStorage.getInstance(requireContext()).saveUser(resp.user.id, resp.user.name, resp.user.email)
+                val activity = requireActivity() as MainActivity
+                activity.supportActionBar?.title = resp.user.name
+                activity.loadDashboard()
+            }?.onFailure { loginError ->
+                // If login fails, try register
+                if (loginError.message?.contains("Invalid") == true) {
+                    api?.register(email, password, email.substringBefore("@"), null)?.onSuccess { resp ->
+                        TokenStorage.getInstance(requireContext()).saveToken(resp.access_token)
+                        TokenStorage.getInstance(requireContext()).saveUser(resp.user.id, resp.user.name, resp.user.email)
+                        val activity = requireActivity() as MainActivity
+                        activity.supportActionBar?.title = resp.user.name
+                        activity.loadDashboard()
+                    }?.onFailure { registerError ->
+                        view.findViewById<ProgressBar>(R.id.progressLogin).visibility = View.GONE
+                        view.findViewById<Button>(R.id.btnLogin).isEnabled = true
+                        Toast.makeText(context, "Error: ${registerError.message}", Toast.LENGTH_LONG).show()
+                    }
+                } else {
+                    view.findViewById<ProgressBar>(R.id.progressLogin).visibility = View.GONE
+                    view.findViewById<Button>(R.id.btnLogin).isEnabled = true
+                    Toast.makeText(context, "Error: ${loginError.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+
+        view.findViewById<TextView>(R.id.tvRegisterLink).setOnClickListener {
+            val email = view.findViewById<EditText>(R.id.etLoginEmail).text.toString().trim()
+            if (email.isEmpty()) {
+                Toast.makeText(context, "Enter email first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val name = email.substringBefore("@").replace(Regex("[^a-zA-Z]"), " ").replace("\\s+".toRegex(), " ").trim()
+            val password = view.findViewById<EditText>(R.id.etLoginPassword).text.toString().trim().takeIf { it.length >= 6 }
+                ?: "password123"
+
+            view.findViewById<ProgressBar>(R.id.progressLogin).visibility = View.VISIBLE
+            view.findViewById<Button>(R.id.btnLogin).isEnabled = false
+
+            api?.register(email, password, name)?.onSuccess { resp ->
+                TokenStorage.getInstance(requireContext()).saveToken(resp.access_token)
+                TokenStorage.getInstance(requireContext()).saveUser(resp.user.id, resp.user.name, resp.user.email)
+                val activity = requireActivity() as MainActivity
+                activity.supportActionBar?.title = resp.user.name
+                activity.loadDashboard()
+            }?.onFailure { error ->
+                view.findViewById<ProgressBar>(R.id.progressLogin).visibility = View.GONE
+                view.findViewById<Button>(R.id.btnLogin).isEnabled = true
+                Toast.makeText(context, "Error: ${error.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+
+        return view
+    }
+
+    companion object {
+        fun newInstance() = LoginFragment()
+    }
+}
+
+# ════════════════════════════════════════════════════════════════
+# 8. RESOURCE FILES
+# ════════════════════════════════════════════════════════════════
+
+# ─── res/values/strings.xml ───
+# <?xml version="1.0" encoding="utf-8"?>
+# <resources>
+#     <string name="app_name">Levoy Clone</string>
+#     <string name="tracking_active">Call tracking active</string>
+#     <string name="no_calls_yet">No calls tracked yet. Start making calls from this device.</string>
+#     <string name="login">Login</string>
+#     <string name="register">Register</string>
+#     <string name="logout">Logout</string>
+#     <string name="dashboard">Dashboard</string>
+#     <string name="call_logs">Call Logs</string>
+#     <string name="leads">Leads</string>
+#     <string name="reports">Reports</string>
+#     <string name="team">Team</string>
+#     <string name="sync">Sync Now</string>
+#     <string name="add_lead">Add Lead</string>
+#     <string name="generate_report">Generate Report</string>
+#     <string name="invite_member">Invite Member</string>
+#     <string name="permission_required">Permission Required</string>
+#     <string name="permission_explanation">Levoy needs Call Log and Phone State permissions to track your call activity.</string>
+#     <string name="notification_channel_sync">Call Sync</string>
+#     <string name="notification_channel_sync_desc">Background call log synchronization</string>
+# </resources>
+
+# ─── res/values/colors.xml ───
+# <?xml version="1.0" encoding="utf-8"?>
+# <resources>
+#     <color name="primary">#FF4444</color>
+#     <color name="primary_dark">#CC3333</color>
+#     <color name="accent">#FFA500</color>
+#     <color name="background">#F5F6FA</color>
+#     <color name="surface">#FFFFFF</color>
+#     <color name="text_primary">#2D3436</color>
+#     <color name="text_secondary">#636E72</color>
+#     <color name="green">#00B894</color>
+#     <color name="red">#FF4444</color>
+#     <color name="blue">#4A6CF7</color>
+#     <color name="orange">#E67E22</color>
+#     <color name="purple">#6C5CE7</color>
+#     <color name="gray">#636E72</color>
+#     <color name="white">#FFFFFF</color>
+#     <color name="black">#000000</color>
+# </resources>
+
+# ─── res/values/themes.xml ───
+# <?xml version="1.0" encoding="utf-8"?>
+# <resources>
+#     <style name="Theme.Levoy" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+#         <item name="colorPrimary">@color/primary</item>
+#         <item name="colorPrimaryDark">@color/primary_dark</item>
+#         <item name="colorAccent">@color/accent</item>
+#         <item name="android:statusBarColor">@color/primary</item>
+#         <item name="android:navigationBarColor">@color/surface</item>
+#         <item name="android:windowBackground">@color/background</item>
+#     </style>
+# </resources>
+
+# ─── res/menu/main_menu.xml ───
+# <?xml version="1.0" encoding="utf-8"?>
+# <menu xmlns:android="http://schemas.android.com/apk/res/android"
+#     xmlns:app="http://schemas.android.com/apk/res-auto">
+#     <item
+#         android:id="@+id/action_login"
+#         android:title="Login"
+#         android:icon="@drawable/ic_login"
+#         app:showAsAction="ifRoom" />
+#     <item
+#         android:id="@+id/action_logout"
+#         android:title="Logout"
+#         android:icon="@drawable/ic_logout"
+#         app:showAsAction="ifRoom" />
+#     <item
+#         android:id="@+id/action_sync"
+#         android:title="Sync Now"
+#         android:icon="@drawable/ic_sync"
+#         app:showAsAction="ifRoom" />
+# </menu>
+
+# ─── Layout: activity_main.xml ───
+# <?xml version="1.0" encoding="utf-8"?>
+# <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+#     xmlns:app="http://schemas.android.com/apk/res-auto"
+#     android:layout_width="match_parent"
+#     android:layout_height="match_parent"
+#     android:orientation="vertical">
+#
+#     <androidx.appcompat.widget.Toolbar
+#         android:id="@+id/toolbar"
+#         android:layout_width="match_parent"
+#         android:layout_height="?attr/actionBarSize"
+#         android:background="@color/primary"
+#         android:elevation="4dp"
+#         app:popupTheme="@style/Theme.Levoy"
+#         app:titleTextColor="@color/white" />
+#
+#     <!-- Bottom navigation -->
+#     <LinearLayout
+#         android:layout_width="match_parent"
+#         android:layout_height="wrap_content"
+#         android:orientation="horizontal"
+#         android:gravity="center"
+#         android:padding="8dp"
+#         android:background="@color/surface"
+#         android:elevation="4dp">
+#
+#         <ImageButton
+#             android:id="@+id/nav_dashboard"
+#             android:layout_width="48dp"
+#             android:layout_height="48dp"
+#             android:src="@drawable/ic_dashboard"
+#             android:background="?attr/selectableItemBackgroundBorderless"
+#             android:contentDescription="Dashboard"
+#             android:tint="@color/text_secondary" />
+#
+#         <ImageButton
+#             android:id="@+id/nav_calls"
+#             android:layout_width="48dp"
+#             android:layout_height="48dp"
+#             android:src="@drawable/ic_calls"
+#             android:background="?attr/selectableItemBackgroundBorderless"
+#             android:contentDescription="Call Logs"
+#             android:tint="@color/text_secondary" />
+#
+#         <ImageButton
+#             android:id="@+id/nav_leads"
+#             android:layout_width="48dp"
+#             android:layout_height="48dp"
+#             android:src="@drawable/ic_leads"
+#             android:background="?attr/selectableItemBackgroundBorderless"
+#             android:contentDescription="Leads"
+#             android:tint="@color/text_secondary" />
+#
+#         <ImageButton
+#             android:id="@+id/nav_reports"
+#             android:layout_width="48dp"
+#             android:layout_height="48dp"
+#             android:src="@drawable/ic_reports"
+#             android:background="?attr/selectableItemBackgroundBorderless"
+#             android:contentDescription="Reports"
+#             android:tint="@color/text_secondary" />
+#
+#         <ImageButton
+#             android:id="@+id/nav_team"
+#             android:layout_width="48dp"
+#             android:layout_height="48dp"
+#             android:src="@drawable/ic_team"
+#             android:background="?attr/selectableItemBackgroundBorderless"
+#             android:contentDescription="Team"
+#             android:tint="@color/text_secondary" />
+#     </LinearLayout>
+#
+#     <FrameLayout
+#         android:id="@+id/fragment_container"
+#         android:layout_width="match_parent"
+#         android:layout_height="0dp"
+#         android:layout_weight="1" />
+#
+# </LinearLayout>
+
+# ─── Layout: fragment_dashboard.xml ───
+# <?xml version="1.0" encoding="utf-8"?>
+# <androidx.swiperefreshlayout.widget.SwipeRefreshLayout xmlns:android="http://schemas.android.com/apk/res/android"
+#     xmlns:app="http://schemas.android.com/apk/res-auto"
+#     android:id="@+id/swipeRefresh"
+#     android:layout_width="match_parent"
+#     android:layout_height="match_parent">
+#
+#     <ScrollView
+#         android:layout_width="match_parent"
+#         android:layout_height="match_parent"
+#         android:fillViewport="true">
+#
+#         <LinearLayout
+#             android:layout_width="match_parent"
+#             android:layout_height="wrap_content"
+#             android:orientation="vertical"
+#             android:padding="16dp">
+#
+#             <TextView
+#                 android:layout_width="wrap_content"
+#                 android:layout_height="wrap_content"
+#                 android:text="Dashboard"
+#                 android:textSize="24sp"
+#                 android:textStyle="bold"
+#                 android:textColor="@color/text_primary"
+#                 android:layout_marginBottom="16dp" />
+#
+#             <!-- Stat cards -->
+#             <LinearLayout
+#                 android:layout_width="match_parent"
+#                 android:layout_height="wrap_content"
+#                 android:orientation="horizontal"
+#                 android:baselineAligned="false">
+#
+#                 <com.google.android.material.card.MaterialCardView
+#                     android:layout_width="0dp"
+#                     android:layout_height="wrap_content"
+#                     android:layout_weight="1"
+#                     android:layout_marginEnd="8dp"
+#                     app:cardCornerRadius="12dp"
+#                     app:cardElevation="2dp">
+#                     <LinearLayout
+#                         android:layout_width="match_parent"
+#                         android:layout_height="wrap_content"
+#                         android:orientation="vertical"
+#                         android:padding="16dp"
+#                         android:gravity="center">
+#                         <TextView
+#                             android:id="@+id/tvTotalCalls"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="0"
+#                             android:textSize="28sp"
+#                             android:textStyle="bold"
+#                             android:textColor="@color/primary" />
+#                         <TextView
+#                             android:id="@+id/tvTotalSub"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="Today's Calls"
+#                             android:textSize="12sp"
+#                             android:textColor="@color/text_secondary" />
+#                     </LinearLayout>
+#                 </com.google.android.material.card.MaterialCardView>
+#
+#                 <com.google.android.material.card.MaterialCardView
+#                     android:layout_width="0dp"
+#                     android:layout_height="wrap_content"
+#                     android:layout_weight="1"
+#                     android:layout_marginHorizontal="4dp"
+#                     app:cardCornerRadius="12dp"
+#                     app:cardElevation="2dp">
+#                     <LinearLayout
+#                         android:layout_width="match_parent"
+#                         android:layout_height="wrap_content"
+#                         android:orientation="vertical"
+#                         android:padding="16dp"
+#                         android:gravity="center">
+#                         <TextView
+#                             android:id="@+id/tvConnected"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="0"
+#                             android:textSize="28sp"
+#                             android:textStyle="bold"
+#                             android:textColor="@color/green" />
+#                         <TextView
+#                             android:id="@+id/tvConnectedSub"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="Connected"
+#                             android:textSize="12sp"
+#                             android:textColor="@color/text_secondary" />
+#                     </LinearLayout>
+#                 </com.google.android.material.card.MaterialCardView>
+#
+#                 <com.google.android.material.card.MaterialCardView
+#                     android:layout_width="0dp"
+#                     android:layout_height="wrap_content"
+#                     android:layout_weight="1"
+#                     android:layout_marginHorizontal="4dp"
+#                     app:cardCornerRadius="12dp"
+#                     app:cardElevation="2dp">
+#                     <LinearLayout
+#                         android:layout_width="match_parent"
+#                         android:layout_height="wrap_content"
+#                         android:orientation="vertical"
+#                         android:padding="16dp"
+#                         android:gravity="center">
+#                         <TextView
+#                             android:id="@+id/tvMissed"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="0"
+#                             android:textSize="28sp"
+#                             android:textStyle="bold"
+#                             android:textColor="@color/red" />
+#                         <TextView
+#                             android:id="@+id/tvMissedSub"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="Missed"
+#                             android:textSize="12sp"
+#                             android:textColor="@color/text_secondary" />
+#                     </LinearLayout>
+#                 </com.google.android.material.card.MaterialCardView>
+#
+#                 <com.google.android.material.card.MaterialCardView
+#                     android:layout_width="0dp"
+#                     android:layout_height="wrap_content"
+#                     android:layout_weight="1"
+#                     android:layout_marginStart="8dp"
+#                     app:cardCornerRadius="12dp"
+#                     app:cardElevation="2dp">
+#                     <LinearLayout
+#                         android:layout_width="match_parent"
+#                         android:layout_height="wrap_content"
+#                         android:orientation="vertical"
+#                         android:padding="16dp"
+#                         android:gravity="center">
+#                         <TextView
+#                             android:id="@+id/tvAvgDuration"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="0"
+#                             android:textSize="28sp"
+#                             android:textStyle="bold"
+#                             android:textColor="@color/blue" />
+#                         <TextView
+#                             android:id="@+id/tvAvgSub"
+#                             android:layout_width="wrap_content"
+#                             android:layout_height="wrap_content"
+#                             android:text="Avg Duration"
+#                             android:textSize="12sp"
+#                             android:textColor="@color/text_secondary" />
+#                     </LinearLayout>
+#                 </com.google.android.material.card.MaterialCardView>
+#
+#             </LinearLayout>
+#
+#             <Button
+#                 android:id="@+id/btnRefresh"
+#                 android:layout_width="wrap_content"
+#                 android:layout_height="wrap_content"
+#                 android:text="Refresh"
+#                 android:layout_marginTop="16dp" />
+#
+#         </LinearLayout>
+#     </ScrollView>
+# </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
+# ════════════════════════════════════════════════════════════════
+# NOTES FOR BUILDING
+# ════════════════════════════════════════════════════════════════
+#
+# 1. Create the Android project in Android Studio:
+#    - File > New > New Project > Empty Activity
+#    - Language: Kotlin, Minimum SDK: 26
+#
+# 2. Copy all files above into the proper locations:
+#    - MainActivity.kt → app/src/main/java/com_levoy_app/
+#    - All fragments → app/src/main/java/com/levoy/app/fragment/
+#    - All models/network/calllog/service/receiver → matching packages
+#    - XML layouts → app/src/main/res/layout/
+#    - XML resources → app/src/main/res/values/, res/menu/, res/drawable/
+#    - AndroidManifest.xml → app/src/main/
+#
+# 3. Add dependencies to build.gradle (app level):
+#    - androidx.swiperefreshlayout:swiperefreshlayout:1.1.0
+#    - com.google.android.material:material:1.11.0
+#    - androidx.work:work-runtime-ktx:2.9.0
+#    - com.squareup.okhttp3:okhttp:4.12.0
+#    - com.google.code.gson:gson:2.10.1
+#
+# 4. Update BuildConfig.API_BASE_URL in build.gradle to point to your
+#    backend server URL (e.g., http://192.168.1.100:8080/api)
+#
+# 5. Build and run on a physical device (call log access works better
+#    on physical devices than emulators).
+#
+# ════════════════════════════════════════════════════════════════

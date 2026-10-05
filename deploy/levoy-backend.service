@@ -1,0 +1,38 @@
+[Unit]
+# Rapid crash-loops back off instead of hot-spinning the CPU.
+StartLimitIntervalSec=60
+StartLimitBurst=5
+Description=Levoy API backend (Express, port 3001)
+Documentation=file:///root/callyzer-clone/README.md
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/callyzer-clone/backend-next
+
+Environment=NODE_ENV=production
+Environment=MEDIVOY_API_BASE_URL=https://api.medivoy.ae
+Environment=HOST=0.0.0.0
+Environment=PORT=3001
+Environment=PG_HOST=localhost
+Environment=PG_PORT=5432
+Environment=PG_DB=levoy
+Environment=PG_USER=levoy
+Environment=PG_PASSWORD=levoy123
+Environment=JWT_SECRET=GaugEXiLxdrvBG-QckGMyTK4rrAybhqVw62t2wbw5V11cq9yEnSSDBb_Hekv7nfY
+
+ExecStart=/root/.hermes/tools/node-26.7.0-linux-x64/bin/node /root/callyzer-clone/backend-next/server.js
+
+Restart=always
+RestartSec=5
+TimeoutStopSec=20
+KillSignal=SIGTERM
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=levoy-backend
+
+[Install]
+WantedBy=multi-user.target
