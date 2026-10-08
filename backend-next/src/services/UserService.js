@@ -1,9 +1,9 @@
 'use strict';
 
-const { pool, q, currentTenant } = require('../config/db');
+const { pool, q, tx, currentTenant } = require('../config/db');
 const Directory = require('../platform/Directory');
 const { OPEN_LEAD_STATUSES, ASSIGNMENT_CAPACITY } = require('../config/constants');
-const { ValidationError, NotFoundError, ForbiddenError } = require('../exceptions');
+const { ValidationError, NotFoundError, ForbiddenError, ConflictError } = require('../exceptions');
 const { audit } = require('../utils/audit');
 const { OTP_ONLY_HASH } = require('../utils/passwords');
 const RbacService = require('./RbacService');
@@ -144,6 +144,33 @@ class UserService {
         { changed: Object.keys({ name, phone }).filter(k => ({ name, phone })[k] !== undefined) });
     }
     return { ...u, updated: true };
+  }
+
+  // ADMIN: erase another user's account row and free their email. Same guards as
+  // "delete my account": leads are never taken down with the owner, so it is refused
+  // while any lead still points at them (Remove moves the leads first).
+  async remove(ctx, idRaw) {
+    const id = parseInt(idRaw);
+    if (!Number.isInteger(id)) throw new ValidationError('Invalid user id');
+    if (id === parseInt(ctx.userId)) throw new ValidationError('You cannot delete your own account here — use delete my account');
+    const u = (await q('SELECT id, email, role, is_active FROM users WHERE id = $1', [id])).rows[0];
+    if (!u) throw new NotFoundError('Not found');
+
+    if (u.role === 'admin' && u.is_active) {
+      const others = await q("SELECT COUNT(*)::int AS n FROM users WHERE role = 'admin' AND is_active = true AND id <> $1", [id]);
+      if (others.rows[0].n === 0) throw new ConflictError('This is the only active admin. Make someone else an admin first.');
+    }
+    const held = await q('SELECT COUNT(*)::int AS n FROM leads WHERE owner_id = $1 OR assigned_to = $1', [id]);
+    if (held.rows[0].n > 0) throw new ConflictError(`${u.email} still holds ${held.rows[0].n} lead(s). Move them to someone else first (Remove does this).`);
+    const teams = await q('SELECT COUNT(*)::int AS n FROM teams WHERE created_by = $1', [id]);
+    if (teams.rows[0].n > 0) throw new ConflictError(`${u.email} created ${teams.rows[0].n} team(s). Delete them or hand them over first.`);
+
+    await tx(async ({ q: tq }) => {
+      await audit({ query: tq }, ctx, 'user.deleted', 'user', id, { email: u.email, role: u.role });
+      await tq('DELETE FROM users WHERE id = $1', [id]);
+    });
+    await Directory.unregister(u.email, currentTenant().id);
+    return { deleted: true, id, email: u.email };
   }
 
   // Legacy endpoint: POST /api/users/:userId/role?role=…

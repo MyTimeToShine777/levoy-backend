@@ -17,6 +17,11 @@ class UserController {
     res.json(await UserService.update(ctxOf(req), req.params.userId, req.body));
   };
 
+  remove = async (req, res) => {
+    requireAdmin(req);
+    res.json(await UserService.remove(ctxOf(req), req.params.userId));
+  };
+
   setRoleLegacy = async (req, res) => {
     requireAdmin(req);
     res.json(await UserService.setRoleLegacy(ctxOf(req), req.params.userId, req.query.role));

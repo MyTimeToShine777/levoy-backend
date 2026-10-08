@@ -4,7 +4,7 @@ const { q, tx } = require('../config/db');
 const {
   CALL_STATUS_TO_STAGE, NOT_CALLED_KEY, SCORING_SETTING_DEFAULTS, FOLLOWUP_WINDOWS,
 } = require('../config/leadEngine');
-const { ValidationError, NotFoundError, AppError } = require('../exceptions');
+const { ValidationError, NotFoundError, ConflictError, AppError } = require('../exceptions');
 const { audit } = require('../utils/audit');
 const { cleanPhone } = require('../utils/phone');
 const { MS_PER_DAY, utcMidnight, parseLeadDate, toDateStr } = require('../utils/dates');
@@ -223,6 +223,28 @@ class LeadScoringService {
     };
   }
 
+  // One-lead version of enrichmentApply: refresh the derived columns after a single
+  // lead's call fields change. Skips phone_clean (the phone is not touched here).
+  async rescoreLead(id) {
+    const cfg = await this.loadConfig();
+    const r = await q(
+      `SELECT phone, call_attempted_date::text AS call_attempted_date, followup_date::text AS followup_date,
+              last_contacted_at::text AS last_contacted_at, call_status, customer_name, name,
+              pharmacy_name, is_duplicate FROM leads WHERE id = $1`, [id]);
+    if (!r.rows.length) return;
+    const l = r.rows[0];
+    const d = this.computeDerived({
+      phone_number: l.phone, call_attempted_date: l.call_attempted_date, followup_date: l.followup_date,
+      last_contacted_at: l.last_contacted_at, call_status: l.call_status,
+      customer_name: l.customer_name || l.name, pharmacy_name: l.pharmacy_name, is_duplicate: l.is_duplicate,
+    }, cfg, { today: utcMidnight(new Date()) });
+    await q(
+      `UPDATE leads SET followup_clean=$2, is_active_lead=$3, followup_window=$4, days_since_last_call=$5,
+              priority_score=$6, tier=$7, next_best_action=$8, data_check=$9, win_probability=$10 WHERE id=$1`,
+      [id, d.followup_clean, d.is_active_lead, d.followup_window, d.days_since_last_call,
+        d.priority_score, d.tier, d.next_best_action, d.data_check, d.win_probability]);
+  }
+
   // Persist the recomputed derived columns across the whole book.
   async enrichmentApply(ctx, body) {
     const limit = Math.min(Math.max(parseInt(body.limit) || 20000, 1), 100000);
@@ -328,6 +350,44 @@ class LeadScoringService {
         b.demo_plus === true, parseInt(b.sort_order) || 0]);
     await audit(null, ctx, 'lead.status_rule_saved', 'lead_status_rule', r.rows[0].id, r.rows[0]);
     return r.rows[0];
+  }
+
+  // Rules are keyed by status_key (letters and digits of the name), so a plain save
+  // under new wording would create a second rule and strand the leads on the old text.
+  // Rename moves the rule and its leads together, then recalculates the book.
+  async renameStatusRule(ctx, statusKeyParam, body) {
+    const oldKey = String(statusKeyParam || '').toLowerCase();
+    if (oldKey === NOT_CALLED_KEY) {
+      throw new ValidationError('the not-called rule cannot be renamed — it is the engine fallback');
+    }
+    const callStatus = String((body && body.call_status) || '').trim();
+    if (!callStatus) throw new ValidationError('call_status required');
+    const newKey = statusKey(callStatus);
+    if (!newKey) throw new ValidationError('call_status has no usable characters');
+    if (newKey === NOT_CALLED_KEY) throw new ValidationError('that name is reserved for the not-called rule');
+
+    const result = await tx(async ({ q: tq }) => {
+      const cur = await tq('SELECT id, call_status FROM lead_status_rules WHERE status_key = $1 FOR UPDATE', [oldKey]);
+      if (!cur.rows.length) throw new NotFoundError('No such status rule');
+      if (newKey !== oldKey) {
+        const clash = await tq('SELECT 1 FROM lead_status_rules WHERE status_key = $1', [newKey]);
+        if (clash.rows.length) throw new ConflictError(`A rule for "${callStatus}" already exists`);
+      }
+      const rule = await tq(
+        'UPDATE lead_status_rules SET call_status = $1, status_key = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+        [callStatus, newKey, cur.rows[0].id]);
+      const moved = await tq(
+        `UPDATE leads SET call_status = $1, updated_at = NOW()
+          WHERE lower(regexp_replace(call_status, '[^a-zA-Z0-9]+', '', 'g')) = $2`,
+        [callStatus, oldKey]);
+      await audit({ query: tq }, ctx, 'lead.status_rule_renamed', 'lead_status_rule', cur.rows[0].id,
+        { from: cur.rows[0].call_status, to: callStatus, leads_updated: moved.rowCount });
+      return { rule: rule.rows[0], leads_updated: moved.rowCount };
+    });
+
+    // The new key may not match the old one's pipeline stage / scoring path, so rescore everything.
+    const recalculated = await this.enrichmentApply(ctx, {});
+    return { ...result, recalculated: recalculated.updated };
   }
 
   async deleteStatusRule(ctx, statusKeyParam) {

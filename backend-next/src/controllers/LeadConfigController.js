@@ -14,6 +14,11 @@ class LeadConfigController {
     res.status(201).json(await LeadScoringService.saveStatusRule(ctxOf(req), req.body));
   };
 
+  renameStatusRule = async (req, res) => {
+    requireAdmin(req);
+    res.json(await LeadScoringService.renameStatusRule(ctxOf(req), req.params.statusKey, req.body));
+  };
+
   deleteStatusRule = async (req, res) => {
     requireAdmin(req);
     res.json(await LeadScoringService.deleteStatusRule(ctxOf(req), req.params.statusKey));

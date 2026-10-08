@@ -11,6 +11,7 @@ const FollowUpService = require('./FollowUpService');
 const LeadTagService = require('./LeadTagService');
 const LeadActivityService = require('./LeadActivityService');
 const PipelineStageService = require('./PipelineStageService');
+const LeadScoringService = require('./LeadScoringService');
 
 // Columns the spreadsheet engine adds on top of the generic CRM columns. Returned
 // additively so the Leads table can render assignment + scoring without a second call.
@@ -315,8 +316,13 @@ class LeadService {
     const fields = [];
     const values = [];
     let idx = 1;
-    for (const k of ['name', 'phone', 'email', 'status', 'source', 'priority', 'notes']) {
+    const CALL_FIELDS = ['call_status', 'remarks', 'followup_date', 'call_attempted_date'];
+    for (const k of ['name', 'phone', 'email', 'status', 'source', 'priority', 'notes', ...CALL_FIELDS]) {
       if (body[k] !== undefined) { fields.push(`${k} = $${idx}`); values.push(body[k]); idx++; }
+    }
+    // Recording a call outcome means a call happened today, unless the client sends the date.
+    if (body.call_status !== undefined && body.call_attempted_date === undefined) {
+      fields.push('call_attempted_date = CURRENT_DATE');
     }
     if (body.assigned_to !== undefined) {
       const to = body.assigned_to;
@@ -335,7 +341,13 @@ class LeadService {
     values.push(leadId);
 
     const r = await q(`UPDATE leads SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`, values);
-    const l = r.rows[0];
+    let l = r.rows[0];
+
+    // Keep Hot/Warm/Cool, priority score and next best action in step with the call fields.
+    if (CALL_FIELDS.some((k) => body[k] !== undefined)) {
+      await LeadScoringService.rescoreLead(l.id);
+      l = (await q('SELECT * FROM leads WHERE id = $1', [l.id])).rows[0];
+    }
 
     if (body.assigned_to !== undefined) {
       const client = await pool.connect();

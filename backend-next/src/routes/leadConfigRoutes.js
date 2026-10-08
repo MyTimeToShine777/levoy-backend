@@ -16,6 +16,7 @@ const writeCfg = [authMW, requirePage('lead-rules', 'update', 'Admin only')];
 
 router.get('/api/leads/status-rules', ...readCfg, h(LeadConfigController.statusRules));
 router.post('/api/leads/status-rules', ...writeCfg, h(LeadConfigController.saveStatusRule));
+router.post('/api/leads/status-rules/:statusKey/rename', ...writeCfg, h(LeadConfigController.renameStatusRule));
 router.delete('/api/leads/status-rules/:statusKey', ...writeCfg, h(LeadConfigController.deleteStatusRule));
 router.get('/api/leads/scoring-settings', ...readCfg, h(LeadConfigController.getScoringSettings));
 router.put('/api/leads/scoring-settings', ...writeCfg, h(LeadConfigController.putScoringSettings));
