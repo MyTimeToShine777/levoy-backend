@@ -72,6 +72,7 @@ Database connection is read from environment variables (a single `DATABASE_URL` 
 | `BOOTSTRAP_ADMIN_EMAIL` | unset (no admin is created); must be a real inbox, it receives the sign-in code |
 | `MEDIVOY_API_BASE_URL` | unset — **required**, e.g. `https://api.medivoy.ae`; sends and checks the sign-in codes |
 | `OTP_RESEND_SECONDS` | `60` |
+| `CALLS_LEAD_ONLY` | `true` — the server keeps only uploaded calls whose number is a lead assigned to the uploader (last 10 digits); set `false` to accept every call |
 | `PLATFORM_ADMIN_EMAILS` | comma-separated platform owners; defaults to `BOOTSTRAP_ADMIN_EMAIL` |
 | `PG_SCHEMA` / `PLATFORM_SCHEMA` | `public` / `levoy_platform` — the original workspace's schema and the platform schema |
 | `TENANT_POOL_MAX` | `4` connections per customer |

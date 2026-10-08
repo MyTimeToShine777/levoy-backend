@@ -4,6 +4,7 @@ const { pool, q } = require('../config/db');
 const { ValidationError, NotFoundError, ForbiddenError } = require('../exceptions');
 const { visibleSql } = require('../utils/leadAccess');
 const SimService = require('./SimService');
+const { phoneKey, splitByLeadNumbers } = require('../utils/phoneKey');
 
 const callJson = c => ({
   id: c.id, phone_number: c.phone_number, direction: c.direction, status: c.status,
@@ -23,9 +24,24 @@ function simOf(e) {
   return { source, slot, label: e.sim_label ? String(e.sim_label).trim().slice(0, 100) || null : null };
 }
 
+// Levoy only tracks calls to the leads assigned to a person. The phone app already sends only those, but an older app (or a
+// stray client) may send the whole call log, so the server enforces it too. Set CALLS_LEAD_ONLY=false to switch this off.
+const leadOnly = () => !['0', 'false', 'off', 'no'].includes(String(process.env.CALLS_LEAD_ONLY || 'true').trim().toLowerCase());
+
+// Last-10-digit keys of the leads assigned to this user.
+async function assignedLeadKeys(userId) {
+  const r = await q(
+    `SELECT DISTINCT right(regexp_replace(phone, '\\D', '', 'g'), 10) AS k
+       FROM leads
+      WHERE assigned_to = $1 AND deleted_at IS NULL AND merged_into_lead_id IS NULL AND phone IS NOT NULL`,
+    [parseInt(userId)]);
+  return new Set(r.rows.map(x => x.k).filter(Boolean));
+}
+
 class CallService {
   async create(ctx, body) {
     if (!body.phone_number) throw new ValidationError('phone_number required');
+    if (leadOnly() && !(await assignedLeadKeys(ctx.userId)).has(phoneKey(body.phone_number))) return { id: null, ignored: true, reason: 'not_an_assigned_lead' };
     const ts = body.timestamp ? new Date(body.timestamp).toISOString() : new Date().toISOString();
     const sim = simOf(body);
     const r = await q(
@@ -41,6 +57,12 @@ class CallService {
   // Bulk ingestion from the Android app: one INSERT with N value tuples.
   async batch(ctx, body) {
     if (!body.events || !Array.isArray(body.events) || body.events.length === 0) throw new ValidationError('events required');
+    let events = body.events;
+    let ignored = 0;
+    if (leadOnly()) {
+      ({ kept: events, ignored } = splitByLeadNumbers(events, await assignedLeadKeys(ctx.userId)));
+      if (events.length === 0) return { received: 0, ignored, ids: [] };      // nothing here is a call to one of their leads
+    }
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -49,8 +71,8 @@ class CallService {
       const now = new Date().toISOString();
       const COLS = 12;
       const seen = new Map();
-      for (let i = 0; i < body.events.length; i++) {
-        const e = body.events[i];
+      for (let i = 0; i < events.length; i++) {
+        const e = events[i];
         const ts = e.timestamp ? new Date(e.timestamp).toISOString() : now;
         const sim = simOf(e);
         if (sim.slot && !seen.has(sim.slot)) seen.set(sim.slot, sim.label);
@@ -65,7 +87,7 @@ class CallService {
       const ids = r.rows.map(x => x.id);
       await client.query('COMMIT');
       await SimService.noteSeen(parseInt(ctx.userId), [...seen].map(([slot, label]) => ({ slot, label })));
-      return { received: ids.length, ids };
+      return { received: ids.length, ignored, ids };
     } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
   }
 
