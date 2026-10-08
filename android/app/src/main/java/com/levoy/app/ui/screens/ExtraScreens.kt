@@ -171,7 +171,7 @@ fun MissingDetailsScreen(busy: Boolean, result: String?, onScan: () -> Unit, onB
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 Text("Some calls may show as “Unknown” or without a SIM — for example when the contact was not readable at the time, or the SIM was not yet detected.", style = Txt.Body.copy(fontSize = 19.sp, lineHeight = 28.sp), color = Pal.text)
                 Spacer(Modifier.height(14.dp))
-                Text("Scanning looks at the last 90 days of this phone's call log again and fills in the missing names and SIMs. It never changes a name or SIM that is already there.", style = Txt.Body.copy(fontSize = 16.sp, lineHeight = 24.sp), color = Pal.textSecondary)
+                Text("Scanning looks again at the last 90 days of your calls to the leads assigned to you and fills in the missing names and SIMs. Other calls on this phone are never read. It never changes a name or SIM that is already there.", style = Txt.Body.copy(fontSize = 16.sp, lineHeight = 24.sp), color = Pal.textSecondary)
                 if (result != null) Text(result, style = Txt.Body.copy(fontSize = 18.sp), color = LevoyColors.Amber, modifier = Modifier.padding(top = 24.dp))
             }
             AmberButton(if (busy) "Scanning…" else "Scan now", { if (!busy) onScan() }, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)

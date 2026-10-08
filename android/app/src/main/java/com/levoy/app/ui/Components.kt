@@ -128,11 +128,20 @@ fun IconAction(icon: ImageVector, desc: String, tint: Color = Pal.text, onClick:
 
 @Composable
 fun AmberButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, height: Dp = 64.dp, corner: Dp = 20.dp, enabled: Boolean = true, upper: Boolean = false) {
+    // A disabled button used to be the yellow at 40% with dark text, which was nearly unreadable. Now both states keep the same dark bold
+    // text on yellow (disabled is only slightly softer), and the text stays on one line whatever the phone's font size.
     Box(
-        modifier.height(height).clip(RoundedCornerShape(corner)).background(if (enabled) LevoyColors.Amber else LevoyColors.Amber.copy(alpha = 0.4f))
-            .clickable(enabled = enabled, onClick = onClick),
+        modifier.height(height).clip(RoundedCornerShape(corner)).background(if (enabled) LevoyColors.Amber else LevoyColors.Amber.copy(alpha = 0.8f))
+            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
-    ) { Text(if (upper) text.uppercase() else text, style = Txt.Button, color = LevoyColors.OnAmber) }
+    ) {
+        Text(
+            if (upper) text.uppercase() else text,
+            style = Txt.Button.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold),
+            color = Color(0xFF111111),
+            maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+        )
+    }
 }
 
 @Composable

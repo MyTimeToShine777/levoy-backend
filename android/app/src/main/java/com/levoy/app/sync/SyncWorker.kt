@@ -15,24 +15,36 @@ import androidx.work.WorkerParameters
 import com.levoy.app.data.Api
 import com.levoy.app.data.ApiException
 import com.levoy.app.data.Session
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
 /** Uploads calls the server has not seen yet, then tells it how the phone is doing. */
 object CallSync {
+    private const val FIRST_SYNC_DAYS = 30L
+
     sealed interface Result { data class Done(val uploaded: Int) : Result; data class Failed(val message: String) : Result; object NotReady : Result }
 
-    suspend fun run(context: Context, session: Session, api: Api): Result {
+    // Off the main thread: reading a big call log (and looking up every name) took long enough to freeze the app ("not responding").
+    suspend fun run(context: Context, session: Session, api: Api): Result = withContext(Dispatchers.IO) { runSync(context, session, api) }
+
+    private suspend fun runSync(context: Context, session: Session, api: Api): Result {
         if (session.token == null) return Result.NotReady
         if (!CallLogReader.canReadLog(context)) return Result.NotReady
         return try {
+            // Only calls to the numbers of leads assigned to this person are read and uploaded, never the whole call log.
+            // If the lead list cannot be loaded this throws and nothing is uploaded.
+            val leadNumbers = api.myLeadNumbers()
             var after = session.lastSyncedAt
             if (after == 0L) {
-                // First sync on this phone: do not re-send calls the server already holds (e.g. after a sign-out).
+                // First sync on this phone: do not re-send calls the server already holds (e.g. after a sign-out),
+                // and never look further back than FIRST_SYNC_DAYS.
                 val uid = session.user?.id
                 val newest = api.history(mapOf("limit" to 1, "user_id" to uid)).rows.firstOrNull()?.timestamp
-                after = newest?.let { runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull() } ?: 0L
+                val newestMs = newest?.let { runCatching { java.time.Instant.parse(it).toEpochMilli() }.getOrNull() } ?: 0L
+                after = maxOf(newestMs, System.currentTimeMillis() - FIRST_SYNC_DAYS * 86_400_000L)
             }
-            val calls = CallLogReader.read(context, after)
+            val calls = if (leadNumbers.isEmpty()) emptyList() else CallLogReader.read(context, after, only = leadNumbers)
             var uploaded = 0
             for (chunk in calls.chunked(400)) {
                 api.uploadCalls(chunk.map { it.toEvent() })

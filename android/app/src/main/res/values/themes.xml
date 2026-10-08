@@ -10,6 +10,8 @@
         <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
         <item name="android:colorAccent">@color/primary</item>
+        <!-- The phone's "force dark" must not re-colour the app: the app draws its own dark and light themes. -->
+        <item name="android:forceDarkAllowed" tools:targetApi="29">false</item>
     </style>
 
     <!-- Hosts the Quick Action "save contact" prompt without any chrome or animation. -->

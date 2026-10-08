@@ -25,7 +25,6 @@ interface Os {
     fun batteryUnrestricted(): Boolean
     fun hasCallLogPermission(): Boolean
     fun deviceSims(): List<DeviceSim>
-    fun recentOutgoing(): List<DeviceCall>
 
     fun isDefaultDialer(): Boolean
     fun requestDialerRole(then: (Boolean) -> Unit)

@@ -67,7 +67,6 @@ sealed interface Overlay {
     data class Upgrade(val message: String, val plan: String) : Overlay
     object SkipVerify : Overlay
     data class CallNow(val slot: Int) : Overlay
-    data class CallLogPicker(val slot: Int) : Overlay
     object AddReminder : Overlay
     data class Message(val text: String) : Overlay
     object TagPicker : Overlay
@@ -170,7 +169,6 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
     fun changeEmail() { codeSent = false; resendIn = 0; loginError = null }
 
-    fun setServer(url: String) { session.serverUrl = url }
     val serverUrl: String get() = session.serverUrl
 
     private fun onSignedIn() {
@@ -180,8 +178,6 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         loadSims(); loadPlan(); loadWorkspace()
         com.levoy.app.push.Push.register(getApplication())
         refreshAll()
-        // offer SIM verification once, right after the first sign-in, as the reference does
-        if (!session.simPrompted && CallLogReader.sims(getApplication()).isNotEmpty()) { session.simPrompted = true; push(Screen.SimNumber) }
     }
 
     /** Called from MainActivity.onResume. */
@@ -269,7 +265,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
 
     private fun historyParams(tab: String, range: DateRange, f: FilterState, search: String): Map<String, Any?> = mapOf(
         "tab" to tab, "date_from" to range.fromIso, "date_to" to range.toIso, "search" to search.trim(), "sim" to f.sim, "contact_type" to f.contactType,
-        "notes" to f.notes, "tag_id" to f.tagId, "limit" to 300, "tz" to tz(),
+        "notes" to f.notes, "tag_id" to f.tagId, "limit" to 200, "tz" to tz(),
     )
 
     fun loadHistory() {
@@ -395,7 +391,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
 
     // ───────────── analytics ─────────────
-    var anRange by mutableStateOf(DateRange.of(Preset.Today))
+    // "Today" is usually empty when you open the screen, which looked like Analytics not working; open on the week instead.
+    var anRange by mutableStateOf(DateRange.of(Preset.Week))
     var anView by mutableStateOf("summary")
     var anSim by mutableStateOf("")
     var anGraphOpen by mutableStateOf(true)
@@ -507,12 +504,6 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     fun onSimTapped(slot: Int) { if (sims.firstOrNull { it.slot == slot }?.number.isNullOrBlank()) push(Screen.ConnectSim(slot)) else push(Screen.SimVerify(slot)) }
 
     /** "Verify via Call Log": the chosen call must really have been placed from this SIM. */
-    fun verifyByCallLog(slot: Int, call: DeviceCall) {
-        val known = call.simSlot
-        if (known != null && known != slot) { overlay = Overlay.Message("That call was made from SIM $known, not SIM $slot. Pick a call you made with this SIM."); return }
-        saveSim(slot, null, null, "call_log") { overlay = Overlay.Message("SIM $slot verified"); pop() }
-    }
-
     /** "Verify via Call": dial the SIM's own number; when the person returns, the call log shows which SIM placed it. */
     fun verifyByCall(os: Os, slot: Int) {
         val number = sims.firstOrNull { it.slot == slot }?.number ?: return
@@ -564,7 +555,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         backfillBusy = true; backfillResult = null
         viewModelScope.launch {
             try {
-                val calls = CallLogReader.read(getApplication(), System.currentTimeMillis() - 90L * 86_400_000L)
+                val numbers = api.myLeadNumbers()           // only this person's leads, like the regular sync
+                val calls = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { CallLogReader.read(getApplication(), System.currentTimeMillis() - 90L * 86_400_000L, only = numbers) }
                 var updated = 0
                 for (chunk in calls.chunked(500)) updated += api.backfill(chunk.map { it.toEvent() }).updated
                 backfillResult = if (calls.isEmpty()) "No calls to check (is the call-log permission on?)" else "Checked ${calls.size} calls, filled in details for $updated"

@@ -120,7 +120,6 @@ fun SettingsScreen(showPremiumRow: Boolean, a: SettingsActions, onBack: () -> Un
             TopBar(T("more_settings"), onBack)
             Spacer(Modifier.height(6.dp))
             if (showPremiumRow) SettingsRow({ Ic(Icons.Filled.Diamond, LevoyColors.Amber) }, T("premium_settings"), a.premium)
-            SettingsRow({ Ic(Icons.Filled.SimCard) }, T("sim_number"), a.sim)
             SettingsRow({ WhatsAppGlyph(Modifier.size(30.dp), Pal.text) }, T("whatsapp_call"), a.whatsapp)
             SettingsRow({ Ic(Icons.Filled.Smartphone) }, T("quick_action"), a.quickAction)
             SettingsRow({ Ic(Icons.Filled.Language) }, T("language"), a.language)

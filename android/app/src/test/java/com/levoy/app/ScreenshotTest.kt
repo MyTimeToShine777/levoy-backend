@@ -149,10 +149,10 @@ class ScreenshotTest {
     @Test fun premiumEditedPlansPro() = shell(Tab.Premium, fab = false) { PremiumScreen(PremiumUi(editedPlans, "pro"), PremiumActions()) }
 
     @Test fun simNumber() = snap("sim_number") { SimNumberScreen(SimUi(listOf(Sim(1, "JIO 4G | Jio", "9344281783", true))), {}, {}) }
-    @Test fun simOptions() = snap("sim_options") { SimVerifyOptionsScreen("+919344281783", {}, {}, {}, {}) }
+    @Test fun simOptions() = snap("sim_options") { SimVerifyOptionsScreen("+919344281783", {}, {}, {}) }
     @Test fun connectSim() = snap("connect_sim") { ConnectSimScreen("Jio True5G | Jio", 1, "91", "", false, {}, {}, {}, {}) }
     @Test fun troubleshootMenu() = snap("troubleshoot_menu") { TroubleshootingMenuScreen({}, {}) }
-    @Test fun troubleshootStatus() = snap("troubleshoot_status") { CallSyncStatusScreen(HealthUi(true, true, false), {}, {}, {}, {}, {}) }
+    @Test fun troubleshootStatus() = snap("troubleshoot_status") { CallSyncStatusScreen(HealthUi(true, true, false), {}, {}, {}, {}) }
     @Test fun quickAction() = snap("quick_action") {
         ToggleInfoScreen("Quick Action", { androidx.compose.material3.Icon(Icons.Filled.Layers, null, tint = com.levoy.app.ui.theme.Pal.text) }, "Quick Action", false, {}, null, "Quick Action Feature :", QUICK_ACTION_BULLETS, {})
     }
@@ -164,8 +164,8 @@ class ScreenshotTest {
     @Test fun callLogPrimer() = snap("calllog_primer") {
         PermissionPrimerScreen("ACCESS TO YOUR DEVICE'S CALL LOG", "Your default dialer only shows your call history. Levoy helps you understand it.", "All data is processed locally and remains securely stored on your device.", CALL_LOG_USES, "Allow Access", {}, {})
     }
-    @Test fun login() = snap("login") { LoginScreen("", "", "http://10.0.2.2:3001/api", false, 0, false, null, {}, {}, {}, {}, {}, {}, {}) }
-    @Test fun loginCode() = snap("login_code") { LoginScreen("asha@company.com", "48", "http://10.0.2.2:3001/api", true, 42, false, null, {}, {}, {}, {}, {}, {}, {}) }
+    @Test fun login() = snap("login") { LoginScreen("", "", false, 0, false, null, {}, {}, {}, {}, {}, {}) }
+    @Test fun loginCode() = snap("login_code") { LoginScreen("asha@company.com", "48", true, 42, false, null, {}, {}, {}, {}, {}, {}) }
 
     @Test fun moreWithSocials() = snap("more_socials") {
         SideMenu(MoreActions(socials = linkedMapOf(Social.X to "https://x.com/a", Social.Instagram to "https://i.com/a", Social.Facebook to "https://f.com/a", Social.Telegram to "https://t.me/a", Social.Reddit to "https://r.com/a")), "Asha Rao", "asha@company.com", "Premium Plus") {}

@@ -178,11 +178,10 @@ val CONTACTS_USES = listOf("Display contact names instead of raw phone numbers",
 
 @Composable
 fun LoginScreen(
-    email: String, code: String, server: String, codeSent: Boolean, resendIn: Int, busy: Boolean, error: String?,
-    onEmail: (String) -> Unit, onCode: (String) -> Unit, onServer: (String) -> Unit,
+    email: String, code: String, codeSent: Boolean, resendIn: Int, busy: Boolean, error: String?,
+    onEmail: (String) -> Unit, onCode: (String) -> Unit,
     onSend: () -> Unit, onVerify: () -> Unit, onResend: () -> Unit, onChangeEmail: () -> Unit,
 ) {
-    var showServer by remember { mutableStateOf(false) }
     FullScreen {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Spacer(Modifier.height(80.dp))
@@ -208,13 +207,6 @@ fun LoginScreen(
                 Spacer(Modifier.height(18.dp))
                 Text(if (resendIn > 0) "Resend code in ${resendIn}s" else "Resend code", style = Txt.Small.copy(fontSize = 15.sp, textDecoration = if (resendIn > 0) TextDecoration.None else TextDecoration.Underline), color = if (resendIn > 0) Pal.textMuted else Pal.textSecondary, modifier = Modifier.clickable(enabled = resendIn == 0 && !busy, onClick = onResend).padding(8.dp))
                 Text("Use a different email", style = Txt.Small.copy(fontSize = 15.sp, textDecoration = TextDecoration.Underline), color = Pal.textSecondary, modifier = Modifier.clickable(onClick = onChangeEmail).padding(8.dp))
-            }
-            Spacer(Modifier.height(26.dp))
-            Text(if (showServer) "Hide server address" else "Server address", style = Txt.Small.copy(fontSize = 15.sp, textDecoration = TextDecoration.Underline), color = Pal.textSecondary, modifier = Modifier.clickable { showServer = !showServer }.padding(8.dp))
-            if (showServer) {
-                Spacer(Modifier.height(8.dp))
-                Field(server, onServer, "http://192.168.1.10:3001/api", keyboard = androidx.compose.ui.text.input.KeyboardType.Uri)
-                Text("Use your computer's address on the same Wi-Fi. 10.0.2.2 only works in the emulator.", style = Txt.Small, color = Pal.textMuted, modifier = Modifier.padding(top = 8.dp))
             }
         }
     }

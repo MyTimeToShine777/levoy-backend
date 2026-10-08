@@ -56,10 +56,12 @@ object CallLogReader {
     }
 
     /** Calls newer than `afterMillis` (exclusive), oldest first. */
-    fun read(context: Context, afterMillis: Long, limit: Int = 5000): List<DeviceCall> {
+    /** `only`: when given, calls to any other number are skipped before anything else is read about them. */
+    fun read(context: Context, afterMillis: Long, limit: Int = 5000, only: Set<String>? = null): List<DeviceCall> {
         if (!canReadLog(context)) return emptyList()
         val sims = sims(context)
         val out = ArrayList<DeviceCall>()
+        val names = HashMap<String, String?>()      // one contacts lookup per number, not one per call
         val cols = arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE, CallLog.Calls.DURATION, CallLog.Calls.TYPE, CallLog.Calls.CACHED_NAME, CallLog.Calls.PHONE_ACCOUNT_ID)
         val cursor = try {
             context.contentResolver.query(CallLog.Calls.CONTENT_URI, cols, "${CallLog.Calls.DATE} > ?", arrayOf(afterMillis.toString()), "${CallLog.Calls.DATE} ASC")
@@ -72,19 +74,16 @@ object CallLogReader {
             while (c.moveToNext() && out.size < limit) {
                 val (direction, status) = classify(c.getInt(iType)) ?: continue
                 val number = c.getString(iNumber)?.replace(Regex("[^\\d+]"), "")?.take(20).orEmpty()
+                if (only != null && com.levoy.app.data.phoneKeyOf(number) !in only) continue      // not one of this person's leads
                 if (number.isEmpty()) continue            // private / hidden numbers cannot be attributed to a person
                 val acc = if (iAcc >= 0) c.getString(iAcc) else null
                 val sim = sims.firstOrNull { acc != null && (acc == it.subscriptionId.toString() || acc == it.iccId) } ?: if (sims.size == 1) sims[0] else null
-                val name = (if (iName >= 0) c.getString(iName) else null)?.takeIf { it.isNotBlank() } ?: nameFor(context, number)
+                val name = (if (iName >= 0) c.getString(iName) else null)?.takeIf { it.isNotBlank() } ?: (if (names.containsKey(number)) names[number] else nameFor(context, number).also { names[number] = it })
                 out.add(DeviceCall(c.getLong(iDate), number, name, direction, status, if (iDur >= 0) c.getInt(iDur) else 0, sim?.slot, sim?.label))
             }
         }
         return out
     }
-
-    /** The newest outgoing calls, for "verify via call log". */
-    fun recentOutgoing(context: Context, limit: Int = 8): List<DeviceCall> =
-        read(context, 0L, 5000).filter { it.direction == "outgoing" }.takeLast(limit).reversed()
 
     /** The saved contact name for a number, or null (also null without the Contacts permission). */
     fun nameFor(context: Context, number: String): String? {

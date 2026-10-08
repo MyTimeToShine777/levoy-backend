@@ -137,7 +137,8 @@ private fun CenterMessage(text: String, action: String? = null, onAction: () -> 
 @Composable
 private fun CallList(ui: CallHistoryUi, a: CallHistoryActions, bottomInset: androidx.compose.ui.unit.Dp) {
     // group by local calendar day, newest first (the server already sorts)
-    val days = ui.rows.groupBy { r -> Fmt.parse(r.timestamp)?.toLocalDate() }.entries.toList()
+    // remembered: grouping parses every row's timestamp, which used to be redone on every recomposition and made scrolling lag
+    val days = androidx.compose.runtime.remember(ui.rows) { ui.rows.groupBy { r -> Fmt.parse(r.timestamp)?.toLocalDate() }.entries.toList() }
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 120.dp + bottomInset)) {
         days.forEach { (day, rows) ->
             item(key = "h-$day") {

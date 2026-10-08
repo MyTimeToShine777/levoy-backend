@@ -105,13 +105,11 @@ private fun RootContent(m: AppModel, os: Os) {
             Stage.Login -> {
                 var email by remember { mutableStateOf("") }
                 var code by remember { mutableStateOf("") }
-                var server by remember { mutableStateOf(m.serverUrl) }
                 LoginScreen(
-                    email, code, server, m.codeSent, m.resendIn, m.loginBusy, m.loginError,
+                    email, code, m.codeSent, m.resendIn, m.loginBusy, m.loginError,
                     { email = it },
                     // The sixth digit submits by itself, like the web app.
                     { c -> val d = c.filter { it.isDigit() }.take(6); code = d; if (d.length == 6) m.verifyCode(email, d) },
-                    { server = it; m.setServer(it) },
                     { m.requestCode(email) },
                     { m.verifyCode(email, code) },
                     { code = ""; m.requestCode(email) },
@@ -259,7 +257,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         Screen.SimNumber -> SimNumberScreen(SimUi(m.sims, os.deviceSims().map { DetectedSim(it.slot, it.label) }, m.simMessage), m::onSimTapped, back)
         is Screen.SimVerify -> {
             val number = m.sims.firstOrNull { it.slot == s.slot }?.number
-            SimVerifyOptionsScreen(number?.let { "+$it" } ?: "your number", onLog = { m.overlay = Overlay.CallLogPicker(s.slot) }, onCall = { m.overlay = Overlay.CallNow(s.slot) }, onSkip = { m.overlay = Overlay.SkipVerify }, onBack = back)
+            SimVerifyOptionsScreen(number?.let { "+$it" } ?: "your number", onCall = { m.overlay = Overlay.CallNow(s.slot) }, onSkip = { m.overlay = Overlay.SkipVerify }, onBack = back)
         }
         is Screen.ConnectSim -> {
             var code by remember { mutableStateOf("91") }
@@ -276,7 +274,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         Screen.SyncStatus -> CallSyncStatusScreen(
             HealthUi(!m.permissionsMissing, m.sims.isNotEmpty() && m.sims.all { it.verified }, os.batteryUnrestricted(), m.lastSync ?: m.syncStatus),
             onDisableBattery = os::openBatterySettings, onFixPermissions = { os.requestAllPermissions { if (!os.hasCallLogPermission()) os.openAppSettings() } },
-            onVerifySim = { m.loadSims(); m.push(Screen.SimNumber) }, onSyncNow = { m.syncNow { os.toast(m.syncStatus ?: "Done") } }, onBack = back,
+            onSyncNow = { m.syncNow { os.toast(m.syncStatus ?: "Done") } }, onBack = back,
         )
         Screen.QuickAction -> ToggleInfoScreen("Quick Action", { Icon(Icons.Filled.Layers, null, tint = Pal.text) }, "Quick Action", m.quickAction,
             { v -> if (!v) m.changeQuickAction(false) else if (!os.canDrawOverlays()) { m.session.pendingToggle = "quick_action"; os.openOverlaySettings() } else os.requestOutgoingCalls { m.changeQuickAction(true) } }, null, "Quick Action Feature :", QUICK_ACTION_BULLETS, back)
@@ -425,17 +423,6 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
         is Overlay.CallNow -> Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable { m.overlay = null }, contentAlignment = Alignment.Center) {
             val number = m.sims.firstOrNull { it.slot == o.slot }?.number ?: ""
             CallNowDialog(if (number.isEmpty()) "your number" else "+$number", { m.overlay = null }, { m.verifyByCall(os, o.slot) })
-        }
-        is Overlay.CallLogPicker -> {
-            var picked by remember { mutableStateOf<Long?>(null) }
-            val deviceCalls = remember { os.recentOutgoing() }
-            val calls = remember { deviceCalls.map { DialedCall(it.date, it.name ?: "Unknown", it.number, "${Fmt.dateMed(java.time.Instant.ofEpochMilli(it.date).atZone(Fmt.zone))}\n${Fmt.time(java.time.Instant.ofEpochMilli(it.date).atZone(Fmt.zone))}", Fmt.duration(it.seconds)) } }
-            val number = m.sims.firstOrNull { it.slot == o.slot }?.number?.let { "+$it" } ?: "your number"
-            Box(Modifier.fillMaxSize()) {
-                BottomSheet({ m.overlay = null }) {
-                    CallLogPickerContent(number, calls, picked, { c -> picked = c.id; m.overlay = null; deviceCalls.firstOrNull { it.date == c.id }?.let { m.verifyByCallLog(o.slot, it) } }, { m.overlay = null })
-                }
-            }
         }
         Overlay.AddReminder -> {
             var phone by remember { mutableStateOf("") }

@@ -113,7 +113,6 @@ class MainActivity : ComponentActivity(), Os {
     override fun batteryUnrestricted() = (getSystemService(Context.POWER_SERVICE) as PowerManager).isIgnoringBatteryOptimizations(packageName)
     override fun hasCallLogPermission() = CallLogReader.canReadLog(this)
     override fun deviceSims(): List<DeviceSim> = CallLogReader.sims(this)
-    override fun recentOutgoing(): List<DeviceCall> = CallLogReader.recentOutgoing(this)
 
     override fun isDefaultDialer() = (getSystemService(Context.TELECOM_SERVICE) as TelecomManager).defaultDialerPackage == packageName
     override fun requestDialerRole(then: (Boolean) -> Unit) {

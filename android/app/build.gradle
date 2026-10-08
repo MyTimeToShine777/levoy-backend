@@ -22,9 +22,9 @@ android {
         versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        // 10.0.2.2 is the emulator's alias for the host machine. For a real phone use the
-        // computer's LAN address, or pass -PapiBaseUrl=https://your-server/api to gradle.
-        buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('apiBaseUrl') ?: 'http://10.0.2.2:3001/api'}\""
+        // The server is fixed in the app (people never type it). For local development pass
+        // -PapiBaseUrl=http://10.0.2.2:3001/api to gradle (10.0.2.2 is the emulator's alias for this computer).
+        buildConfigField "String", "API_BASE_URL", "\"${project.findProperty('apiBaseUrl') ?: 'https://api-levoy.medivoy.in/api'}\""
     }
 
     buildFeatures {

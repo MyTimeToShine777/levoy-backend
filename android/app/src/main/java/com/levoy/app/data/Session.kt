@@ -17,9 +17,8 @@ class Session(context: Context) {
         get() = p.getString("user", null)?.let { runCatching { gson.fromJson(it, User::class.java) }.getOrNull() }
         set(v) = p.edit().putString("user", v?.let(gson::toJson)).apply()
 
-    var serverUrl: String
-        get() = p.getString("server", null) ?: com.levoy.app.BuildConfig.API_BASE_URL
-        set(v) = p.edit().putString("server", v.trim().trimEnd('/')).apply()
+    /** Fixed at build time. (It used to be editable on the sign-in screen; a stale saved value from that is ignored.) */
+    val serverUrl: String get() = com.levoy.app.BuildConfig.API_BASE_URL.trimEnd('/')
 
     var privacyAccepted: Boolean
         get() = p.getBoolean("privacy", false)

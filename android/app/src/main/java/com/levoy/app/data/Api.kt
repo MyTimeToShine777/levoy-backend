@@ -62,6 +62,21 @@ class Api(private val session: Session) {
     // ── leads ──
     suspend fun leads(params: Map<String, Any?>): List<LeadRow> = call("GET", "/leads?${query(params)}")
     suspend fun lead(id: Int): LeadRow = call("GET", "/leads/$id")
+    /**
+     * The phone numbers (last 10 digits) of the leads assigned to this person. These are the ONLY calls the app reads from the phone and
+     * uploads: the rest of the call log is never touched. Throws if the leads cannot be loaded, so a failure never means "upload everything".
+     */
+    suspend fun myLeadNumbers(): Set<String> {
+        val out = HashSet<String>()
+        var offset = 0
+        while (offset < 20_000) {
+            val page = leads(mapOf("assigned" to "mine", "limit" to 500, "offset" to offset))
+            page.forEach { l -> phoneKeyOf(l.phone)?.let(out::add) }
+            if (page.size < 500) break
+            offset += 500
+        }
+        return out
+    }
     suspend fun statusRules(): StatusRules = call("GET", "/leads/status-rules")
     suspend fun updateLead(id: Int, body: Map<String, Any?>) { raw("PUT", "/leads/$id", body, nulls = true) }
 

@@ -23,7 +23,12 @@ fun LevoyTheme(mode: ThemeMode = ThemeMode.Dark, content: @Composable () -> Unit
     } else {
         lightColorScheme(primary = LevoyColors.Amber, onPrimary = LevoyColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
     }
-    CompositionLocalProvider(LocalPalette provides pal) {
+    // A phone set to "Largest" text used to blow past the fixed-height buttons and cards. Allow some enlargement, not unlimited.
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    CompositionLocalProvider(
+        LocalPalette provides pal,
+        androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceAtMost(1.15f)),
+    ) {
         MaterialTheme(colorScheme = scheme, typography = LevoyTypography, content = content)
     }
 }

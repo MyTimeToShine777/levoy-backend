@@ -173,14 +173,13 @@ fun Field(value: String, onChange: (String) -> Unit, hint: String, modifier: Mod
 }
 
 @Composable
-fun SimVerifyOptionsScreen(number: String, onLog: () -> Unit, onCall: () -> Unit, onSkip: () -> Unit, onBack: () -> Unit) {
+fun SimVerifyOptionsScreen(number: String, onCall: () -> Unit, onSkip: () -> Unit, onBack: () -> Unit) {
     FullScreen {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             TopBar("SIM Number", onBack)
             Text("Choose one of the option to verify your number", style = Txt.Heading.copy(fontSize = 27.sp, lineHeight = 36.sp), color = Pal.text, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp))
             Spacer(Modifier.height(10.dp))
             Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                OptionCard(Icons.Filled.HistoryToggleOff, "Verify via Call Log", "App will show few call logs and you need to simply select which call you have dialed using $number.", onLog)
                 OptionCard(Icons.Filled.Call, "Verify via Call", "App will make a dummy call to your number itself.", onCall)
                 OptionCard(Icons.Filled.Block, "Skip Verification", "(Not Recommended)\nVerification process will be skipped and you would be able to use app. However, you may face issue with reports and upcoming versions.", onSkip)
             }
@@ -228,32 +227,6 @@ fun CallNowDialog(number: String, onBack: () -> Unit, onCall: () -> Unit) {
 }
 
 /** The call-log picker sheet: pick the call you made from this SIM. */
-data class DialedCall(val id: Long, val name: String, val number: String, val whenText: String, val duration: String)
-
-@Composable
-fun CallLogPickerContent(number: String, calls: List<DialedCall>, selected: Long?, onSelect: (DialedCall) -> Unit, onClose: () -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 32.dp)) {
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            Icon(Icons.Filled.Close, "Close", tint = Pal.text, modifier = Modifier.size(40.dp).clickable(onClick = onClose).padding(6.dp))
-        }
-        Text("Select a Call Log which has been dialed with this SIM number $number.", style = Txt.Body.copy(fontSize = 22.sp, lineHeight = 30.sp), color = Pal.text)
-        Spacer(Modifier.height(24.dp))
-        if (calls.isEmpty()) Text("No outgoing calls found on this phone yet. Place a call from this SIM, then come back.", style = Txt.Body, color = Pal.textSecondary)
-        calls.forEach { c ->
-            Row(Modifier.fillMaxWidth().clickable { onSelect(c) }.padding(vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(36.dp).clip(CircleShape).border(3.dp, if (selected == c.id) LevoyColors.Amber else Pal.textSecondary, CircleShape))
-                Spacer(Modifier.width(24.dp))
-                Column(Modifier.weight(1.4f)) { Text(c.name, style = Txt.Name.copy(fontSize = 18.sp), color = Pal.text); Text(c.number, style = Txt.Number.copy(fontSize = 16.sp), color = Pal.text) }
-                Text(c.whenText, style = Txt.Number.copy(fontSize = 16.sp), color = Pal.text, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(Icons.Filled.CallMade, null, tint = LevoyColors.Outgoing, modifier = Modifier.size(26.dp))
-                    Text(c.duration, style = Txt.Number.copy(fontSize = 16.sp), color = Pal.text)
-                }
-            }
-        }
-    }
-}
-
 /* ───────────────────────────── troubleshooting ───────────────────────────── */
 
 @Composable
@@ -274,7 +247,7 @@ fun TroubleshootingMenuScreen(onItem: (String) -> Unit, onBack: () -> Unit) {
 data class HealthUi(val permissionsOk: Boolean, val simVerified: Boolean, val batteryUnrestricted: Boolean, val lastSync: String? = null)
 
 @Composable
-fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermissions: () -> Unit, onVerifySim: () -> Unit, onSyncNow: () -> Unit, onBack: () -> Unit) {
+fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermissions: () -> Unit, onSyncNow: () -> Unit, onBack: () -> Unit) {
     FullScreen {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             TopBar("Troubleshooting", onBack)
@@ -284,10 +257,6 @@ fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermiss
                     if (h.permissionsOk) "Access to your call logs and contacts has been confirmed. The app can now automatically track calls and provide accurate reports."
                     else "Levoy needs access to your call log and contacts to track calls. Please grant the missing permissions.",
                     if (h.permissionsOk) null else "Grant Permissions" to onFixPermissions)
-                StatusItem(h.simVerified, if (h.simVerified) "SIM Card Verification" else "SIM Card Not Verified", Icons.Filled.ContentCopy,
-                    if (h.simVerified) "Your SIM card has been successfully verified. Calls can now be linked to the correct SIM, ensuring accurate and reliable call reports."
-                    else "Verify your SIM number so calls can be linked to the right SIM.",
-                    if (h.simVerified) null else "Verify SIM" to onVerifySim)
                 StatusItem(h.batteryUnrestricted, if (h.batteryUnrestricted) "Battery Optimization Disabled" else "Battery Optimization Disabled", Icons.Filled.Battery0Bar,
                     if (h.batteryUnrestricted) "Battery optimization is off for the app, so background syncing is uninterrupted."
                     else "Battery optimization is still enabled for the app. Please disable it to allow uninterrupted background syncing and reliable call updates.",
