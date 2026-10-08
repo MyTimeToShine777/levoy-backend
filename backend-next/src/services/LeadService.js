@@ -94,6 +94,8 @@ class LeadService {
       `INSERT INTO lead_follow_ups (lead_id, user_id, type, due_at, notes)
        VALUES ($1, $2, 'call', NOW() + INTERVAL '24 hours', $3) RETURNING id, due_at`,
       [l.id, fuOwner, 'First follow-up call (auto-created on lead creation)']);
+    // Fill in tier / score / next action now, so a new lead does not read "Closed · 0" until someone presses Recalculate.
+    try { await LeadScoringService.rescoreLead(l.id); } catch (e) { console.error('rescore on create failed:', e.message); }
     return {
       id: l.id, name: l.name, phone: l.phone, email: l.email, status: l.status, source: l.source,
       priority: l.priority, owner_id: l.owner_id, assigned_to: l.assigned_to, notes: l.notes,
