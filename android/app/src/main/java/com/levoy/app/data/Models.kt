@@ -177,3 +177,15 @@ data class WorkspaceSettings(
     val social_twitter: String = "", val social_instagram: String = "", val social_facebook: String = "",
     val social_telegram: String = "", val social_reddit: String = "",
 )
+
+/** A lead as the list / detail endpoints return it. `call_status` null means "Not called yet". */
+data class LeadRow(
+    val id: Int = 0, val name: String = "", val phone: String = "", val email: String? = null,
+    val status: String = "new", val priority: String = "normal", val notes: String? = null,
+    val call_status: String? = null, val tier: String? = null, val priority_score: Int? = null,
+    val assigned_to_name: String? = null, val next_best_action: String? = null,
+)
+
+/** One Call Status the workspace scores (Lead Rules). `pipeline_stage` is the stage a lead moves to when it is chosen. */
+data class CallStatusRule(val call_status: String = "", val status_key: String = "", val pipeline_stage: String? = null)
+data class StatusRules(val status_rules: List<CallStatusRule> = emptyList())

@@ -91,7 +91,7 @@ fun BulletText(text: String) {
 
 @Composable
 fun DialogCard(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(RoundedCornerShape(26.dp)).background(Color(0xFF191A1E)).padding(24.dp)) { content() }
+    Column(modifier.fillMaxWidth().padding(horizontal = 12.dp).clip(RoundedCornerShape(26.dp)).background(Pal.background).padding(24.dp)) { content() }
 }
 
 /* ───────────────────────────── SIM numbers ───────────────────────────── */

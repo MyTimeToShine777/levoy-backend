@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,6 +38,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -82,7 +84,7 @@ fun LevoyRoot(model: AppModel, os: Os) {
 @Composable
 private fun RootContent(m: AppModel, os: Os) {
     val top = m.stack.lastOrNull()
-    BackHandler(enabled = m.overlay != null || m.stack.isNotEmpty()) { if (m.overlay != null) m.overlay = null else m.pop() }
+    BackHandler(enabled = m.overlay != null || m.stack.isNotEmpty() || m.drawerOpen) { if (m.overlay != null) m.overlay = null else if (m.stack.isNotEmpty()) m.pop() else m.drawerOpen = false }
 
     Box(Modifier.fillMaxSize().background(Pal.background)) {
         when (m.stage) {
@@ -129,8 +131,15 @@ private fun RootContent(m: AppModel, os: Os) {
 private fun callActions(os: Os) = CallActions(os::copy, os::sms, os::whatsapp, os::dial)
 
 @Composable
+private fun premiumPage(m: AppModel, os: Os) =
+    PremiumScreen(PremiumUi(m.plan, m.premiumTab, m.premiumBusy, m.premiumMessage, m.planLoading), PremiumActions({ m.premiumTab = it; m.premiumMessage = null }, { m.subscribe(it, os) }, m::loadPlan))
+
+@Composable
 private fun MainContent(m: AppModel, os: Os) {
     val call = callActions(os)
+    // the Premium tab only exists on the Free plan: once a plan is bought, the page lives in the side menu
+    LaunchedEffect(m.isPremium) { if (m.isPremium && m.tab == Tab.Premium) { m.tab = Tab.History; m.openPremium() } }
+    androidx.compose.runtime.CompositionLocalProvider(LocalChrome provides Chrome({ m.drawerOpen = true }, m.planBadge)) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f)) {
@@ -150,27 +159,54 @@ private fun MainContent(m: AppModel, os: Os) {
                             onRange = { m.overlay = Overlay.RangePicker("analytics") }, onView = m::changeAnView, onGraphToggle = { m.anGraphOpen = !m.anGraphOpen },
                             onDuration = { m.anDuration = it }, onSim = m::changeAnSim,
                             onFix = { os.requestAllPermissions { if (!os.hasCallLogPermission()) os.openAppSettings() else m.syncNow() } }, onRetry = m::loadAnalytics,
-                            onUpgrade = { m.selectTab(Tab.Premium); m.premiumTab = "premium_plus" },
+                            onUpgrade = { m.openPremium(); m.premiumTab = "premium_plus" },
                             onTile = { t -> m.histTab = t; m.selectTab(Tab.History); m.histRange = m.anRange; m.loadHistory() },
                         ),
                     )
-                    Tab.Premium -> PremiumScreen(PremiumUi(m.plan, m.premiumTab, m.premiumBusy, m.premiumMessage, m.planLoading), PremiumActions({ m.premiumTab = it; m.premiumMessage = null }, { m.subscribe(it, os) }, m::loadPlan))
-                    Tab.Contacts -> ContactsScreen(
-                        ContactsUi(m.contacts?.rows.orEmpty(), m.contactSearch, error = m.contactsError, total = m.contacts?.total ?: 0),
-                        ContactsActions(m::changeContactSearch, { m.openContact(it.phone_key) }, { m.openGroupPicker(it.phone_key) }, m::loadContacts, call),
-                    )
-                    Tab.More -> MoreScreen(MoreActions(
-                        socials = socialLinks(m), openLink = os::openUrl,
-                        export = m::openExport, blogs = { m.push(Screen.Blogs) }, quickCall = { m.push(Screen.LinkedExtension) },
-                        reminder = { m.loadReminders(); m.push(Screen.Reminders) }, troubleshooting = { m.push(Screen.Troubleshooting) }, compare = m::openCompare,
-                        settings = { m.push(Screen.Settings) }, help = { m.push(Screen.Help) }, invite = { os.shareText("Track and analyse your calls with Levoy — ${m.serverUrl.removeSuffix("/api")}") },
-                        rate = os::openRating, about = { m.push(Screen.About) }, privacy = { m.push(Screen.Help) },
-                    ))
+                    Tab.Premium -> Column(Modifier.fillMaxSize().background(Pal.background)) { RootTitle(T("nav_premium")); Box(Modifier.weight(1f)) { premiumPage(m, os) } }
+                    Tab.Leads -> LeadsScreen(LeadsUi(m.leads, m.leadSearch, m.leadsLoading, m.leadsError, m.leadNotice), m::changeLeadSearch, m::editLead, os::dial, m::loadLeads, null)
+                    Tab.Contacts -> Column(Modifier.fillMaxSize().background(Pal.background)) {
+                        RootTitle(T("nav_contacts"))
+                        Box(Modifier.weight(1f)) {
+                            ContactsScreen(
+                                ContactsUi(m.contacts?.rows.orEmpty(), m.contactSearch, error = m.contactsError, total = m.contacts?.total ?: 0),
+                                ContactsActions(m::changeContactSearch, { m.openContact(it.phone_key) }, { m.openGroupPicker(it.phone_key) }, m::loadContacts, call),
+                            )
+                        }
+                    }
                 }
                 if (m.tab == Tab.History || m.tab == Tab.Contacts) DialFab({ m.overlay = Overlay.Dialpad }, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
             }
-            if (m.plan != null && m.plan?.has("ad_free") == false && !m.bannerDismissed && m.tab != Tab.Premium) UpgradeBanner({ m.selectTab(Tab.Premium) }, { m.bannerDismissed = true })
-            BottomBar(m.tab, m::selectTab)
+            if (m.plan != null && m.plan?.has("ad_free") == false && !m.bannerDismissed && m.tab != Tab.Premium) UpgradeBanner({ m.openPremium() }, { m.bannerDismissed = true })
+            BottomBar(m.tab, !m.isPremium, m::selectTab)
+        }
+        SideDrawer(m, os)
+    }
+    }
+}
+
+/** The hamburger menu: slides in over the current tab, tap outside or press back to close. */
+@Composable
+private fun SideDrawer(m: AppModel, os: Os) {
+    val close = { m.drawerOpen = false }
+    androidx.compose.animation.AnimatedVisibility(m.drawerOpen, enter = androidx.compose.animation.fadeIn(), exit = androidx.compose.animation.fadeOut()) {
+        Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)).clickable(onClick = close))
+    }
+    androidx.compose.animation.AnimatedVisibility(
+        m.drawerOpen,
+        enter = androidx.compose.animation.slideInHorizontally { -it }, exit = androidx.compose.animation.slideOutHorizontally { -it },
+    ) {
+        Box(Modifier.fillMaxHeight().fillMaxWidth(0.82f).clickable(enabled = false) {}) {
+            SideMenu(
+                MoreActions(
+                    socials = socialLinks(m), openLink = os::openUrl, premium = m::openPremium,
+                    export = m::openExport, blogs = { m.push(Screen.Blogs) }, quickCall = { m.push(Screen.LinkedExtension) },
+                    reminder = { m.loadReminders(); m.push(Screen.Reminders) }, troubleshooting = { m.push(Screen.Troubleshooting) }, compare = m::openCompare,
+                    settings = { m.push(Screen.Settings) }, help = { m.push(Screen.Help) }, invite = { os.shareText("Track and analyse your calls with Levoy — ${m.serverUrl.removeSuffix("/api")}") },
+                    rate = os::openRating, about = { m.push(Screen.About) }, privacy = { m.push(Screen.Help) },
+                ),
+                m.user?.name.orEmpty(), m.user?.email.orEmpty(), m.planBadge, close,
+            )
         }
     }
 }
@@ -209,7 +245,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         Screen.Compare -> CompareScreen(CompareUi(m.compareRows), { m.push(Screen.ContactPicker) }, { k -> m.compareKeys.remove(k); m.loadCompare() }, back)
         Screen.ContactPicker -> ContactPicker(m, onDone = { m.pop(); m.loadCompare() }, onBack = back)
         Screen.Settings -> SettingsScreen(true, SettingsActions(
-            premium = { m.pop(); m.selectTab(com.levoy.app.ui.Tab.Premium) }, sim = { m.loadSims(); m.push(Screen.SimNumber) },
+            premium = { m.pop(); m.openPremium() }, sim = { m.loadSims(); m.push(Screen.SimNumber) },
             whatsapp = { m.push(Screen.WhatsAppCall) }, quickAction = { m.push(Screen.QuickAction) }, language = { m.push(Screen.Language) }, theme = { m.push(Screen.Theme) },
             timeFormat = { m.push(Screen.TimeFormat) }, defaultScreen = { m.push(Screen.DefaultScreen) },
             missingDetails = { m.backfillResult = null; m.push(Screen.MissingDetails) },
@@ -256,8 +292,9 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         Screen.ExportReport -> ExportReportScreen(m, os, back)
         Screen.LinkedExtension -> LinkedExtensionScreen(m.quickLinked, m.plan?.has("quick_call_extension") == true, com.levoy.app.calls.QuickCallService.deviceName(), os.hasCallPhone(), { m.toggleQuickCall(os, it) }, { os.requestCallPhone { } }, back)
         Screen.MissingDetails -> MissingDetailsScreen(m.backfillBusy, m.backfillResult, m::backfillDetails, back)
+        Screen.Premium -> Column(Modifier.fillMaxSize().background(Pal.background)) { TopBar(T("nav_premium"), back); Box(Modifier.weight(1f)) { premiumPage(m, os) } }
         Screen.Blogs -> BlogsScreen(m.ws.blog_url.ifBlank { null }, { os.openUrl(m.ws.blog_url) }, back)
-        Screen.Help -> HelpScreen(m.ws.support_whatsapp.ifBlank { null }, m.plan?.has("whatsapp_support") == true, { os.openUrl("https://wa.me/" + m.ws.support_whatsapp.filter { it.isDigit() }) }, { m.pop(); m.selectTab(Tab.Premium) }, back)
+        Screen.Help -> HelpScreen(m.ws.support_whatsapp.ifBlank { null }, m.plan?.has("whatsapp_support") == true, { os.openUrl("https://wa.me/" + m.ws.support_whatsapp.filter { it.isDigit() }) }, { m.pop(); m.openPremium() }, back)
         Screen.About -> TextInfoScreen("About App", listOf("Levoy 1.0.0", "Call tracking and analytics for telecallers and sales teams."), onBack = back)
     }
 }
@@ -296,7 +333,8 @@ private fun ExportReportScreen(m: AppModel, os: Os, onBack: () -> Unit) {
             ScrollTabs(listOf(TabDef("summary", T("summary")), TabDef("history", T("call_history_tab"))), m.exportTab, { m.exportTab = it }, scroll = false)
             val s = m.exportSummary
             if (s == null) Text("Loading…", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp))
-            else if (m.exportTab == "summary") Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 14.dp)) {
+            // SummaryBlock scrolls by itself: wrapping it in another scroll area crashed this screen (infinite height)
+            else if (m.exportTab == "summary") Box(Modifier.weight(1f)) {
                 SummaryBlock(mapOf("incoming" to s.incoming, "outgoing" to s.outgoing, "missed" to s.missed, "rejected" to s.rejected, "total" to s.totals))
             } else LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 40.dp)) {
                 items(m.exportRows?.rows.orEmpty(), key = { it.id }) { r -> ExportRow(r) }
@@ -376,9 +414,10 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
             Box(Modifier.fillMaxSize()) { BottomSheet({ m.overlay = null }) { DialpadContent(number, { number = it }, { if (it.isNotEmpty()) os.dial(it) }, { if (it.isNotEmpty()) os.whatsapp(it) }, os::copy) } }
         }
         is Overlay.Note -> NoteDialog(o.row, m)
+        is Overlay.EditLead -> EditLeadDialog(o.lead, m.callStatuses, m.leadSaving, m.leadSaveError, { m.overlay = null }, { n, p, e, c, pr, nt -> m.saveLead(o.lead, n, p, e, c, pr, nt) })
         is Overlay.GroupPicker -> GroupDialog(o.phoneKey, m)
         is Overlay.Upgrade -> AlertBox(
-            o.message, "Upgrade", { m.overlay = null; m.selectTab(Tab.Premium); m.premiumTab = m.plan?.catalog?.firstOrNull { it.name.equals(o.plan, true) }?.key ?: "premium_plus" }, "Not now", { m.overlay = null },
+            o.message, "Upgrade", { m.overlay = null; m.openPremium(); m.premiumTab = m.plan?.catalog?.firstOrNull { it.name.equals(o.plan, true) }?.key ?: "premium_plus" }, "Not now", { m.overlay = null },
         )
         Overlay.SkipVerify -> Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable { m.overlay = null }, contentAlignment = Alignment.Center) {
             SkipVerificationDialog(onYes = { m.overlay = null; (m.stack.lastOrNull() as? Screen.SimVerify)?.let { s -> m.saveSim(s.slot, null, null, "skip") { m.pop() } } }, onNo = { m.overlay = null })
@@ -421,7 +460,7 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
             DialogCard(Modifier.clickable(enabled = false) {}) {
                 listOf<Pair<String, () -> Unit>>(
                     "Call" to { os.dial(o.number) }, "WhatsApp" to { os.whatsapp(o.number) }, "Message" to { os.sms(o.number) }, "Copy number" to { os.copy(o.number) },
-                    "Compare with others" to { if (o.phoneKey !in m.compareKeys) m.toggleCompare(o.phoneKey); m.stack.clear(); m.tab = Tab.More; m.openCompare() },
+                    "Compare with others" to { if (o.phoneKey !in m.compareKeys) m.toggleCompare(o.phoneKey); m.stack.clear(); m.openCompare() },
                 ).forEach { (label, run) -> Text(label, style = Txt.Body.copy(fontSize = 19.sp), color = Pal.text, modifier = Modifier.fillMaxWidth().clickable { m.overlay = null; run() }.padding(vertical = 13.dp)) }
             }
         }

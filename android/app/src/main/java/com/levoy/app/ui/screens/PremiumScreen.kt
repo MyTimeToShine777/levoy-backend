@@ -82,56 +82,60 @@ fun PremiumScreen(ui: PremiumUi, a: PremiumActions) {
                 }
             }
             Spacer(Modifier.height(14.dp))
+            // no early `return@Column`: leaving a composable lambda half way crashes this Compose version while the plan is loading
             if (p == null) {
                 Text(if (ui.loading) "Loading…" else "Could not load the plans", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.clickable(onClick = a.onRetry).padding(16.dp))
-                return@Column
-            }
-            val entry = p.catalog.firstOrNull { it.key == tabKey }
-            Text(T("unlock"), style = Txt.Body.copy(fontSize = 20.sp), color = Pal.text)
-            Spacer(Modifier.height(14.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // each plan lists everything it includes: show what it ADDS over the plan before it
-                val prev = p.catalog.getOrNull(p.catalog.indexOfFirst { it.key == tabKey } - 1)
-                if (prev != null && prev.key != "free") Bullet("Everything in ${prev.name} Plan.")
-                entry?.features?.filter { f -> prev == null || prev.features.none { it.key == f.key } }?.forEach { Bullet(it.label) }
-            }
-            Spacer(Modifier.height(36.dp))
-            Text(T("choose_plan"), style = Txt.Body.copy(fontSize = 20.sp), color = Pal.text)
-            Spacer(Modifier.height(30.dp))
-            Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).border(2.dp, Color(0xFF3A3B40), RoundedCornerShape(26.dp))) {
-                Row(Modifier.fillMaxWidth().background(Color(0xFF303134)).padding(horizontal = 22.dp, vertical = 26.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)).background(Color(0xFF232427)))
-                    Spacer(Modifier.width(22.dp))
-                    Text(T("one_month"), style = Txt.Body.copy(fontSize = 30.sp), color = Pal.text)
-                }
-                Text(
-                    if (entry != null) priceText(entry) else "Custom",
-                    style = Txt.Section.copy(fontSize = 36.sp, fontWeight = FontWeight.Bold), color = Color(0xFF8A94A8), modifier = Modifier.padding(horizontal = 22.dp, vertical = 28.dp),
-                )
-            }
-            Spacer(Modifier.height(34.dp))
-            val current = p.effective_plan == tabKey
-            AmberButton(
-                when { current -> T("current_plan"); ui.busy -> "Please wait…"; else -> T("subscribe") },
-                { if (!current && !ui.busy) tabKey?.let(a.onSubscribe) },
-                Modifier.fillMaxWidth().padding(horizontal = 24.dp), height = 66.dp, corner = 33.dp, enabled = !current,
-            )
-            Spacer(Modifier.height(18.dp))
-            Text(
-                if (p.trial_available) T("trial_note") else if (p.status == "trial" && current) "Trial ends ${p.trial_ends_at?.take(10) ?: ""}" else if (current && p.cancel_at_period_end) "Cancelled — stays on until ${p.current_period_end?.take(10) ?: ""}" else T("trial_note"),
-                style = Txt.Body.copy(fontSize = 17.sp), color = Pal.textSecondary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
-            )
-            if (ui.message != null) {
-                Spacer(Modifier.height(14.dp))
-                Text(ui.message, style = Txt.Body.copy(fontSize = 16.sp), color = LevoyColors.Amber, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-            }
-            Spacer(Modifier.height(34.dp))
-            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).border(1.dp, Color(0xFF3A3B40), RoundedCornerShape(16.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {
-                Icon(Icons.Filled.Info, null, tint = Pal.text, modifier = Modifier.size(28.dp))
-                Spacer(Modifier.width(12.dp))
-                Text(if (p.payments_connected) "You pay securely on Stripe’s page in your browser, then come back here. Only a workspace admin can buy a plan; the free trial can be used once." else "Online payment is not available yet. Plans are switched on by the Levoy team — contact support. The free trial can be used once.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.text)
-            }
+            } else PremiumBody(p, tabKey, ui, a)
         }
+    }
+}
+
+@Composable
+private fun PremiumBody(p: PlanState, tabKey: String?, ui: PremiumUi, a: PremiumActions) {
+    val entry = p.catalog.firstOrNull { it.key == tabKey }
+    Text(T("unlock"), style = Txt.Body.copy(fontSize = 20.sp), color = Pal.text)
+    Spacer(Modifier.height(14.dp))
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        // each plan lists everything it includes: show what it ADDS over the plan before it
+        val prev = p.catalog.getOrNull(p.catalog.indexOfFirst { it.key == tabKey } - 1)
+        if (prev != null && prev.key != "free") Bullet("Everything in ${prev.name} Plan.")
+        entry?.features?.filter { f -> prev == null || prev.features.none { it.key == f.key } }?.forEach { Bullet(it.label) }
+    }
+    Spacer(Modifier.height(36.dp))
+    Text(T("choose_plan"), style = Txt.Body.copy(fontSize = 20.sp), color = Pal.text)
+    Spacer(Modifier.height(30.dp))
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).border(2.dp, Pal.divider, RoundedCornerShape(26.dp))) {
+        Row(Modifier.fillMaxWidth().background(Pal.card).padding(horizontal = 22.dp, vertical = 26.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)).background(Pal.background))
+            Spacer(Modifier.width(22.dp))
+            Text(T("one_month"), style = Txt.Body.copy(fontSize = 30.sp), color = Pal.text)
+        }
+        Text(
+            if (entry != null) priceText(entry) else "Custom",
+            style = Txt.Section.copy(fontSize = 36.sp, fontWeight = FontWeight.Bold), color = Color(0xFF8A94A8), modifier = Modifier.padding(horizontal = 22.dp, vertical = 28.dp),
+        )
+    }
+    Spacer(Modifier.height(34.dp))
+    val current = p.effective_plan == tabKey
+    AmberButton(
+        when { current -> T("current_plan"); ui.busy -> "Please wait…"; else -> T("subscribe") },
+        { if (!current && !ui.busy) tabKey?.let(a.onSubscribe) },
+        Modifier.fillMaxWidth().padding(horizontal = 24.dp), height = 66.dp, corner = 33.dp, enabled = !current,
+    )
+    Spacer(Modifier.height(18.dp))
+    Text(
+        if (p.trial_available) T("trial_note") else if (p.status == "trial" && current) "Trial ends ${p.trial_ends_at?.take(10) ?: ""}" else if (current && p.cancel_at_period_end) "Cancelled — stays on until ${p.current_period_end?.take(10) ?: ""}" else T("trial_note"),
+        style = Txt.Body.copy(fontSize = 17.sp), color = Pal.textSecondary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center,
+    )
+    if (ui.message != null) {
+        Spacer(Modifier.height(14.dp))
+        Text(ui.message, style = Txt.Body.copy(fontSize = 16.sp), color = LevoyColors.Amber, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+    }
+    Spacer(Modifier.height(34.dp))
+    Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).border(1.dp, Pal.divider, RoundedCornerShape(16.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {
+        Icon(Icons.Filled.Info, null, tint = Pal.text, modifier = Modifier.size(28.dp))
+        Spacer(Modifier.width(12.dp))
+        Text(if (p.payments_connected) "You pay securely on Stripe’s page in your browser, then come back here. Only a workspace admin can buy a plan; the free trial can be used once." else "Online payment is not available yet. Plans are switched on by the Levoy team — contact support. The free trial can be used once.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.text)
     }
 }
 

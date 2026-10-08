@@ -1,6 +1,7 @@
 package com.levoy.app.data
 
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -21,6 +22,8 @@ class ApiException(message: String, val code: Int, val plan: String? = null, val
 
 class Api(private val session: Session) {
     private val gson = Gson()
+    /** Only for bodies where an explicit null means something (clearing a lead's call status). */
+    private val gsonNulls = GsonBuilder().serializeNulls().create()
     private val json = "application/json; charset=utf-8".toMediaType()
     private val client = OkHttpClient.Builder()
         .connectTimeout(20, TimeUnit.SECONDS).readTimeout(60, TimeUnit.SECONDS).writeTimeout(60, TimeUnit.SECONDS).build()
@@ -29,9 +32,9 @@ class Api(private val session: Session) {
     fun query(params: Map<String, Any?>): String =
         params.entries.filter { it.value != null && it.value.toString().isNotEmpty() }.joinToString("&") { "${enc(it.key)}=${enc(it.value.toString())}" }
 
-    private suspend fun raw(method: String, path: String, body: Any? = null, authToken: String? = null): String = withContext(Dispatchers.IO) {
+    private suspend fun raw(method: String, path: String, body: Any? = null, authToken: String? = null, nulls: Boolean = false): String = withContext(Dispatchers.IO) {
         val b = when {
-            body != null -> gson.toJson(body).toRequestBody(json)
+            body != null -> (if (nulls) gsonNulls else gson).toJson(body).toRequestBody(json)
             method != "GET" && method != "DELETE" -> "{}".toRequestBody(json)
             else -> null
         }
@@ -55,6 +58,12 @@ class Api(private val session: Session) {
     // Sign-in is by an emailed 6-digit code (no passwords): ask for it, then submit it.
     suspend fun sendOtp(email: String): OtpSent = call("POST", "/auth/send-otp", mapOf("email" to email))
     suspend fun verifyOtp(email: String, otp: String): AuthResponse = call("POST", "/auth/verify-otp", mapOf("email" to email, "otp" to otp))
+
+    // ── leads ──
+    suspend fun leads(params: Map<String, Any?>): List<LeadRow> = call("GET", "/leads?${query(params)}")
+    suspend fun lead(id: Int): LeadRow = call("GET", "/leads/$id")
+    suspend fun statusRules(): StatusRules = call("GET", "/leads/status-rules")
+    suspend fun updateLead(id: Int, body: Map<String, Any?>) { raw("PUT", "/leads/$id", body, nulls = true) }
 
     // ── calls ──
     suspend fun history(params: Map<String, Any?>): HistoryResponse = call("GET", "/call-history?${query(params)}")

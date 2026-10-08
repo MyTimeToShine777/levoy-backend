@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.ContactPage
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Dialpad
 import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -43,10 +44,10 @@ import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Preset
 import com.levoy.app.util.T
 
-enum class Tab(val key: String) { History("history"), Analytics("analytics"), Premium("premium"), Contacts("contacts"), More("more") }
+enum class Tab(val key: String) { History("history"), Leads("leads"), Analytics("analytics"), Premium("premium"), Contacts("contacts") }
 
 @Composable
-fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
+fun BottomBar(current: Tab, showPremium: Boolean, onSelect: (Tab) -> Unit) {
     Row(
         Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)).background(Pal.card).padding(top = 12.dp, bottom = 14.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
@@ -54,11 +55,11 @@ fun BottomBar(current: Tab, onSelect: (Tab) -> Unit) {
         data class Item(val tab: Tab, val label: String, val icon: ImageVector, val tint: Color?)
         listOf(
             Item(Tab.History, T("nav_history"), Icons.Filled.Call, null),
+            Item(Tab.Leads, "Leads", Icons.Filled.Groups, null),
             Item(Tab.Analytics, T("nav_analytics"), Icons.Filled.BarChart, null),
             Item(Tab.Premium, T("nav_premium"), Icons.Filled.Diamond, LevoyColors.Amber),
             Item(Tab.Contacts, T("nav_contacts"), Icons.Filled.ContactPage, null),
-            Item(Tab.More, T("nav_more"), Icons.Filled.Menu, null),
-        ).forEach { it ->
+        ).filter { showPremium || it.tab != Tab.Premium }.forEach { it ->
             val on = it.tab == current
             val tint = it.tint ?: if (on) Pal.text else Pal.textMuted
             Column(Modifier.weight(1f).clickable { onSelect(it.tab) }, horizontalAlignment = Alignment.CenterHorizontally) {

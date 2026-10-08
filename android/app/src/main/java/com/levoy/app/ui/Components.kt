@@ -23,6 +23,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Diamond
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallMade
@@ -79,11 +81,38 @@ fun TopBar(title: String, onBack: (() -> Unit)?, actions: @Composable () -> Unit
     }
 }
 
-/** Big bold screen title used on the five root tabs ("Call History", "Analytics"). */
+/** What the root titles need from the shell: how to open the side menu, and the plan badge ("Premium Plus") if the person is on a paid plan. */
+class Chrome(val openMenu: (() -> Unit)? = null, val badge: String? = null)
+val LocalChrome = androidx.compose.runtime.compositionLocalOf { Chrome() }
+
+/** The gold tag shown for people on a paid plan. `compact` is just the diamond, for title rows that are already full. */
+@Composable
+fun PlanBadge(name: String, modifier: Modifier = Modifier, compact: Boolean = false) {
+    Row(
+        modifier.clip(RoundedCornerShape(12.dp)).background(LevoyColors.Amber.copy(alpha = 0.16f)).border(1.dp, LevoyColors.Amber, RoundedCornerShape(12.dp))
+            .padding(horizontal = if (compact) 6.dp else 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Diamond, name, tint = LevoyColors.Amber, modifier = Modifier.size(if (compact) 18.dp else 14.dp))
+        if (!compact) {
+            Spacer(Modifier.width(5.dp))
+            Text(name, style = Txt.Small.copy(fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = LevoyColors.Amber, maxLines = 1)
+        }
+    }
+}
+
+/** Big bold screen title used on the root tabs ("Call History", "Analytics"), with the menu button on the left and the plan badge after the title. */
 @Composable
 fun RootTitle(title: String, actions: @Composable () -> Unit = {}) {
-    Row(Modifier.fillMaxWidth().height(68.dp).padding(start = 16.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = Txt.Title, color = Pal.text, modifier = Modifier.weight(1f))
+    val chrome = LocalChrome.current
+    Row(Modifier.fillMaxWidth().height(68.dp).padding(start = 4.dp, end = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (chrome.openMenu != null) IconAction(Icons.Filled.Menu, "Menu", onClick = chrome.openMenu) else Spacer(Modifier.width(12.dp))
+        Spacer(Modifier.width(2.dp))
+        // the title gives way first (ellipsis) if the badge and the buttons need the room
+        Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+            Text(title, style = Txt.Title, color = Pal.text, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f, fill = false))
+            chrome.badge?.let { PlanBadge(it, Modifier.padding(start = 8.dp), compact = true) }
+        }
         actions()
     }
 }

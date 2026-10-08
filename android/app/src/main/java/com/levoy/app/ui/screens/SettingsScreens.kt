@@ -1,5 +1,9 @@
 package com.levoy.app.ui.screens
 
+import com.levoy.app.ui.PlanBadge
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -137,41 +141,51 @@ fun SettingsScreen(showPremiumRow: Boolean, a: SettingsActions, onBack: () -> Un
 /* ───────────────────────────── More menu ───────────────────────────── */
 
 data class MoreActions(
-    val socials: Map<Social, String> = emptyMap(), val openLink: (String) -> Unit = {},
+    val socials: Map<Social, String> = emptyMap(), val openLink: (String) -> Unit = {}, val premium: () -> Unit = {},
     val export: () -> Unit = {}, val blogs: () -> Unit = {}, val quickCall: () -> Unit = {}, val reminder: () -> Unit = {},
     val troubleshooting: () -> Unit = {}, val compare: () -> Unit = {}, val settings: () -> Unit = {}, val help: () -> Unit = {},
     val invite: () -> Unit = {}, val rate: () -> Unit = {}, val about: () -> Unit = {}, val privacy: () -> Unit = {},
 )
 
+/** The hamburger side menu (what used to be the More tab): who is signed in, their plan badge, then every extra screen. */
 @Composable
-fun MoreScreen(a: MoreActions) {
-    FullScreen {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()), horizontalAlignment = Alignment.CenterHorizontally) {
-            Spacer(Modifier.height(18.dp))
-            LevoyLogo(Modifier.size(88.dp))
-            Spacer(Modifier.height(8.dp))
-            Text("Levoy", style = Txt.Section.copy(fontSize = 24.sp), color = Pal.text)
-            Spacer(Modifier.height(18.dp))
-            SocialRow(a.socials, a.openLink)
-            Spacer(Modifier.height(if (a.socials.isEmpty()) 8.dp else 22.dp))
-            val m = Modifier.size(28.dp)
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                MenuCard({ Icon(Icons.Filled.IosShare, null, tint = Pal.text, modifier = m) }, T("export_report"), a.export)
-                MenuCard({ Icon(Icons.Filled.MenuBook, null, tint = Pal.text, modifier = m) }, T("blogs"), a.blogs)
-                MenuCard({ Icon(Icons.Filled.Computer, null, tint = Pal.text, modifier = m) }, T("quick_call_ext"), a.quickCall)
-                MenuCard({ Icon(Icons.Filled.NotificationsActive, null, tint = LevoyColors.Missed, modifier = m) }, T("missed_reminder"), a.reminder)
-                MenuCard({ Icon(Icons.Filled.Warning, null, tint = Pal.text, modifier = m) }, T("troubleshooting"), a.troubleshooting)
-                MenuCard({ Icon(Icons.Filled.SwapHoriz, null, tint = Pal.text, modifier = m) }, T("compare"), a.compare)
-                MenuCard({ Icon(Icons.Filled.Settings, null, tint = Pal.text, modifier = m) }, T("more_settings"), a.settings)
-                MenuCard({ Icon(Icons.Filled.HelpOutline, null, tint = Pal.text, modifier = m) }, T("help_support"), a.help)
-                MenuCard({ Icon(Icons.Filled.PersonAdd, null, tint = Pal.text, modifier = m) }, T("invite"), a.invite)
-                MenuCard({ Icon(Icons.Filled.StarBorder, null, tint = Pal.text, modifier = m) }, T("rate"), a.rate)
-                MenuCard({ Icon(Icons.Filled.Info, null, tint = Pal.text, modifier = m) }, T("about"), a.about)
+fun SideMenu(a: MoreActions, userName: String, userEmail: String, badge: String?, close: () -> Unit) {
+    Column(Modifier.fillMaxSize().background(Pal.background).verticalScroll(rememberScrollState())) {
+        Spacer(Modifier.height(28.dp))
+        Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            LevoyLogo(Modifier.size(56.dp))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(userName.ifBlank { "Levoy" }, style = Txt.Section.copy(fontSize = 19.sp), color = Pal.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (userEmail.isNotBlank()) Text(userEmail, style = Txt.Small, color = Pal.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
-            Spacer(Modifier.height(14.dp))
-            Text(T("privacy_policy"), style = Txt.Small.copy(textDecoration = TextDecoration.Underline), color = Pal.text, modifier = Modifier.clickable(onClick = a.privacy).padding(12.dp))
-            Spacer(Modifier.height(100.dp))
         }
+        if (badge != null) {
+            Spacer(Modifier.height(12.dp))
+            PlanBadge(badge, Modifier.padding(horizontal = 18.dp))
+        }
+        Spacer(Modifier.height(16.dp))
+        SocialRow(a.socials, a.openLink)
+        Spacer(Modifier.height(if (a.socials.isEmpty()) 4.dp else 16.dp))
+        val m = Modifier.size(28.dp)
+        fun go(f: () -> Unit): () -> Unit = { close(); f() }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            MenuCard({ Icon(Icons.Filled.Diamond, null, tint = LevoyColors.Amber, modifier = m) }, if (badge != null) "My plan" else T("nav_premium"), go(a.premium))
+            MenuCard({ Icon(Icons.Filled.IosShare, null, tint = Pal.text, modifier = m) }, T("export_report"), go(a.export))
+            MenuCard({ Icon(Icons.Filled.MenuBook, null, tint = Pal.text, modifier = m) }, T("blogs"), go(a.blogs))
+            MenuCard({ Icon(Icons.Filled.Computer, null, tint = Pal.text, modifier = m) }, T("quick_call_ext"), go(a.quickCall))
+            MenuCard({ Icon(Icons.Filled.NotificationsActive, null, tint = LevoyColors.Missed, modifier = m) }, T("missed_reminder"), go(a.reminder))
+            MenuCard({ Icon(Icons.Filled.Warning, null, tint = Pal.text, modifier = m) }, T("troubleshooting"), go(a.troubleshooting))
+            MenuCard({ Icon(Icons.Filled.SwapHoriz, null, tint = Pal.text, modifier = m) }, T("compare"), go(a.compare))
+            MenuCard({ Icon(Icons.Filled.Settings, null, tint = Pal.text, modifier = m) }, T("more_settings"), go(a.settings))
+            MenuCard({ Icon(Icons.Filled.HelpOutline, null, tint = Pal.text, modifier = m) }, T("help_support"), go(a.help))
+            MenuCard({ Icon(Icons.Filled.PersonAdd, null, tint = Pal.text, modifier = m) }, T("invite"), go(a.invite))
+            MenuCard({ Icon(Icons.Filled.StarBorder, null, tint = Pal.text, modifier = m) }, T("rate"), go(a.rate))
+            MenuCard({ Icon(Icons.Filled.Info, null, tint = Pal.text, modifier = m) }, T("about"), go(a.about))
+        }
+        Spacer(Modifier.height(10.dp))
+        Text(T("privacy_policy"), style = Txt.Small.copy(textDecoration = TextDecoration.Underline), color = Pal.text, modifier = Modifier.padding(horizontal = 18.dp).clickable(onClick = go(a.privacy)).padding(vertical = 12.dp))
+        Spacer(Modifier.height(28.dp))
     }
 }
 

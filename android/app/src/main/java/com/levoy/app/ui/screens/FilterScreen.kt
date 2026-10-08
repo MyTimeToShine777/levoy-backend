@@ -183,7 +183,7 @@ private fun Dropdown(label: String, open: Boolean, onToggle: () -> Unit, options
         }
         if (open) options.forEach { (k, l) ->
             val on = k == selected
-            Row(Modifier.fillMaxWidth().height(52.dp).background(if (on) Color(0xFF191A1E) else Color.Transparent).clickable { onPick(k) }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().height(52.dp).background(if (on) Pal.background else Color.Transparent).clickable { onPick(k) }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(l, style = Txt.Body.copy(fontSize = 19.sp), color = if (on) LevoyColors.Amber else Pal.text, modifier = Modifier.weight(1f))
                 if (on) Icon(Icons.Filled.Check, null, tint = LevoyColors.Amber, modifier = Modifier.size(26.dp))
             }

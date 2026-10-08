@@ -48,7 +48,7 @@ class ScreenshotTest {
         Box(Modifier.fillMaxSize()) {
             body()
             if (fab) DialFab({}, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 130.dp))
-            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(tab, {}) }
+            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(tab, true, {}) }
         }
     }
 
@@ -56,13 +56,13 @@ class ScreenshotTest {
     @Test fun language() = snap("language") { LanguageScreen(Lang.En, {}, {}) }
     @Test fun defaultScreen() = snap("default_screen") { DefaultScreenScreen("history", {}, {}) }
     @Test fun settings() = snap("settings") { SettingsScreen(true, SettingsActions(), {}) }
-    @Test fun more() = snap("more") { MoreScreen(MoreActions()) }
+    @Test fun more() = snap("more") { SideMenu(MoreActions(), "Asha Rao", "asha@company.com", null) {} }
 
     @Test fun callHistory() = snap("call_history") {
         Box(Modifier.fillMaxSize()) {
             CallHistoryScreen(CallHistoryUi("all", rows), CallHistoryActions())
             DialFab({}, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 130.dp))
-            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.History, {}) }
+            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.History, true, {}) }
         }
     }
 
@@ -75,7 +75,7 @@ class ScreenshotTest {
                 )),
                 CallHistoryActions(),
             )
-            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.History, {}) }
+            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.History, true, {}) }
         }
     }
 
@@ -91,7 +91,7 @@ class ScreenshotTest {
                 ),
                 AnalyticsActions(),
             )
-            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.Analytics, {}) }
+            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.Analytics, true, {}) }
         }
     }
 
@@ -108,7 +108,7 @@ class ScreenshotTest {
                 ContactRow("9087485125", "+919087485125", "Home", 27, 400),
             )), ContactsActions())
             DialFab({}, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 130.dp))
-            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.Contacts, {}) }
+            Box(Modifier.align(Alignment.BottomCenter)) { BottomBar(Tab.Contacts, true, {}) }
         }
     }
 
@@ -168,7 +168,7 @@ class ScreenshotTest {
     @Test fun loginCode() = snap("login_code") { LoginScreen("asha@company.com", "48", "http://10.0.2.2:3001/api", true, 42, false, null, {}, {}, {}, {}, {}, {}, {}) }
 
     @Test fun moreWithSocials() = snap("more_socials") {
-        MoreScreen(MoreActions(socials = linkedMapOf(Social.X to "https://x.com/a", Social.Instagram to "https://i.com/a", Social.Facebook to "https://f.com/a", Social.Telegram to "https://t.me/a", Social.Reddit to "https://r.com/a")))
+        SideMenu(MoreActions(socials = linkedMapOf(Social.X to "https://x.com/a", Social.Instagram to "https://i.com/a", Social.Facebook to "https://f.com/a", Social.Telegram to "https://t.me/a", Social.Reddit to "https://r.com/a")), "Asha Rao", "asha@company.com", "Premium Plus") {}
     }
     @Test fun linkedExtension() = snap("linked_extension") { LinkedExtensionScreen(true, true, "Google Pixel 7", false, {}, {}, {}) }
     @Test fun help() = snap("help") { HelpScreen("+919000099999", true, {}, {}, {}) }
@@ -178,7 +178,7 @@ class ScreenshotTest {
     @Test fun reminders() = snap("reminders") { RemindersScreen(listOf(Reminder(1, "+919000011111", "Call back about the price list", false, null, "Aanya")), true, {}, {}, {}, {}, {}) }
     @Test fun inCallRinging() = snap("incall_ringing") { com.levoy.app.calls.InCallView(com.levoy.app.calls.InCallUi("Aanya Mehta", "+919000011111", "Incoming call", true), com.levoy.app.calls.InCallActions()) }
     @Test fun inCallActive() = snap("incall_active") { com.levoy.app.calls.InCallView(com.levoy.app.calls.InCallUi("Aanya Mehta", "+919000011111", "1:24", false, muted = true), com.levoy.app.calls.InCallActions()) }
-    @Test fun upgradeBanner() = snap("upgrade_banner") { Box(Modifier.fillMaxSize()) { Box(Modifier.align(Alignment.BottomCenter)) { Column { UpgradeBanner({}, {}); BottomBar(Tab.History, {}) } } } }
+    @Test fun upgradeBanner() = snap("upgrade_banner") { Box(Modifier.fillMaxSize()) { Box(Modifier.align(Alignment.BottomCenter)) { Column { UpgradeBanner({}, {}); BottomBar(Tab.History, true, {}) } } } }
 
     @Test fun presetSheet() = snap("preset_sheet") {
         Box(Modifier.fillMaxSize()) { BottomSheet({}) { PresetSheetContent(Preset.AllTime, {}) } }

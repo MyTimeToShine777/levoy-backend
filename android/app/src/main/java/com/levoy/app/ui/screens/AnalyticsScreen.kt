@@ -249,8 +249,9 @@ private fun StatTile(t: Tile, a: AnalyticsActions) {
 
 @Composable
 private fun AnalysisBody(a: Analysis?) {
+    // `a == null` is handled before the layout: an early `return@Column` inside a composable crashes this Compose version
+    if (a == null) { Text("Loading…", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(16.dp)); return }
     Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        if (a == null) { Text("Loading…", style = Txt.Body, color = Pal.textSecondary); return@Column }
         Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(Pal.card).padding(18.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             Text("At a glance", style = Txt.Section, color = Pal.text)
             KeyValue("Average talk time", Fmt.duration(a.avg_connected_duration))

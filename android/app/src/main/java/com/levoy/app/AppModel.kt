@@ -54,6 +54,7 @@ sealed interface Screen {
     object LinkedExtension : Screen
     object NotePopup : Screen
     object Blogs : Screen
+    object Premium : Screen
 }
 
 /** The pop-ups drawn over a screen. */
@@ -72,6 +73,7 @@ sealed interface Overlay {
     object TagPicker : Overlay
     data class ContactMenu(val phoneKey: String, val number: String) : Overlay
     object RestoreChoice : Overlay
+    data class EditLead(val lead: LeadRow) : Overlay
 }
 
 class AppModel(app: Application) : AndroidViewModel(app) {
@@ -104,6 +106,11 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var planLoading by mutableStateOf(false)
     var bannerDismissed by mutableStateOf(false)
     var premiumTab by mutableStateOf("premium")
+    var drawerOpen by mutableStateOf(false)
+    /** On a paid plan (including a running trial). */
+    val isPremium: Boolean get() = plan?.effective_plan?.let { it.isNotEmpty() && it != "free" } == true
+    /** "Premium Plus" ... for the badge next to the person's name; null on the Free plan. */
+    val planBadge: String? get() = plan?.takeIf { isPremium }?.let { p -> p.catalog.firstOrNull { it.key == p.effective_plan }?.name ?: p.plan_name ?: "Premium" }
     var premiumBusy by mutableStateOf(false)
     var premiumMessage by mutableStateOf<String?>(null)
 
@@ -112,7 +119,13 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     // ───────────── navigation ─────────────
     fun push(s: Screen) { stack.add(s) }
     fun pop() { if (stack.isNotEmpty()) stack.removeAt(stack.lastIndex) }
-    fun selectTab(t: Tab) { stack.clear(); tab = t; if (t == Tab.Premium) loadPlan(); if (t == Tab.Contacts) loadContacts(); if (t == Tab.Analytics) loadAnalytics() }
+    /** Free plan: the Premium tab. Paid plan: the tab is gone, so the page opens over the current screen (reachable from the side menu). */
+    fun openPremium() {
+        drawerOpen = false
+        loadPlan()
+        if (isPremium) { plan?.effective_plan?.let { premiumTab = it }; if (stack.lastOrNull() != Screen.Premium) push(Screen.Premium) } else selectTab(Tab.Premium)
+    }
+    fun selectTab(t: Tab) { stack.clear(); tab = t; if (t == Tab.Premium) loadPlan(); if (t == Tab.Contacts) loadContacts(); if (t == Tab.Analytics) loadAnalytics(); if (t == Tab.Leads) { loadLeads(); loadCallStatuses() } }
 
     // ───────────── first run / login ─────────────
     fun acceptPrivacy() { session.privacyAccepted = true; stage = if (session.onboardingDone) nextAfterPermissions() else Stage.DefaultPhone }
@@ -182,6 +195,9 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         if (stage != Stage.Main) return
         refreshPermissions()
         syncNow()
+        // already signed in from an earlier run: nothing has loaded yet (sign-in is the only other place that does it)
+        if (history == null && !histLoading) refreshAll()
+        if (plan == null && !planLoading) loadPlan()
         if (awaitingPayment) { awaitingPayment = false; loadPlan() }
         com.levoy.app.push.Push.register(getApplication())     // the token can change; this is cheap and idempotent
         if (!session.notificationsAsked && android.os.Build.VERSION.SDK_INT >= 33) { session.notificationsAsked = true; os.requestNotifications() }
@@ -205,7 +221,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         session.signOut()
         com.levoy.app.calls.QuickCallService.stop(getApplication())
         AutoBackup.cancel(getApplication())
-        history = null; summary = null; contacts = null; plan = null; sims = emptyList(); quickLinked = false
+        history = null; summary = null; contacts = null; leads = null; plan = null; sims = emptyList(); quickLinked = false
         stack.clear(); overlay = null; tab = Tab.History; stage = Stage.Login
         loginError = notice
     }
@@ -293,13 +309,88 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     // ───────────── notes ─────────────
     var tags by mutableStateOf<List<Tag>>(emptyList())
     fun editNote(row: CallRow) {
-        if (plan?.has("call_notes_tags") == false) { overlay = Overlay.Upgrade("Notes and tags after a call are part of the Premium Plus plan", "Premium Plus"); return }
+        // not on a plan that includes notes: take them straight to the Premium page, on the plan that has it
+        if (plan?.has("call_notes_tags") == false) { openPremium(); premiumTab = "premium_plus"; return }
         overlay = Overlay.Note(row)
         viewModelScope.launch { runCatching { tags = api.tags() } }
     }
     fun saveNote(row: CallRow, notes: String, tagNames: List<String>) {
         viewModelScope.launch {
             try { api.annotate(row.id, notes, tagNames); overlay = null; loadHistory() } catch (e: Exception) { fail(e) }
+        }
+    }
+
+
+    // ───────────── leads ─────────────
+    var leads by mutableStateOf<List<LeadRow>?>(null)
+    var leadsLoading by mutableStateOf(false)
+    var leadsError by mutableStateOf<String?>(null)
+    var leadSearch by mutableStateOf("")
+    var leadNotice by mutableStateOf<String?>(null)
+    var leadSaving by mutableStateOf(false)
+    var leadSaveError by mutableStateOf<String?>(null)
+    var callStatuses by mutableStateOf(DEFAULT_CALL_STATUSES)
+    private var leadsJob: Job? = null
+    private var leadSearchJob: Job? = null
+    private var leadNoticeJob: Job? = null
+
+    fun loadLeads() {
+        leadsJob?.cancel()
+        leadsLoading = true; leadsError = null
+        leadsJob = viewModelScope.launch {
+            try { leads = api.leads(mapOf("search" to leadSearch.trim(), "limit" to 300)) }
+            catch (e: ApiException) { if (e.sessionEnded) signOut(e.endNotice) else leadsError = e.message }
+            finally { leadsLoading = false }
+        }
+    }
+    fun changeLeadSearch(q: String) { leadSearch = q; leadSearchJob?.cancel(); leadSearchJob = viewModelScope.launch { delay(350); loadLeads() } }
+
+    /** The Call Status choices come from Lead Rules; if this person may not read them, the built-in list is used. */
+    fun loadCallStatuses() {
+        viewModelScope.launch {
+            val rules = runCatching { api.statusRules().status_rules }.getOrNull().orEmpty().filter { it.status_key != NOT_CALLED_KEY && it.call_status.isNotBlank() }
+            callStatuses = if (rules.isEmpty()) DEFAULT_CALL_STATUSES
+            else rules.map { r -> CallStatusOption(r.call_status, r.pipeline_stage ?: DEFAULT_CALL_STATUSES.firstOrNull { statusKeyOf(it.name) == r.status_key }?.stage) }
+        }
+    }
+
+    fun editLead(l: LeadRow) { leadSaveError = null; overlay = Overlay.EditLead(l) }
+
+    private fun showLeadNotice(text: String) {
+        leadNotice = text
+        leadNoticeJob?.cancel()
+        leadNoticeJob = viewModelScope.launch { delay(4000); leadNotice = null }
+    }
+
+    /** Save the Edit Lead form. A new call status also moves the lead to its pipeline stage, then the lead is read back to confirm it was stored. */
+    fun saveLead(lead: LeadRow, name: String, phone: String, email: String, callStatus: String?, priority: String, notes: String) {
+        if (leadSaving) return
+        if (name.isBlank() || phone.isBlank()) { leadSaveError = "Name and phone are required."; return }
+        leadSaving = true; leadSaveError = null
+        val changed = statusKeyOf(callStatus.orEmpty()) != statusKeyOf(lead.call_status.orEmpty())
+        val stage = if (changed) (if (callStatus == null) "new" else callStatuses.firstOrNull { statusKeyOf(it.name) == statusKeyOf(callStatus) }?.stage) ?: lead.status else lead.status
+        viewModelScope.launch {
+            try {
+                api.updateLead(lead.id, mapOf(
+                    "name" to name.trim(), "phone" to phone.trim(), "email" to email.trim().ifEmpty { null },
+                    "status" to stage, "call_status" to callStatus, "priority" to priority, "notes" to notes,
+                ))
+                val label = callStatus ?: "Not called yet"
+                if (changed) {
+                    // an older server ignores call_status on update: say so instead of claiming it saved
+                    val kept = runCatching { api.lead(lead.id) }.getOrNull()
+                    if (kept != null && statusKeyOf(kept.call_status.orEmpty()) != statusKeyOf(callStatus.orEmpty())) {
+                        loadLeads()
+                        overlay = Overlay.Message("Saved, but the server did not store the call status “$label”. It needs an API update to accept call_status.")
+                        return@launch
+                    }
+                    showLeadNotice("Lead updated · $label")
+                } else showLeadNotice("Lead updated")
+                overlay = null
+                loadLeads()
+            } catch (e: ApiException) {
+                if (e.sessionEnded) signOut(e.endNotice) else leadSaveError = e.message
+            } finally { leadSaving = false }
         }
     }
 
@@ -407,7 +498,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     }
 
     /** levoy://premium — Stripe's pay page sent the person back. */
-    fun onPaymentReturn() { awaitingPayment = false; if (stage == Stage.Main) { selectTab(Tab.Premium); premiumMessage = null } }
+    fun onPaymentReturn() { awaitingPayment = false; if (stage == Stage.Main) { stack.clear(); openPremium(); premiumMessage = null } }
 
     // ───────────── SIMs ─────────────
     var sims by mutableStateOf<List<Sim>>(emptyList())

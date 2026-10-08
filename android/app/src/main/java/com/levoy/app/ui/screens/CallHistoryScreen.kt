@@ -1,5 +1,6 @@
 package com.levoy.app.ui.screens
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -176,7 +177,19 @@ fun CallCard(r: CallRow, a: CallHistoryActions) {
             Icon(Icons.Filled.Description, null, tint = Pal.textMuted, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             val note = r.notes?.takeIf { it.isNotBlank() }
-            Text(note ?: T("tap_note"), style = Txt.Body.copy(fontSize = 15.sp), color = if (note != null) Pal.text else Pal.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Column(Modifier.weight(1f)) {
+                Text(note ?: T("tap_note"), style = Txt.Body.copy(fontSize = 15.sp), color = if (note != null) Pal.text else Pal.textMuted, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                if (r.tags.isNotEmpty()) {
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        r.tags.take(3).forEach { t ->
+                            val c = runCatching { Color(android.graphics.Color.parseColor(t.color ?: "")) }.getOrDefault(LevoyColors.Amber)
+                            Text(t.name, style = Txt.Small.copy(fontSize = 12.sp), color = c, maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, c.copy(alpha = 0.7f), RoundedCornerShape(10.dp)).padding(horizontal = 9.dp, vertical = 3.dp))
+                        }
+                    }
+                }
+            }
         }
     }
 }

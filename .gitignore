@@ -22,3 +22,8 @@ android/app/google-services.json
 # real lead data and local test files (never commit)
 *.csv
 .playwright-mcp/
+
+# android release signing
+android/keystore.properties
+*.jks
+*.keystore
