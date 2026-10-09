@@ -17,6 +17,7 @@ const h = asyncHandler;
 router.get('/api/users', authMW, h(UserController.list));
 router.post('/api/users', authMW, h(UserController.create));
 router.patch('/api/users/:userId', authMW, h(UserController.update));
+router.post('/api/users/:userId/handover', authMW, h(UserController.handoverRole));
 router.delete('/api/users/:userId', authMW, h(UserController.remove));
 router.get('/api/users/:userId/capacity', authMW, h(UserController.getCapacity));
 router.put('/api/users/:userId/capacity', authMW, h(UserController.setCapacity));

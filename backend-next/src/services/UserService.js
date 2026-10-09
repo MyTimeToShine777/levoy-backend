@@ -99,33 +99,64 @@ class UserService {
     } catch (e) { await client.query('ROLLBACK'); await Directory.unregister(email, customerId).catch(() => {}); throw e; } finally { client.release(); }
   }
 
-  // ADMIN: update profile fields / role / active flag.
+  // ADMIN or MANAGER: update profile fields / email / role / active flag. A manager can edit anyone
+  // except an admin and can never grant admin; a manager gives up their own role through handoverRole.
   async update(ctx, idRaw, body) {
     const id = parseInt(idRaw);
     if (!Number.isInteger(id)) throw new ValidationError('Invalid user id');
     const { name, phone, role, is_active } = body;
+    let { email } = body;
     if (role !== undefined && !ROLES.includes(role)) throw new ValidationError('Invalid role');
+    if (email !== undefined) {
+      email = String(email).trim();
+      if (!EMAIL_RE.test(email)) throw new ValidationError('A valid email is required');
+    }
     const cur = await q('SELECT id,email,name,phone,role,is_active FROM users WHERE id = $1', [id]);
     if (cur.rows.length === 0) throw new NotFoundError('Not found');
     const before = cur.rows[0];
 
-    // Locking yourself out is unrecoverable through the UI, so both self-demotion
-    // and self-deactivation are refused. Another admin can still do it for you.
-    if (id === parseInt(ctx.userId) && (is_active === false || (role !== undefined && role !== 'admin'))) {
-      throw new ValidationError('You cannot deactivate or demote your own account');
+    if (ctx.role !== 'admin') {
+      if (before.role === 'admin') throw new ForbiddenError('Only an admin can change an admin');
+      if (role === 'admin') throw new ForbiddenError('Only an admin can grant the admin role');
+    }
+
+    // Locking yourself out is unrecoverable through the UI, so self-deactivation and any
+    // change to your own role are refused. Another admin can still do it for you.
+    if (id === parseInt(ctx.userId) && (is_active === false || (role !== undefined && role !== before.role))) {
+      throw new ValidationError('You cannot deactivate or change the role of your own account');
+    }
+
+    // The sign-in directory claims the new address first (a clash fails before anything moves);
+    // it is put back if the row update then fails.
+    const emailChanged = email !== undefined && email.toLowerCase() !== String(before.email).toLowerCase();
+    if (emailChanged) {
+      const taken = await q('SELECT 1 FROM users WHERE lower(email) = lower($1) AND id <> $2', [email, id]);
+      if (taken.rows.length > 0) throw new ValidationError('Email already registered');
+      try { await Directory.rename(before.email, email, currentTenant().id); }
+      catch (e) { throw new ValidationError('Email already registered'); }
     }
 
     const sets = []; const vals = []; let i = 1;
-    for (const [k, v] of Object.entries({ name, phone, role })) {
+    for (const [k, v] of Object.entries({ name, phone, role, email })) {
       if (v !== undefined) { sets.push(`${k} = $${i}`); vals.push(v); i++; }
     }
     if (is_active !== undefined) { sets.push(`is_active = $${i}`); vals.push(!!is_active); i++; }
     if (sets.length === 0) throw new ValidationError('No fields to update');
     vals.push(id);
-    const r = await q(
-      `UPDATE users SET ${sets.join(', ')} WHERE id = $${i}
-       RETURNING id,email,name,phone,role,is_active,created_at,last_login_at`, vals);
+    let r;
+    try {
+      r = await q(
+        `UPDATE users SET ${sets.join(', ')} WHERE id = $${i}
+         RETURNING id,email,name,phone,role,is_active,created_at,last_login_at`, vals);
+    } catch (e) {
+      if (emailChanged) await Directory.rename(email, before.email, currentTenant().id).catch(() => {});
+      throw e;
+    }
     const u = r.rows[0];
+
+    if (emailChanged) {
+      await audit(null, ctx, 'user.email_changed', 'user', id, { from: before.email, to: u.email });
+    }
 
     // One audit row per thing that actually changed, so a role change is never
     // hidden inside a generic "update".
@@ -144,6 +175,31 @@ class UserService {
         { changed: Object.keys({ name, phone }).filter(k => ({ name, phone })[k] !== undefined) });
     }
     return { ...u, updated: true };
+  }
+
+  // MANAGER: hand your own manager role to an active agent and become an agent yourself, in one
+  // step. Leads and teams stay where they are; moving those is a separate action.
+  async handoverRole(ctx, idRaw) {
+    if (ctx.role !== 'manager') throw new ForbiddenError('Only a manager can hand over their own role');
+    const id = parseInt(idRaw);
+    if (!Number.isInteger(id)) throw new ValidationError('Invalid user id');
+    const me = parseInt(ctx.userId);
+    if (id === me) throw new ValidationError('Pick someone other than yourself');
+    const t = (await q('SELECT id, email, name, role, is_active FROM users WHERE id = $1', [id])).rows[0];
+    if (!t) throw new NotFoundError('Not found');
+    if (!t.is_active) throw new ValidationError(`${t.email} is deactivated`);
+    if (t.role !== 'agent') throw new ConflictError(`${t.email} is already a ${t.role}. Only an agent can take over a manager role.`);
+
+    await tx(async ({ q: tq }) => {
+      const demoted = await tq("UPDATE users SET role = 'agent', custom_role_id = NULL WHERE id = $1 AND role = 'manager' RETURNING id", [me]);
+      if (demoted.rows.length === 0) throw new ConflictError('You are no longer a manager');
+      const promoted = await tq("UPDATE users SET role = 'manager', custom_role_id = NULL WHERE id = $1 AND role = 'agent' AND is_active = true RETURNING id", [id]);
+      if (promoted.rows.length === 0) throw new ConflictError(`${t.email} changed while handing over. Try again.`);
+      await audit({ query: tq }, ctx, 'user.role_changed', 'user', me, { from: 'manager', to: 'agent', via: 'handover', handed_to: id });
+      await audit({ query: tq }, ctx, 'user.role_changed', 'user', id, { from: 'agent', to: 'manager', via: 'handover', handed_by: me });
+    });
+    RbacService.clearCache();
+    return { handed_over: true, from: { id: me, role: 'agent' }, to: { id, email: t.email, name: t.name, role: 'manager' } };
   }
 
   // ADMIN: erase another user's account row and free their email. Same guards as

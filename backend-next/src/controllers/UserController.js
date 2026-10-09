@@ -2,7 +2,7 @@
 
 const UserService = require('../services/UserService');
 const { ctxOf } = require('../utils/audit');
-const { requireAdmin } = require('../middleware/requireRole');
+const { requireAdmin, requireManager } =require('../middleware/requireRole');
 
 class UserController {
   list = async (req, res) => res.json(await UserService.list(ctxOf(req), req.query));
@@ -13,8 +13,13 @@ class UserController {
   };
 
   update = async (req, res) => {
-    requireAdmin(req);
+    requireManager(req);
     res.json(await UserService.update(ctxOf(req), req.params.userId, req.body));
+  };
+
+  handoverRole = async (req, res) => {
+    requireManager(req);
+    res.json(await UserService.handoverRole(ctxOf(req), req.params.userId));
   };
 
   remove = async (req, res) => {
