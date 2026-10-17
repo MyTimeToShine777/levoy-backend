@@ -20,6 +20,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Call Recording (off until the person switches it on): lead calls only, and only while Levoy is the default phone app. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
 
     <application
         android:name=".LevoyApp"
@@ -90,6 +93,12 @@
             </intent-filter>
         </service>
         <receiver android:name=".calls.CallActionReceiver" android:exported="false" />
+
+        <!-- Shows the "Recording this lead call" notification for as long as the microphone is open. -->
+        <service
+            android:name=".calls.RecordingService"
+            android:exported="false"
+            android:foregroundServiceType="microphone" />
 
         <!-- Quick Call: wait for numbers sent from the browser. Long-lived by design. -->
         <service

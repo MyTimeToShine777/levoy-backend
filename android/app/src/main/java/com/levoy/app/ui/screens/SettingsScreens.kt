@@ -29,6 +29,7 @@ import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Settings
@@ -107,7 +108,7 @@ fun ThemeScreen(selected: String, onPick: (String) -> Unit, onBack: () -> Unit) 
 /* ───────────────────────────── settings list ───────────────────────────── */
 
 data class SettingsActions(
-    val premium: () -> Unit = {}, val sim: () -> Unit = {}, val whatsapp: () -> Unit = {}, val quickAction: () -> Unit = {},
+    val premium: () -> Unit = {}, val sim: () -> Unit = {}, val whatsapp: () -> Unit = {}, val quickAction: () -> Unit = {}, val callRecording: () -> Unit = {},
     val language: () -> Unit = {}, val theme: () -> Unit = {}, val timeFormat: () -> Unit = {}, val defaultScreen: () -> Unit = {},
     val missingDetails: () -> Unit = {}, val defaultDialer: () -> Unit = {}, val backup: () -> Unit = {}, val restore: () -> Unit = {},
     val deleteAccount: () -> Unit = {}, val signOut: () -> Unit = {},
@@ -122,6 +123,7 @@ fun SettingsScreen(showPremiumRow: Boolean, a: SettingsActions, onBack: () -> Un
             if (showPremiumRow) SettingsRow({ Ic(Icons.Filled.Diamond, LevoyColors.Amber) }, T("premium_settings"), a.premium)
             SettingsRow({ WhatsAppGlyph(Modifier.size(30.dp), Pal.text) }, T("whatsapp_call"), a.whatsapp)
             SettingsRow({ Ic(Icons.Filled.Smartphone) }, T("quick_action"), a.quickAction)
+            SettingsRow({ Ic(Icons.Filled.Mic) }, T("call_recording"), a.callRecording)
             SettingsRow({ Ic(Icons.Filled.Language) }, T("language"), a.language)
             SettingsRow({ Ic(Icons.Filled.Contrast) }, T("theme"), a.theme)
             SettingsRow({ Ic(Icons.Filled.Timer) }, T("time_format"), a.timeFormat)

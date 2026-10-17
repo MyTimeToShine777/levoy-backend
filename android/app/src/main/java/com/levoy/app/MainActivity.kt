@@ -130,6 +130,10 @@ class MainActivity : ComponentActivity(), Os {
     override fun requestOutgoingCalls(then: () -> Unit) = ask(
         if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.PROCESS_OUTGOING_CALLS, Manifest.permission.POST_NOTIFICATIONS) else arrayOf(Manifest.permission.PROCESS_OUTGOING_CALLS), then,
     )
+    override fun requestRecordAudio(then: () -> Unit) = ask(
+        if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS) else arrayOf(Manifest.permission.RECORD_AUDIO), then,
+    )
+    override fun hasRecordAudio() = CallLogReader.has(this, Manifest.permission.RECORD_AUDIO)
     override fun requestNotifications() { if (Build.VERSION.SDK_INT >= 33) ask(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) { } }
     override fun startQuickCall() = QuickCallService.start(this)
     override fun stopQuickCall() = QuickCallService.stop(this)
