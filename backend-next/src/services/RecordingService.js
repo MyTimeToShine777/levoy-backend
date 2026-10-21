@@ -152,6 +152,10 @@ class RecordingService {
           status: x.status, timestamp: x.timestamp, duration_seconds: x.call_duration_seconds },
         agent: { id: x.user_id, name: x.agent_name, email: x.agent_email },
         lead: x.lead || null,
+        // The same facts flat, which is how the dashboard's Recordings table reads a row.
+        phone_number: x.phone_number, direction: x.direction, status: x.status, timestamp: x.timestamp,
+        recorded_by: x.user_id, agent_name: x.agent_name,
+        lead_id: x.lead ? x.lead.id : null, lead_name: x.lead ? x.lead.name : null,
       })),
     };
   }
