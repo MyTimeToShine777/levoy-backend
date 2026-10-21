@@ -13,7 +13,10 @@ const h = asyncHandler;
 // ── profile + settings (always the caller's own) ──
 router.get('/api/users/me', authMW, h(AccountController.me));
 router.put('/api/users/me', authMW, h(AccountController.updateMe));
-router.post('/api/users/me/avatar', authMW, upload.single('avatar'), h(AccountController.avatar));
+// The picture must land in uploads/avatars: ProfileService.setAvatar (and the R2 copy) look for it there. Without this the
+// upload helper falls back to uploads/recordings, so with R2 on the file is not found and the request fails with a 500.
+const toAvatarsFolder = (req, res, next) => { req.uploadType = 'avatars'; next(); };
+router.post('/api/users/me/avatar', authMW, toAvatarsFolder, upload.single('avatar'), h(AccountController.avatar));
 router.get('/api/users/me/consent', authMW, h(AccountController.consent));
 router.post('/api/users/me/consent', authMW, h(AccountController.acceptConsent));
 // Body must carry {email} equal to the account's own address (type-to-confirm); refused for the last admin or anyone who still owns leads.
