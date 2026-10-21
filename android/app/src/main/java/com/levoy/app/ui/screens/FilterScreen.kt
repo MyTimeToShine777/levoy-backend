@@ -40,7 +40,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.levoy.app.data.SimSeen
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.OutlineButton
 import com.levoy.app.ui.TopBar
@@ -133,7 +133,7 @@ fun FilterScreen(ui: FilterUi, a: FilterActions) {
                                 pushStyle(SpanStyle(textDecoration = TextDecoration.Underline, fontWeight = FontWeight.Bold)); append("Premium Plus"); pop()
                                 append(" plan to get benefits of these additional filters.")
                             },
-                            style = Txt.Body.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold), color = CallioColors.Amber, modifier = Modifier.clickable(onClick = a.onUpgrade),
+                            style = Txt.Body.copy(fontSize = 17.sp, fontWeight = FontWeight.SemiBold), color = Pal.primary, modifier = Modifier.clickable(onClick = a.onUpgrade),
                         )
                         Spacer(Modifier.height(16.dp))
                     }
@@ -158,7 +158,7 @@ fun FilterScreen(ui: FilterUi, a: FilterActions) {
             }
             Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 OutlineButton(T("reset"), a.onReset, Modifier.weight(1f).height(72.dp), 18.dp)
-                AmberButton(T("done"), a.onDone, Modifier.weight(1f), height = 72.dp, corner = 18.dp)
+                PrimaryButton(T("done"), a.onDone, Modifier.weight(1f), height = 72.dp, corner = 18.dp)
             }
         }
     }
@@ -168,7 +168,7 @@ fun FilterScreen(ui: FilterUi, a: FilterActions) {
 private fun SimChipBox(selected: Boolean, onClick: () -> Unit, content: @Composable () -> Unit) {
     Row(
         Modifier.width(150.dp).height(72.dp).clip(RoundedCornerShape(12.dp)).background(Pal.card)
-            .border(if (selected) BorderStroke(1.5.dp, CallioColors.Amber) else BorderStroke(0.dp, Color.Transparent), RoundedCornerShape(12.dp))
+            .border(if (selected) BorderStroke(1.5.dp, Pal.primary) else BorderStroke(0.dp, Color.Transparent), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick).padding(horizontal = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) { content() }
@@ -184,8 +184,8 @@ private fun Dropdown(label: String, open: Boolean, onToggle: () -> Unit, options
         if (open) options.forEach { (k, l) ->
             val on = k == selected
             Row(Modifier.fillMaxWidth().height(52.dp).background(if (on) Pal.background else Color.Transparent).clickable { onPick(k) }.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-                Text(l, style = Txt.Body.copy(fontSize = 19.sp), color = if (on) CallioColors.Amber else Pal.text, modifier = Modifier.weight(1f))
-                if (on) Icon(Icons.Filled.Check, null, tint = CallioColors.Amber, modifier = Modifier.size(26.dp))
+                Text(l, style = Txt.Body.copy(fontSize = 19.sp), color = if (on) Pal.primary else Pal.text, modifier = Modifier.weight(1f))
+                if (on) Icon(Icons.Filled.Check, null, tint = Pal.primary, modifier = Modifier.size(26.dp))
             }
         }
     }

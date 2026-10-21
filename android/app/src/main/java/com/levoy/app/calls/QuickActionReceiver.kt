@@ -20,7 +20,7 @@ import com.levoy.app.MainActivity
 import com.levoy.app.data.Session
 
 /**
- * Quick Action: while a call is on screen, a small amber bubble floats on top. Tapping it opens two choices —
+ * Quick Action: while a call is on screen, a small blue bubble floats on top. Tapping it opens two choices —
  * Save Contact (when the number is not saved) and View Details (opens Callio). Shown only when the person
  * turned Quick Action on AND granted "display over other apps"; removed when the call ends.
  */
@@ -57,12 +57,12 @@ class QuickActionReceiver : BroadcastReceiver() {
             val wm = c.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
             val bubble = TextView(c).apply {
-                text = "C"; setTextColor(Color.parseColor("#231A00")); textSize = 18f; gravity = Gravity.CENTER
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#FFB938")) }
+                text = "C"; setTextColor(Color.parseColor("#04122F")); textSize = 18f; gravity = Gravity.CENTER
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#4C9AFF")) }
             }
             val panel = LinearLayout(c).apply {
                 orientation = LinearLayout.VERTICAL; visibility = View.GONE
-                background = GradientDrawable().apply { cornerRadius = dp(c, 14).toFloat(); setColor(Color.parseColor("#1E1C19")) }
+                background = GradientDrawable().apply { cornerRadius = dp(c, 14).toFloat(); setColor(Color.parseColor("#0E1B3F")) }
                 setPadding(dp(c, 6), dp(c, 6), dp(c, 6), dp(c, 6))
             }
             fun action(label: String, run: () -> Unit) = TextView(c).apply {

@@ -8,7 +8,7 @@
 
 export const site = {
   name: "Callio",
-  wordmark: "levoy®",
+  wordmark: "Callio®",
   tagline: "Telecalling analytics, built on the SIM.",
   appUrl: "https://web.levoy.co/signup",
   partnerLoginUrl: "https://partner.levoy.co",

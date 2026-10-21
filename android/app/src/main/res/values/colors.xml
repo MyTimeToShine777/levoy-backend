@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Window / launcher colours (the app UI itself is Compose; see ui/theme/Color.kt). -->
-    <color name="background">#141311</color>
-    <color name="primary">#FFB938</color>
+    <color name="background">#161F33</color>
+    <color name="primary">#4C9AFF</color>
+    <!-- the navy behind the Callio mark on the launcher icon -->
+    <color name="launcher_background">#031432</color>
     <color name="transparent">#00000000</color>
 </resources>

@@ -216,57 +216,27 @@ export function Icon({
 /* Brand + social glyphs (filled, not stroked)                                */
 /* -------------------------------------------------------------------------- */
 
-export function CallioMark({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 40 40"
-      className={className}
-      fill="none"
-      aria-hidden
-      focusable={false}
-    >
-      <rect width="40" height="40" rx="11" fill="url(#cz-mark)" />
-      <path
-        d="M15.4 11.6c-2.5 0-4 1.7-4 4.1v8.6c0 2.4 1.5 4.1 4 4.1"
-        stroke="white"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M24.6 11.6c2.5 0 4 1.7 4 4.1v8.6c0 2.4-1.5 4.1-4 4.1"
-        stroke="white"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-      />
-      <circle cx="20" cy="20" r="2.5" fill="white" />
-      <defs>
-        <linearGradient id="cz-mark" x1="0" y1="0" x2="40" y2="40">
-          <stop stopColor="#FF7070" />
-          <stop offset="1" stopColor="#C91C1C" />
-        </linearGradient>
-      </defs>
-    </svg>
-  );
-}
-
-/** Wordmark: rounded mark plus lowercase logotype, matching the reference. */
+/**
+ * The Callio logo (the "C" mark and the wordmark), cut from the brand kit's own artwork, never redrawn.
+ * `tone="dark"` is the version for dark backgrounds. `markClassName` sets the height (for example "h-10"); the width follows.
+ */
 export function CallioLogo({
   className,
   markClassName,
+  tone = "light",
 }: {
   className?: string;
   markClassName?: string;
+  tone?: "light" | "dark";
 }) {
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
-      <CallioMark className={markClassName ?? "h-9 w-9"} />
-      <span className="text-[1.35rem] font-extrabold tracking-tight text-ink-900">
-        levoy
-        <sup className="ml-0.5 align-super text-[0.5em] font-bold text-brand-500">
-          ®
-        </sup>
-      </span>
-    </span>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={tone === "dark" ? "/callio-logo-dark.png" : "/callio-logo-light.png"}
+      alt="Callio"
+      // the light picture has a white background; multiply drops it so it also sits cleanly on the translucent header
+      className={`block w-auto ${tone === "dark" ? "" : "mix-blend-multiply"} ${markClassName ?? "h-9"} ${className ?? ""}`}
+    />
   );
 }
 

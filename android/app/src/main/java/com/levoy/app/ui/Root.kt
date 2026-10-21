@@ -415,7 +415,7 @@ private fun ContactPicker(m: AppModel, onDone: () -> Unit, onBack: () -> Unit) {
     FullScreen {
         Column(Modifier.fillMaxSize()) {
             TopBar("Add Contacts (${m.compareKeys.size}/5)", onBack) {
-                Text("Done", style = Txt.Button, color = CallioColors.Amber, modifier = Modifier.clickable(onClick = onDone).padding(16.dp))
+                Text("Done", style = Txt.Button, color = Pal.primary, modifier = Modifier.clickable(onClick = onDone).padding(16.dp))
             }
             SearchField(m.contactSearch, m::changeContactSearch, T("search_contacts"), Modifier.padding(horizontal = 16.dp))
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
@@ -425,7 +425,7 @@ private fun ContactPicker(m: AppModel, onDone: () -> Unit, onBack: () -> Unit) {
                         Avatar(c.contact_name?.takeIf { it.isNotBlank() } ?: c.phone_number.takeLast(2), 46.dp)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) { Text(c.contact_name?.takeIf { it.isNotBlank() } ?: "Unknown", style = Txt.Name, color = Pal.text); Text(c.phone_number, style = Txt.Number, color = Pal.textSecondary) }
-                        if (on) Box(Modifier.size(34.dp).clip(CircleShape).background(CallioColors.Amber), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Check, null, tint = CallioColors.OnAmber) }
+                        if (on) Box(Modifier.size(34.dp).clip(CircleShape).background(Pal.primary), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Check, null, tint = Pal.onPrimary) }
                     }
                 }
             }
@@ -450,7 +450,7 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
                         TextButton({
                             val a = state.selectedStartDateMillis; val b = state.selectedEndDateMillis ?: a
                             if (a != null && b != null) m.pickCustom(Instant.ofEpochMilli(a).atZone(ZoneOffset.UTC).toLocalDate(), Instant.ofEpochMilli(b).atZone(ZoneOffset.UTC).toLocalDate())
-                        }) { Text(T("done"), color = CallioColors.Amber) }
+                        }) { Text(T("done"), color = Pal.primary) }
                     }
                 }
             }
@@ -486,9 +486,9 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
                 Spacer(Modifier.height(10.dp))
                 if (m.tags.isEmpty()) Text("No tags yet. Add tags from a call's note.", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(vertical = 10.dp))
                 Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                    m.tags.forEach { t -> Text(t.name, style = Txt.Body.copy(fontSize = 19.sp), color = if (m.filterDraft.tagId == t.id.toString()) CallioColors.Amber else Pal.text, modifier = Modifier.fillMaxWidth().clickable { m.filterDraft = m.filterDraft.copy(tagId = t.id.toString(), tagName = t.name); m.overlay = null }.padding(vertical = 12.dp)) }
+                    m.tags.forEach { t -> Text(t.name, style = Txt.Body.copy(fontSize = 19.sp), color = if (m.filterDraft.tagId == t.id.toString()) Pal.primary else Pal.text, modifier = Modifier.fillMaxWidth().clickable { m.filterDraft = m.filterDraft.copy(tagId = t.id.toString(), tagName = t.name); m.overlay = null }.padding(vertical = 12.dp)) }
                 }
-                if (m.filterDraft.tagId.isNotEmpty()) Text("Clear tag", style = Txt.Button.copy(fontSize = 17.sp), color = CallioColors.Amber, modifier = Modifier.clickable { m.filterDraft = m.filterDraft.copy(tagId = "", tagName = ""); m.overlay = null }.padding(vertical = 12.dp))
+                if (m.filterDraft.tagId.isNotEmpty()) Text("Clear tag", style = Txt.Button.copy(fontSize = 17.sp), color = Pal.primary, modifier = Modifier.clickable { m.filterDraft = m.filterDraft.copy(tagId = "", tagName = ""); m.overlay = null }.padding(vertical = 12.dp))
             }
         }
         is Overlay.ContactMenu -> Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable { m.overlay = null }, contentAlignment = Alignment.Center) {
@@ -518,7 +518,7 @@ private fun AlertBox(text: String, primary: String, onPrimary: () -> Unit, secon
             Spacer(Modifier.height(22.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 if (secondary != null) { Text(secondary, style = Txt.Button.copy(fontSize = 19.sp), color = Pal.text, modifier = Modifier.clickable(onClick = onSecondary).padding(10.dp)); Spacer(Modifier.width(14.dp)) }
-                Text(primary, style = Txt.Button.copy(fontSize = 19.sp), color = CallioColors.Amber, modifier = Modifier.clickable(onClick = onPrimary).padding(10.dp))
+                Text(primary, style = Txt.Button.copy(fontSize = 19.sp), color = Pal.primary, modifier = Modifier.clickable(onClick = onPrimary).padding(10.dp))
             }
         }
     }
@@ -540,7 +540,7 @@ private fun NoteDialog(row: CallRow, m: AppModel) {
             Spacer(Modifier.height(18.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlineButton(T("cancel"), { m.overlay = null }, Modifier.weight(1f), height = 56.dp)
-                AmberButton(T("save"), { m.saveNote(row, notes, tagText.split(',').map { it.trim() }.filter { it.isNotEmpty() }) }, Modifier.weight(1f), height = 56.dp, corner = 16.dp)
+                PrimaryButton(T("save"), { m.saveNote(row, notes, tagText.split(',').map { it.trim() }.filter { it.isNotEmpty() }) }, Modifier.weight(1f), height = 56.dp, corner = 16.dp)
             }
         }
     }
@@ -559,7 +559,7 @@ private fun GroupDialog(key: String, m: AppModel) {
             Spacer(Modifier.height(10.dp))
             Field(name, { name = it }, "New group name")
             Spacer(Modifier.height(14.dp))
-            AmberButton("Create & add", { if (name.isNotBlank()) m.newGroup(key, name.trim()) }, Modifier.fillMaxWidth(), height = 56.dp, corner = 16.dp)
+            PrimaryButton("Create & add", { if (name.isNotBlank()) m.newGroup(key, name.trim()) }, Modifier.fillMaxWidth(), height = 56.dp, corner = 16.dp)
         }
     }
 }

@@ -156,8 +156,8 @@ export function LineChart({
     >
       <defs>
         <linearGradient id="lc-fill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FF4444" stopOpacity="0.28" />
-          <stop offset="100%" stopColor="#FF4444" stopOpacity="0" />
+          <stop offset="0%" stopColor="#1574FF" stopOpacity="0.28" />
+          <stop offset="100%" stopColor="#1574FF" stopOpacity="0" />
         </linearGradient>
       </defs>
       {[25, 50, 75].map((y) => (
@@ -189,7 +189,7 @@ export function LineChart({
       <polyline
         points={toPoints(primary)}
         fill="none"
-        stroke="#FF4444"
+        stroke="#1574FF"
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -224,7 +224,7 @@ export function Donut({
           cy="50"
           r={r}
           fill="none"
-          stroke="#FF4444"
+          stroke="#1574FF"
           strokeWidth="13"
           strokeLinecap="round"
           strokeDasharray={`${dash} ${c - dash}`}

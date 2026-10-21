@@ -58,7 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.levoy.app.data.Reminder
 import com.levoy.app.data.Sim
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.OutlineButton
 import com.levoy.app.ui.SettingsRow
@@ -126,11 +126,11 @@ fun SimNumberScreen(ui: SimUi, onVerify: (Int) -> Unit, onBack: () -> Unit) {
                                 Icon(Icons.Filled.CheckCircle, null, tint = CallioColors.Success, modifier = Modifier.size(36.dp))
                                 Text("Verified", style = Txt.Body.copy(fontSize = 19.sp), color = Pal.text)
                             }
-                        } else Text("Verify", style = Txt.Button.copy(fontSize = 17.sp), color = CallioColors.Amber)
+                        } else Text("Verify", style = Txt.Button.copy(fontSize = 17.sp), color = Pal.primary)
                     }
                 }
             }
-            if (ui.message != null) Text(ui.message, style = Txt.Body.copy(fontSize = 15.sp), color = CallioColors.Amber, modifier = Modifier.padding(16.dp))
+            if (ui.message != null) Text(ui.message, style = Txt.Body.copy(fontSize = 15.sp), color = Pal.primary, modifier = Modifier.padding(16.dp))
         }
     }
 }
@@ -155,7 +155,7 @@ fun ConnectSimScreen(label: String, slot: Int, countryCode: String, number: Stri
             Spacer(Modifier.height(30.dp))
             Field(number, onNumber, "Phone Number", Modifier.padding(horizontal = 16.dp), KeyboardType.Phone)
             Spacer(Modifier.height(30.dp))
-            AmberButton(if (busy) "…" else "Submit", onSubmit, Modifier.fillMaxWidth().padding(horizontal = 16.dp), height = 66.dp, corner = 22.dp, upper = true)
+            PrimaryButton(if (busy) "…" else "Submit", onSubmit, Modifier.fillMaxWidth().padding(horizontal = 16.dp), height = 66.dp, corner = 22.dp, upper = true)
         }
     }
 }
@@ -165,7 +165,7 @@ fun Field(value: String, onChange: (String) -> Unit, hint: String, modifier: Mod
     Box(modifier.fillMaxWidth().height(66.dp).clip(RoundedCornerShape(22.dp)).background(Pal.card).border(1.dp, Pal.divider.copy(alpha = 0.5f), RoundedCornerShape(22.dp)).padding(horizontal = 20.dp), contentAlignment = Alignment.CenterStart) {
         if (value.isEmpty()) Text(hint, style = Txt.Body.copy(fontSize = 19.sp), color = Pal.textSecondary)
         BasicTextField(
-            value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(CallioColors.Amber),
+            value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(Pal.primary),
             keyboardOptions = KeyboardOptions(keyboardType = keyboard), visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -221,7 +221,7 @@ fun CallNowDialog(number: String, onBack: () -> Unit, onCall: () -> Unit) {
         Spacer(Modifier.height(22.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             OutlineButton("Back", onBack, Modifier.weight(1f), height = 64.dp)
-            AmberButton("Call Now", onCall, Modifier.weight(1f), height = 64.dp, corner = 16.dp)
+            PrimaryButton("Call Now", onCall, Modifier.weight(1f), height = 64.dp, corner = 16.dp)
         }
     }
 }
@@ -353,7 +353,7 @@ fun TextInfoScreen(title: String, body: List<String>, buttonLabel: String? = nul
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 body.forEach { Text(it, style = Txt.Body.copy(fontSize = 19.sp, lineHeight = 28.sp), color = Pal.text, modifier = Modifier.padding(vertical = 8.dp)) }
             }
-            if (buttonLabel != null) AmberButton(buttonLabel, onButton, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
+            if (buttonLabel != null) PrimaryButton(buttonLabel, onButton, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
         }
     }
 }
@@ -383,7 +383,7 @@ fun RemindersScreen(items: List<Reminder>, askAfterMissed: Boolean, onAsk: (Bool
                     }
                 }
             }
-            AmberButton("Add reminder", onAdd, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
+            PrimaryButton("Add reminder", onAdd, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
         }
     }
 }
@@ -399,7 +399,7 @@ fun AddReminderDialog(phone: String, note: String, onPhone: (String) -> Unit, on
         Spacer(Modifier.height(20.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             OutlineButton("Cancel", onCancel, Modifier.weight(1f), height = 58.dp)
-            AmberButton("Add", onSave, Modifier.weight(1f), height = 58.dp, corner = 16.dp)
+            PrimaryButton("Add", onSave, Modifier.weight(1f), height = 58.dp, corner = 16.dp)
         }
     }
 }

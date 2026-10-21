@@ -55,7 +55,7 @@ export function SiteHeader() {
     >
       <div className="container-page flex h-16 items-center justify-between gap-4 lg:h-18">
         <a href="#top" aria-label={`${site.name} home`} className="shrink-0">
-          <CallioLogo markClassName="h-8 w-8 lg:h-9 lg:w-9" />
+          <CallioLogo markClassName="h-9 lg:h-10" />
         </a>
 
         <nav aria-label="Primary" className="hidden lg:block">

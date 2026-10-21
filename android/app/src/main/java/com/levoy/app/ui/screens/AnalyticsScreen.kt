@@ -104,7 +104,7 @@ fun AnalyticsScreen(ui: AnalyticsUi, a: AnalyticsActions) {
                 val s = ui.summary
                 if (ui.error != null) {
                     Text(ui.error, style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp), textAlign = TextAlign.Center)
-                    Text("Retry", style = Txt.Button, color = CallioColors.Amber, modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = a.onRetry).padding(12.dp))
+                    Text("Retry", style = Txt.Button, color = Pal.primary, modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = a.onRetry).padding(12.dp))
                 } else if (s == null) {
                     Text("Loading…", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp))
                 } else {

@@ -52,6 +52,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
@@ -120,7 +121,7 @@ fun SettingsScreen(showPremiumRow: Boolean, a: SettingsActions, onBack: () -> Un
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             TopBar(T("more_settings"), onBack)
             Spacer(Modifier.height(6.dp))
-            if (showPremiumRow) SettingsRow({ Ic(Icons.Filled.Diamond, CallioColors.Amber) }, T("premium_settings"), a.premium)
+            if (showPremiumRow) SettingsRow({ Ic(Icons.Filled.Diamond, Pal.primary) }, T("premium_settings"), a.premium)
             SettingsRow({ WhatsAppGlyph(Modifier.size(30.dp), Pal.text) }, T("whatsapp_call"), a.whatsapp)
             SettingsRow({ Ic(Icons.Filled.Smartphone) }, T("quick_action"), a.quickAction)
             SettingsRow({ Ic(Icons.Filled.Mic) }, T("call_recording"), a.callRecording)
@@ -171,7 +172,7 @@ fun SideMenu(a: MoreActions, userName: String, userEmail: String, badge: String?
         val m = Modifier.size(28.dp)
         fun go(f: () -> Unit): () -> Unit = { close(); f() }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            MenuCard({ Icon(Icons.Filled.Diamond, null, tint = CallioColors.Amber, modifier = m) }, if (badge != null) "My plan" else T("nav_premium"), go(a.premium))
+            MenuCard({ Icon(Icons.Filled.Diamond, null, tint = Pal.primary, modifier = m) }, if (badge != null) "My plan" else T("nav_premium"), go(a.premium))
             MenuCard({ Icon(Icons.Filled.IosShare, null, tint = Pal.text, modifier = m) }, T("export_report"), go(a.export))
             MenuCard({ Icon(Icons.Filled.MenuBook, null, tint = Pal.text, modifier = m) }, T("blogs"), go(a.blogs))
             MenuCard({ Icon(Icons.Filled.Computer, null, tint = Pal.text, modifier = m) }, T("quick_call_ext"), go(a.quickCall))
@@ -190,23 +191,12 @@ fun SideMenu(a: MoreActions, userName: String, userEmail: String, badge: String?
     }
 }
 
-/** The app mark: an open ring (amber → green, red at the foot) around a handset, with rising bars. */
+/** The Callio mark (the "C" with a handset and signal bars), from the brand kit's own artwork. */
 @Composable
 fun CallioLogo(modifier: Modifier = Modifier) {
-    Box(modifier, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val w = size.width * 0.13f
-            val inset = w / 2
-            val tl = Offset(inset, inset)
-            val sz = Size(size.width - w, size.height - w)
-            drawArc(Color(0xFFFFA500), 140f, 130f, false, tl, sz, style = Stroke(w, cap = StrokeCap.Butt))
-            drawArc(Color(0xFF8DC800), 285f, 80f, false, tl, sz, style = Stroke(w, cap = StrokeCap.Butt))
-            drawArc(Color(0xFFFF4B4B), 85f, 55f, false, tl, sz, style = Stroke(w, cap = StrokeCap.Butt))
-            val bw = size.width * 0.09f
-            drawRect(Color(0xFFFF4B4B), Offset(size.width * 0.52f, size.height * 0.78f), Size(bw, size.height * 0.1f))
-            drawRect(Color(0xFFFFA500), Offset(size.width * 0.64f, size.height * 0.68f), Size(bw, size.height * 0.2f))
-            drawRect(Color(0xFF8DC800), Offset(size.width * 0.76f, size.height * 0.56f), Size(bw, size.height * 0.32f))
-        }
-        Icon(Icons.Filled.Call, null, tint = Color.White, modifier = Modifier.fillMaxSize(0.38f))
-    }
+    androidx.compose.foundation.Image(
+        painter = androidx.compose.ui.res.painterResource(com.levoy.app.R.drawable.callio_mark),
+        contentDescription = "Callio",
+        modifier = modifier.clip(androidx.compose.foundation.shape.RoundedCornerShape(24)),
+    )
 }

@@ -195,14 +195,14 @@ fun InCallView(ui: InCallUi, a: InCallActions, startWithKeypad: Boolean = false)
     var keypad by remember { mutableStateOf(startWithKeypad) }
     Column(Modifier.fillMaxSize().background(Pal.background).padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(90.dp))
-        Box(Modifier.size(128.dp).clip(RoundedCornerShape(44.dp)).background(CallioColors.Amber.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
-            Text((ui.name ?: ui.number).take(1).uppercase().ifEmpty { "?" }, style = Txt.Title.copy(fontSize = 54.sp), color = CallioColors.Amber)
+        Box(Modifier.size(128.dp).clip(RoundedCornerShape(44.dp)).background(Pal.primary.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Text((ui.name ?: ui.number).take(1).uppercase().ifEmpty { "?" }, style = Txt.Title.copy(fontSize = 54.sp), color = Pal.primary)
         }
         Spacer(Modifier.height(26.dp))
         Text(ui.name ?: ui.number.ifBlank { "Unknown" }, style = Txt.Title.copy(fontSize = 32.sp), color = Pal.text, textAlign = TextAlign.Center)
         if (ui.name != null) Text(ui.number, style = Txt.Body.copy(fontSize = 16.sp), color = Pal.textMuted)
         Spacer(Modifier.height(14.dp))
-        Text(ui.status, style = Txt.Section.copy(fontSize = 22.sp), color = if (ui.ringing) CallioColors.Amber else Pal.text)
+        Text(ui.status, style = Txt.Section.copy(fontSize = 22.sp), color = if (ui.ringing) Pal.primary else Pal.text)
         if (ui.recording) {
             Spacer(Modifier.height(12.dp))
             Text("● Recording", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = CallioColors.MissedText,
@@ -255,8 +255,8 @@ private fun Keypad(onDtmf: (Char) -> Unit) {
 @Composable
 private fun RoundButton(icon: ImageVector, label: String, on: Boolean, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
-        Box(Modifier.size(72.dp).clip(RoundedCornerShape(26.dp)).background(if (on) CallioColors.Amber else Pal.card), contentAlignment = Alignment.Center) {
-            Icon(icon, label, tint = if (on) CallioColors.OnAmber else Pal.text, modifier = Modifier.size(28.dp))
+        Box(Modifier.size(72.dp).clip(RoundedCornerShape(26.dp)).background(if (on) Pal.primary else Pal.card), contentAlignment = Alignment.Center) {
+            Icon(icon, label, tint = if (on) Pal.onPrimary else Pal.text, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(8.dp))
         Text(label, style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Pal.textSecondary)

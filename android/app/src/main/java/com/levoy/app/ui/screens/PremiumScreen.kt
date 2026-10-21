@@ -36,7 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.levoy.app.data.PlanState
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
@@ -73,7 +73,7 @@ fun PremiumScreen(ui: PremiumUi, a: PremiumActions) {
                 tabs.forEach { t ->
                     val on = t.key == tabKey
                     Column(Modifier.weight(1f).clickable { a.onTab(t.key) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(t.icon, null, tint = if (on) CallioColors.Amber else Pal.textSecondary, modifier = Modifier.size(40.dp))
+                        Icon(t.icon, null, tint = if (on) Pal.primary else Pal.textSecondary, modifier = Modifier.size(40.dp))
                         Spacer(Modifier.height(6.dp))
                         Text(t.label, style = if (on) Txt.TabActive.copy(fontSize = 17.sp) else Txt.Tab.copy(fontSize = 17.sp), color = if (on) Pal.text else Pal.textSecondary)
                         Spacer(Modifier.height(6.dp))
@@ -117,7 +117,7 @@ private fun PremiumBody(p: PlanState, tabKey: String?, ui: PremiumUi, a: Premium
     }
     Spacer(Modifier.height(34.dp))
     val current = p.effective_plan == tabKey
-    AmberButton(
+    PrimaryButton(
         when { current -> T("current_plan"); ui.busy -> "Please wait…"; else -> T("subscribe") },
         { if (!current && !ui.busy) tabKey?.let(a.onSubscribe) },
         Modifier.fillMaxWidth().padding(horizontal = 24.dp), height = 66.dp, corner = 33.dp, enabled = !current,
@@ -129,7 +129,7 @@ private fun PremiumBody(p: PlanState, tabKey: String?, ui: PremiumUi, a: Premium
     )
     if (ui.message != null) {
         Spacer(Modifier.height(14.dp))
-        Text(ui.message, style = Txt.Body.copy(fontSize = 16.sp), color = CallioColors.Amber, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Text(ui.message, style = Txt.Body.copy(fontSize = 16.sp), color = Pal.primary, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     }
     Spacer(Modifier.height(34.dp))
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).border(1.dp, Pal.divider, RoundedCornerShape(16.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {

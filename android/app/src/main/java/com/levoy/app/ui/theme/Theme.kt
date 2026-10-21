@@ -19,9 +19,9 @@ fun CallioTheme(mode: ThemeMode = ThemeMode.Dark, content: @Composable () -> Uni
     }
     val pal = if (dark) DarkPalette else LightPalette
     val scheme = if (dark) {
-        darkColorScheme(primary = CallioColors.Amber, onPrimary = CallioColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
+        darkColorScheme(primary = pal.primary, onPrimary = pal.onPrimary, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
     } else {
-        lightColorScheme(primary = CallioColors.Amber, onPrimary = CallioColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
+        lightColorScheme(primary = pal.primary, onPrimary = pal.onPrimary, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
     }
     // A phone set to "Largest" text used to blow past the fixed-height buttons and cards. Allow some enlargement, not unlimited.
     val density = androidx.compose.ui.platform.LocalDensity.current

@@ -130,7 +130,7 @@ private fun CenterMessage(text: String, action: String? = null, onAction: () -> 
         Text(text, style = Txt.Body, color = Pal.textSecondary, textAlign = TextAlign.Center)
         if (action != null) {
             Spacer(Modifier.height(16.dp))
-            Text(action, style = Txt.Button, color = CallioColors.Amber, modifier = Modifier.clickable(onClick = onAction).padding(12.dp))
+            Text(action, style = Txt.Button, color = Pal.primary, modifier = Modifier.clickable(onClick = onAction).padding(12.dp))
         }
     }
 }
@@ -185,7 +185,7 @@ fun CallCard(r: CallRow, a: CallHistoryActions) {
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         r.tags.take(3).forEach { t ->
-                            val c = runCatching { Color(android.graphics.Color.parseColor(t.color ?: "")) }.getOrDefault(CallioColors.Amber)
+                            val c = runCatching { Color(android.graphics.Color.parseColor(t.color ?: "")) }.getOrDefault(Pal.primary)
                             Text(t.name, style = Txt.Small.copy(fontSize = 12.sp), color = c, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, c.copy(alpha = 0.7f), RoundedCornerShape(10.dp)).padding(horizontal = 9.dp, vertical = 3.dp))
                         }

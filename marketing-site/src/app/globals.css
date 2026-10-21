@@ -7,31 +7,31 @@
    ========================================================================== */
 
 @theme {
-  /* --- Brand: crimson ---------------------------------------------------- */
-  --color-brand-50: #fff1f1;
-  --color-brand-100: #ffe1e1;
-  --color-brand-200: #ffc7c7;
-  --color-brand-300: #ff9e9e;
-  --color-brand-400: #ff7070;
-  --color-brand-500: #ff4444;
-  --color-brand-600: #ee2b2b;
-  --color-brand-700: #c91c1c;
-  --color-brand-800: #9d1919;
-  --color-brand-900: #7d1a1a;
-  --color-brand-950: #460909;
+  /* --- Brand: Callio blue (from the logo; 500 is the logo's blue, 600 is the one for buttons with white text) --- */
+  --color-brand-50: #eef5ff;
+  --color-brand-100: #dce9ff;
+  --color-brand-200: #bcd5ff;
+  --color-brand-300: #8db9ff;
+  --color-brand-400: #5c9bff;
+  --color-brand-500: #1574ff;
+  --color-brand-600: #0f63e6;
+  --color-brand-700: #0b4fc2;
+  --color-brand-800: #0a3f9a;
+  --color-brand-900: #0a3478;
+  --color-brand-950: #051634;
 
-  /* --- Ink: cool neutral scale ------------------------------------------- */
-  --color-ink-50: #f7f7f9;
-  --color-ink-100: #eeeef2;
-  --color-ink-200: #dbdce3;
-  --color-ink-300: #b9bcc7;
-  --color-ink-400: #8c909e;
-  --color-ink-500: #676c7c;
-  --color-ink-600: #4c5162;
-  --color-ink-700: #393d4b;
-  --color-ink-800: #23262f;
-  --color-ink-900: #14161d;
-  --color-ink-950: #0b0c11;
+  /* --- Ink: navy-tinted neutral scale (950 is the navy of the logo's dark background) --- */
+  --color-ink-50: #f5f8ff;
+  --color-ink-100: #e9effc;
+  --color-ink-200: #d3ddf2;
+  --color-ink-300: #a9b8db;
+  --color-ink-400: #7e8fb8;
+  --color-ink-500: #5a6c97;
+  --color-ink-600: #44547d;
+  --color-ink-700: #2d3b62;
+  --color-ink-800: #17244a;
+  --color-ink-900: #0a1740;
+  --color-ink-950: #051634;
 
   /* --- Support hues used only inside illustrations ------------------------ */
   --color-signal-400: #3ecf8e;
@@ -59,12 +59,12 @@
   --radius-pill: 999px;
 
   /* --- Elevation --------------------------------------------------------- */
-  --shadow-xs: 0 1px 2px 0 rgb(11 12 17 / 0.05);
-  --shadow-card: 0 1px 2px 0 rgb(11 12 17 / 0.04),
-    0 8px 24px -12px rgb(11 12 17 / 0.16);
-  --shadow-lift: 0 2px 4px 0 rgb(11 12 17 / 0.05),
-    0 18px 40px -18px rgb(11 12 17 / 0.26);
-  --shadow-glow: 0 10px 30px -12px rgb(255 68 68 / 0.55);
+  --shadow-xs: 0 1px 2px 0 rgb(5 22 52 / 0.05);
+  --shadow-card: 0 1px 2px 0 rgb(5 22 52 / 0.04),
+    0 8px 24px -12px rgb(5 22 52 / 0.16);
+  --shadow-lift: 0 2px 4px 0 rgb(5 22 52 / 0.05),
+    0 18px 40px -18px rgb(5 22 52 / 0.26);
+  --shadow-glow: 0 10px 30px -12px rgb(21 116 255 / 0.55);
 
   /* --- Motion ------------------------------------------------------------ */
   --animate-marquee: marquee 38s linear infinite;
@@ -99,13 +99,13 @@
   }
   @keyframes pulse-ring {
     0% {
-      box-shadow: 0 0 0 0 rgb(255 68 68 / 0.45);
+      box-shadow: 0 0 0 0 rgb(21 116 255 / 0.45);
     }
     70% {
-      box-shadow: 0 0 0 14px rgb(255 68 68 / 0);
+      box-shadow: 0 0 0 14px rgb(21 116 255 / 0);
     }
     100% {
-      box-shadow: 0 0 0 0 rgb(255 68 68 / 0);
+      box-shadow: 0 0 0 0 rgb(21 116 255 / 0);
     }
   }
 }

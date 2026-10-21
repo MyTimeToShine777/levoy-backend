@@ -35,7 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.OutlineButton
 import com.levoy.app.ui.SwitchPill
@@ -109,7 +109,7 @@ fun LinkedExtensionScreen(linked: Boolean, premium: Boolean, deviceName: String,
                 }
                 SwitchPill(linked, onToggle)
             }
-            if (!premium) Text("Quick Call is part of the Premium plan. You can link this phone now, but the browser is refused until the workspace is on Premium.", style = Txt.Body.copy(fontSize = 15.sp), color = CallioColors.Amber, modifier = Modifier.padding(16.dp))
+            if (!premium) Text("Quick Call is part of the Premium plan. You can link this phone now, but the browser is refused until the workspace is on Premium.", style = Txt.Body.copy(fontSize = 15.sp), color = Pal.primary, modifier = Modifier.padding(16.dp))
             if (linked && !canCall) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text("Without the Phone permission the phone shows a “Tap to call” notification instead of dialling by itself.", style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary)
@@ -154,7 +154,7 @@ fun HelpScreen(whatsappSupport: String?, premium: Boolean, onWhatsApp: () -> Uni
                     WhatsAppGlyph(Modifier.size(34.dp), Color.White); Spacer(Modifier.width(12.dp)); Text("Chat with support on WhatsApp", style = Txt.Button, color = Color.White)
                 } else {
                     Text("Quick support on WhatsApp is part of the Premium plan.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(10.dp)); AmberButton("See Premium", onUpgrade, Modifier.fillMaxWidth(), height = 58.dp)
+                    Spacer(Modifier.height(10.dp)); PrimaryButton("See Premium", onUpgrade, Modifier.fillMaxWidth(), height = 58.dp)
                 }
             }
         }
@@ -172,9 +172,9 @@ fun MissingDetailsScreen(busy: Boolean, result: String?, onScan: () -> Unit, onB
                 Text("Some calls may show as “Unknown” or without a SIM — for example when the contact was not readable at the time, or the SIM was not yet detected.", style = Txt.Body.copy(fontSize = 19.sp, lineHeight = 28.sp), color = Pal.text)
                 Spacer(Modifier.height(14.dp))
                 Text("Scanning looks again at the last 90 days of your calls to the leads assigned to you and fills in the missing names and SIMs. Other calls on this phone are never read. It never changes a name or SIM that is already there.", style = Txt.Body.copy(fontSize = 16.sp, lineHeight = 24.sp), color = Pal.textSecondary)
-                if (result != null) Text(result, style = Txt.Body.copy(fontSize = 18.sp), color = CallioColors.Amber, modifier = Modifier.padding(top = 24.dp))
+                if (result != null) Text(result, style = Txt.Body.copy(fontSize = 18.sp), color = Pal.primary, modifier = Modifier.padding(top = 24.dp))
             }
-            AmberButton(if (busy) "Scanning…" else "Scan now", { if (!busy) onScan() }, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
+            PrimaryButton(if (busy) "Scanning…" else "Scan now", { if (!busy) onScan() }, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
         }
     }
 }
@@ -190,7 +190,7 @@ fun BlogsScreen(url: String?, onOpen: () -> Unit, onBack: () -> Unit) {
                 if (url.isNullOrBlank()) Text("Your workspace admin has not added a blog yet. They can add the link in the dashboard under Premium → Support & links.", style = Txt.Body.copy(fontSize = 19.sp, lineHeight = 28.sp), color = Pal.textSecondary)
                 else Text("Tips and updates from your team.", style = Txt.Body.copy(fontSize = 19.sp), color = Pal.text)
             }
-            if (!url.isNullOrBlank()) AmberButton("Open blog", onOpen, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
+            if (!url.isNullOrBlank()) PrimaryButton("Open blog", onOpen, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
         }
     }
 }
