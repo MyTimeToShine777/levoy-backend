@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.sp
 import com.levoy.app.data.CallStatusOption
 import com.levoy.app.data.LeadRow
 import com.levoy.app.data.statusKeyOf
+import com.levoy.app.ui.SkeletonList
 import com.levoy.app.ui.AmberButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.OutlineButton
@@ -76,8 +77,8 @@ fun LeadsScreen(ui: LeadsUi, onSearch: (String) -> Unit, onOpen: (LeadRow) -> Un
                         Text(ui.error, style = Txt.Body, color = LevoyColors.MissedText, modifier = Modifier.padding(vertical = 16.dp))
                         OutlineButton("Retry", onRetry, Modifier.fillMaxWidth(), height = 52.dp)
                     }
-                    ui.leads == null -> Text("Loading leads…", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(vertical = 24.dp))
-                    ui.leads.isEmpty() -> Text(if (ui.loading) "Loading leads…" else "No leads found.", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(vertical = 24.dp))
+                    ui.leads == null -> SkeletonList(rows = 4)
+                    ui.leads.isEmpty() -> if (ui.loading) SkeletonList(rows = 4) else Text("No leads found.", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(vertical = 24.dp))
                     else -> ui.leads.forEach { LeadCard(it, onOpen, onCall) }
                 }
                 Spacer(Modifier.height(24.dp))

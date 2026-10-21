@@ -1,7 +1,18 @@
 package com.levoy.app.ui
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -30,6 +41,12 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +60,8 @@ import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Preset
 import com.levoy.app.util.T
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 enum class Tab(val key: String) { History("history"), Leads("leads"), Analytics("analytics"), Premium("premium"), Contacts("contacts") }
 
@@ -60,14 +79,26 @@ fun BottomBar(current: Tab, showPremium: Boolean, onSelect: (Tab) -> Unit) {
             Item(Tab.Premium, T("nav_premium"), Icons.Filled.Diamond, LevoyColors.Amber),
             Item(Tab.Contacts, T("nav_contacts"), Icons.Filled.ContactPage, null),
         ).filter { showPremium || it.tab != Tab.Premium }.forEach { it ->
-            val on = it.tab == current
-            val tint = it.tint ?: if (on) Pal.text else Pal.textMuted
-            Column(Modifier.weight(1f).clickable { onSelect(it.tab) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                Icon(it.icon, null, tint = tint, modifier = Modifier.size(32.dp))
-                Spacer(Modifier.height(4.dp))
-                Text(it.label, style = Txt.NavLabel.copy(fontSize = 13.sp), color = if (on) Pal.text else Pal.textSecondary, maxLines = 1)
-            }
+            BottomBarItem(Modifier.weight(1f), it.label, it.icon, it.tint, it.tab == current) { onSelect(it.tab) }
         }
+    }
+}
+
+/** One tab of the bottom bar. The selected tab's icon grows a little and the colours ease in, so a change of tab is seen, not just snapped. */
+@Composable
+private fun BottomBarItem(modifier: Modifier, label: String, icon: ImageVector, tint: Color?, selected: Boolean, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    val press = rememberPressScale(source, pressedScale = 0.92f)
+    val grow by animateFloatAsState(if (selected) 1.12f else 1f, tween(180), label = "grow")
+    val iconColor by animateColorAsState(tint ?: if (selected) Pal.text else Pal.textMuted, tween(180), label = "iconColor")
+    val labelColor by animateColorAsState(if (selected) Pal.text else Pal.textSecondary, tween(180), label = "labelColor")
+    Column(
+        modifier.scaleTo(press).clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, null, tint = iconColor, modifier = Modifier.size(32.dp).scaleTo(grow))
+        Spacer(Modifier.height(4.dp))
+        Text(label, style = Txt.NavLabel.copy(fontSize = 13.sp), color = labelColor, maxLines = 1)
     }
 }
 
@@ -84,7 +115,13 @@ fun UpgradeBanner(onUpgrade: () -> Unit, onClose: () -> Unit) {
 
 @Composable
 fun DialFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.size(66.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(LevoyColors.Amber).clickable(onClick = onClick), contentAlignment = Alignment.Center) {
+    val source = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(source, pressedScale = 0.92f)
+    Box(
+        modifier.scaleTo(scale).size(66.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(LevoyColors.Amber)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
         Icon(Icons.Filled.Dialpad, "Dial", tint = Color(0xFF111111), modifier = Modifier.size(34.dp))
     }
 }
@@ -92,13 +129,25 @@ fun DialFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
 /** Dim the screen and slide a rounded panel up from the bottom. Tapping the dim area dismisses it. */
 @Composable
 fun BoxScope.BottomSheet(onDismiss: () -> Unit, content: @Composable () -> Unit) {
-    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.55f)).clickable(onClick = onDismiss))
-    Column(
-        Modifier.align(Alignment.BottomCenter).fillMaxWidth().clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(Pal.card).clickable(enabled = false) {},
-        horizontalAlignment = Alignment.CenterHorizontally,
+    // The dim layer fades in and the panel slides up on the first frame. Tapping outside plays the way out first, then removes the sheet.
+    var shown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { shown = true }
+    val scope = rememberCoroutineScope()
+    val dismiss: () -> Unit = { if (shown) { shown = false; scope.launch { delay(180); onDismiss() } } }
+    val dim by animateFloatAsState(if (shown) 0.55f else 0f, tween(200), label = "dim")
+    Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = dim)).clickable(onClick = dismiss))
+    AnimatedVisibility(
+        shown, Modifier.align(Alignment.BottomCenter),
+        enter = slideInVertically(tween(260, easing = FastOutSlowInEasing)) { it } + fadeIn(tween(200)),
+        exit = slideOutVertically(tween(180)) { it } + fadeOut(tween(160)),
     ) {
-        Box(Modifier.padding(top = 10.dp, bottom = 6.dp).size(width = 32.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.85f)))
-        content()
+        Column(
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)).background(Pal.card).clickable(enabled = false) {},
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(Modifier.padding(top = 10.dp, bottom = 6.dp).size(width = 32.dp, height = 4.dp).clip(RoundedCornerShape(2.dp)).background(Color.White.copy(alpha = 0.85f)))
+            content()
+        }
     }
 }
 

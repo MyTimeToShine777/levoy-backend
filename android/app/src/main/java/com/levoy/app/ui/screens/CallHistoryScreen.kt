@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import com.levoy.app.data.AttemptGroup
 import com.levoy.app.data.CallKind
 import com.levoy.app.data.CallRow
+import com.levoy.app.ui.SkeletonList
 import com.levoy.app.ui.ActionIcons
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.IconAction
@@ -114,7 +115,7 @@ fun CallHistoryScreen(ui: CallHistoryUi, a: CallHistoryActions, bottomInset: and
             val grouped = ui.tab == "never_attended" || ui.tab == "not_pickup"
             when {
                 ui.error != null -> CenterMessage(ui.error, "Retry", a.onRetry)
-                ui.loading && ui.rows.isEmpty() && ui.groups.isEmpty() -> CenterMessage("Loading…")
+                ui.loading && ui.rows.isEmpty() && ui.groups.isEmpty() -> SkeletonList(rows = 7)
                 grouped -> if (ui.groups.isEmpty()) CenterMessage("Nothing to chase here") else GroupedList(ui, a, bottomInset)
                 ui.rows.isEmpty() -> CenterMessage("No calls found")
                 else -> CallList(ui, a, bottomInset)

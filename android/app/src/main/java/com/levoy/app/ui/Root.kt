@@ -1,6 +1,15 @@
 package com.levoy.app.ui
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -81,6 +91,9 @@ fun LevoyRoot(model: AppModel, os: Os) {
         key(model.lang, model.is24) { RootContent(model, os) }
     }
 }
+
+/** What is shown on top of the tabs (null = nothing pushed) and how deep the stack is, so a transition knows which way to slide. */
+private data class PushedScreen(val screen: Screen?, val depth: Int)
 
 @Composable
 private fun RootContent(m: AppModel, os: Os) {
@@ -120,7 +133,26 @@ private fun RootContent(m: AppModel, os: Os) {
             }
             Stage.Main -> MainContent(m, os)
         }
-        if (top != null) Box(Modifier.fillMaxSize().background(Pal.background)) { ScreenFor(top, m, os) }
+        // A pushed screen slides in from the right while the one beneath eases left; going back plays the same thing in reverse.
+        // `depth` is how many screens are stacked, which is how we tell "forward" from "back".
+        AnimatedContent(
+            targetState = PushedScreen(top, m.stack.size),
+            modifier = Modifier.fillMaxSize(),
+            transitionSpec = {
+                val forward = targetState.depth >= initialState.depth
+                val slide = tween<IntOffset>(280, easing = FastOutSlowInEasing)
+                val transition = if (forward) {
+                    (slideInHorizontally(slide) { it / 4 } + fadeIn(tween(220))) togetherWith (slideOutHorizontally(slide) { -it / 6 } + fadeOut(tween(160)))
+                } else {
+                    (slideInHorizontally(slide) { -it / 6 } + fadeIn(tween(220))) togetherWith (slideOutHorizontally(slide) { it / 4 } + fadeOut(tween(180)))
+                }
+                transition.apply { targetContentZIndex = if (forward) 1f else -1f }   // whichever is leaving stays on top when going back
+            },
+            contentKey = { it.screen },
+            label = "pushed screen",
+        ) { shown ->
+            if (shown.screen != null) Box(Modifier.fillMaxSize().background(Pal.background)) { ScreenFor(shown.screen, m, os) }
+        }
         m.overlay?.let { OverlayFor(it, m, os) }
     }
 }
@@ -143,7 +175,9 @@ private fun MainContent(m: AppModel, os: Os) {
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f)) {
-                when (m.tab) {
+                // switching tabs fades the old page out and the new one in, instead of swapping instantly
+                Crossfade(targetState = m.tab, animationSpec = tween(180), label = "tab") { tab ->
+                when (tab) {
                     Tab.History -> {
                         val h = m.history
                         val ui = CallHistoryUi(m.histTab, h?.rows.orEmpty(), h?.groups.orEmpty(), m.histSearch, m.permissionsMissing, m.histLoading, m.histError)
@@ -174,6 +208,7 @@ private fun MainContent(m: AppModel, os: Os) {
                             )
                         }
                     }
+                }
                 }
                 if (m.tab == Tab.History || m.tab == Tab.Contacts) DialFab({ m.overlay = Overlay.Dialpad }, Modifier.align(Alignment.BottomEnd).padding(end = 16.dp, bottom = 16.dp))
             }

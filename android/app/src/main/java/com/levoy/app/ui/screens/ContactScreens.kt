@@ -47,6 +47,7 @@ import com.levoy.app.data.CallsAndDuration
 import com.levoy.app.data.CompareRow
 import com.levoy.app.data.ContactDetail
 import com.levoy.app.data.ContactRow
+import com.levoy.app.ui.SkeletonList
 import com.levoy.app.ui.ActionIcons
 import com.levoy.app.ui.AmberButton
 import com.levoy.app.ui.ChartCard
@@ -88,7 +89,7 @@ fun ContactsScreen(ui: ContactsUi, a: ContactsActions) {
             Spacer(Modifier.height(10.dp))
             when {
                 ui.error != null -> Text(ui.error, style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp).clickable(onClick = a.onRetry))
-                ui.loading && ui.rows.isEmpty() -> Text("Loading…", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp))
+                ui.loading && ui.rows.isEmpty() -> SkeletonList(rows = 6)
                 ui.rows.isEmpty() -> Text("No contacts yet", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp))
                 else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 6.dp, bottom = 130.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     items(ui.rows, key = { it.phone_key }) { c -> ContactCard(c, a) }
