@@ -6,6 +6,7 @@ const PlanService = require('./PlanService');
 const CallHistoryService = require('./CallHistoryService');
 const CallAnalyticsService = require('./CallAnalyticsService');
 const { KIND_SQL, TS_ISO_SQL, phoneKeyOf } = require('../utils/callKinds');
+const { leadPhoneKeySql } = require('../utils/leadPhoneKey');
 const { audit } = require('../utils/audit');
 
 const DAY = 86400000;
@@ -41,7 +42,7 @@ class ContactService {
               to_char(MAX(c.timestamp), 'YYYY-MM-DD"T"HH24:MI:SS"Z"') AS last_call,
               MAX(c.timestamp) AS last_call_ts,
               (SELECT json_build_object('id', l.id, 'name', COALESCE(NULLIF(l.pharmacy_name, ''), l.name))
-                 FROM leads l WHERE l.phone_clean = c.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead,
+                 FROM leads l WHERE ${leadPhoneKeySql('l')} = c.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead,
               COALESCE((SELECT json_agg(json_build_object('id', g.id, 'name', g.name, 'color', g.color) ORDER BY g.name)
                           FROM contact_group_members m JOIN contact_groups g ON g.id = m.group_id WHERE m.phone_key = c.phone_key), '[]'::json) AS groups
          FROM call_events c ${where}
@@ -108,7 +109,7 @@ class ContactService {
       `SELECT g.id, g.name, g.color FROM contact_group_members m JOIN contact_groups g ON g.id = m.group_id WHERE m.phone_key = $1 ORDER BY g.name`, [key])).rows;
     const lead = (await q(
       `SELECT l.id, COALESCE(NULLIF(l.pharmacy_name, ''), l.name) AS name, l.status, l.tier
-         FROM leads l WHERE l.phone_clean = $1 AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1`, [key])).rows[0] || null;
+         FROM leads l WHERE ${leadPhoneKeySql('l')} = $1 AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1`, [key])).rows[0] || null;
 
     return {
       contact: { phone_key: key, phone_number: head.phone_number, contact_name: head.contact_name, groups, lead },

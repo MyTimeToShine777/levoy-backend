@@ -39,7 +39,8 @@ data class CallRow(
     val lead: LeadRef? = null,
 ) {
     val callKind: CallKind get() = runCatching { CallKind.valueOf(kind) }.getOrDefault(CallKind.outgoing)
-    val displayName: String get() = contact_name?.takeIf { it.isNotBlank() } ?: "Unknown"
+    // the phone's saved contact name wins; otherwise the lead this number belongs to, so a lead is never shown as "Unknown"
+    val displayName: String get() = contact_name?.takeIf { it.isNotBlank() } ?: lead?.name?.takeIf { it.isNotBlank() } ?: "Unknown"
 }
 
 data class SimSeen(val source: String = "sim", val slot: Int? = null, val label: String? = null, val calls: Int = 0)

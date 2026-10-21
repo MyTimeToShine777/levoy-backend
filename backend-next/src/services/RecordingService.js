@@ -8,6 +8,7 @@ const { q } = require('../config/db');
 const { MIME_EXTENSION_REVERSE, safeUploadPath } = require('../config/upload');
 const { ValidationError, NotFoundError, ForbiddenError } = require('../exceptions');
 const { audit } = require('../utils/audit');
+const { leadPhoneKeySql } = require('../utils/leadPhoneKey');
 
 // Who may see a recording: admin and manager see everything, an agent sees only
 // their own.
@@ -121,7 +122,7 @@ class RecordingService {
     if (query.date_to) where += ` AND ce.timestamp <= ${push(new Date(query.date_to).toISOString())}`;
     if (query.phone) where += ` AND ce.phone_number ILIKE ${push(`%${query.phone}%`)}`;
     // Recordings of calls with one lead: the lead is matched to the call by phone key, as in the call history.
-    if (query.lead_id) where += ` AND ce.phone_key = (SELECT phone_clean FROM leads WHERE id = ${push(parseInt(query.lead_id))})`;
+    if (query.lead_id) where += ` AND ce.phone_key = (SELECT ${leadPhoneKeySql('l')} FROM leads l WHERE l.id = ${push(parseInt(query.lead_id))})`;
 
     const limit = Math.min(Math.max(parseInt(query.limit) || 100, 1), 500);
     const offset = Math.max(parseInt(query.offset) || 0, 0);
@@ -130,7 +131,7 @@ class RecordingService {
               ce.phone_number, ce.direction, ce.status, ce.timestamp, ce.duration_seconds AS call_duration_seconds,
               u.name AS agent_name, u.email AS agent_email,
               (SELECT json_build_object('id', l.id, 'name', COALESCE(NULLIF(l.pharmacy_name, ''), l.name))
-                 FROM leads l WHERE l.phone_clean = ce.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead
+                 FROM leads l WHERE ${leadPhoneKeySql('l')} = ce.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead
          FROM call_recordings cr
          JOIN call_events ce ON ce.id = cr.call_id
          LEFT JOIN users u ON u.id = cr.user_id${where}
