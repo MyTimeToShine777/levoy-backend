@@ -316,10 +316,10 @@ fun ToggleInfoScreen(title: String, rowIcon: @Composable () -> Unit, rowLabel: S
 }
 
 val CALL_RECORDING_BULLETS = listOf(
-    "Recording works only while Callio is your default phone app, so calls placed and answered in Callio's own call screen are the ones recorded.",
-    "Only calls to leads assigned to you are recorded. Other calls are never recorded.",
-    "Android lets apps record through the microphone only, so the other person is clearly heard when the call is on speaker. Earpiece calls may capture only your voice.",
-    "A \"Recording\" notification stays on screen for the whole call. Recordings upload to your team's Callio workspace when you are online.",
+    "To hear both voices, turn on call recording in your phone's own Phone app. Callio finds that recording after the call and uploads it to your team's workspace.",
+    "That needs Callio's permission to read audio files, and works only while your phone's own Phone app (not Callio) is the default phone app.",
+    "If Callio is your default phone app, it records through the microphone instead. Android lets apps record the microphone only, so the other person is heard only when the call is on speaker.",
+    "Only calls to leads assigned to you are recorded or uploaded. Other calls never are.",
     "Always tell the person you are calling that the call is being recorded.",
 )
 

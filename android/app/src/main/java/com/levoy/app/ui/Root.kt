@@ -319,9 +319,15 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
             { v ->
                 if (!v) m.setCallRecording(false)
                 else os.requestRecordAudio {
-                    if (!os.hasRecordAudio()) os.toast("Allow the microphone to record calls")
-                    else if (os.isDefaultDialer()) m.setCallRecording(true)
-                    else os.requestDialerRole { ok -> m.defaultDialer = ok; if (ok) m.setCallRecording(true) else os.toast("Set Callio as your default phone app to record calls") }
+                    // Two ways to get a recording: Callio's own (microphone, needs Callio as the default phone app), or the phone's own
+                    // call recorder (both voices), whose files Callio reads from the audio library. The second works without the first.
+                    os.requestAudioLibrary {
+                        if (os.isDefaultDialer()) m.setCallRecording(true)
+                        else if (os.hasRecordAudio() || os.hasAudioLibrary()) {
+                            m.setCallRecording(true)
+                            os.toast("On. Turn on call recording in your phone app, and Callio will upload it")
+                        } else os.toast("Allow the microphone or audio files so Callio can record calls")
+                    }
                 }
             },
             "Only calls to your assigned leads are recorded, and your admin and managers can listen to them. Tell the person you are calling that the call is recorded.",

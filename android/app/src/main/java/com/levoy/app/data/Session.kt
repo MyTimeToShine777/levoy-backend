@@ -85,6 +85,14 @@ class Session(context: Context) {
         get() = p.getBoolean("call_recording", false)
         set(v) = p.edit().putBoolean("call_recording", v).apply()
 
+    /** Audio-library ids and call ids already copied from the phone's own recorder, so a recording is queued only once. */
+    var importedRecordingIds: Set<Long>
+        get() = (p.getStringSet("imported_rec_ids", emptySet()) ?: emptySet()).mapNotNull { it.toLongOrNull() }.toSet()
+        set(v) = p.edit().putStringSet("imported_rec_ids", v.map { it.toString() }.toSet()).apply()
+    var importedRecordingCalls: Set<String>
+        get() = p.getStringSet("imported_rec_calls", emptySet()) ?: emptySet()
+        set(v) = p.edit().putStringSet("imported_rec_calls", v.toSet()).apply()
+
     /** Phone keys of this person's assigned leads, refreshed on every sync; the recorder checks a live call against it. */
     var leadKeys: Set<String>
         get() = p.getStringSet("lead_keys", emptySet()) ?: emptySet()

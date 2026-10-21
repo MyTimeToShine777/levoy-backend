@@ -97,10 +97,13 @@ class Api(private val session: Session) {
     }
     suspend fun uploadCalls(events: List<Map<String, Any?>>) { raw("POST", "/calls/batch", mapOf("events" to events)) }
     /** Attach a finished call recording (m4a) to a call the server already holds. */
+    private fun audioType(f: java.io.File) = when (f.extension.lowercase()) {
+        "mp3" -> "audio/mpeg"; "amr" -> "audio/amr"; "3gp" -> "audio/3gpp"; "ogg" -> "audio/ogg"; "wav" -> "audio/wav"; else -> "audio/mp4"
+    }
     suspend fun uploadRecording(callId: Int, file: java.io.File, durationSeconds: Int) = withContext(Dispatchers.IO) {
         val body = MultipartBody.Builder().setType(MultipartBody.FORM)
             .addFormDataPart("duration", durationSeconds.toString())
-            .addFormDataPart("recording", file.name, file.asRequestBody("audio/mp4".toMediaType())).build()
+            .addFormDataPart("recording", file.name, file.asRequestBody(audioType(file).toMediaType())).build()
         val req = Request.Builder().url("${session.serverUrl}/calls/$callId/recordings").header("Authorization", "Bearer ${session.token}").post(body).build()
         val res = try { client.newCall(req).execute() } catch (e: Exception) { throw ApiException("Cannot reach the server. Check your connection.", 0) }
         res.use {

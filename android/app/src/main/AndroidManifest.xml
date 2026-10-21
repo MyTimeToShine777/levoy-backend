@@ -23,6 +23,9 @@
     <!-- Call Recording (off until the person switches it on): lead calls only, and only while Callio is the default phone app. -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <!-- Call Recording with the phone's own recorder: Callio reads the audio files that recorder saved, to upload them. -->
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" />
 
     <application
         android:name=".CallioApp"

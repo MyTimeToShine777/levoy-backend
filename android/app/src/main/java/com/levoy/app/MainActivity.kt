@@ -134,6 +134,8 @@ class MainActivity : ComponentActivity(), Os {
         if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS) else arrayOf(Manifest.permission.RECORD_AUDIO), then,
     )
     override fun hasRecordAudio() = CallLogReader.has(this, Manifest.permission.RECORD_AUDIO)
+    override fun requestAudioLibrary(then: () -> Unit) = ask(arrayOf(com.levoy.app.sync.PhoneRecordings.permission()), then)
+    override fun hasAudioLibrary() = com.levoy.app.sync.PhoneRecordings.canRead(this)
     override fun requestNotifications() { if (Build.VERSION.SDK_INT >= 33) ask(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) { } }
     override fun startQuickCall() = QuickCallService.start(this)
     override fun stopQuickCall() = QuickCallService.stop(this)
