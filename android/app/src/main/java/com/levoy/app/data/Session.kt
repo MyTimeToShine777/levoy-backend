@@ -80,6 +80,16 @@ class Session(context: Context) {
         get() = p.getBoolean("wa_calls", false)
         set(v) = p.edit().putBoolean("wa_calls", v).apply()
 
+    /** Call Recording switch: off until the person turns it on (and Levoy is the default phone app). */
+    var callRecording: Boolean
+        get() = p.getBoolean("call_recording", false)
+        set(v) = p.edit().putBoolean("call_recording", v).apply()
+
+    /** Phone keys of this person's assigned leads, refreshed on every sync; the recorder checks a live call against it. */
+    var leadKeys: Set<String>
+        get() = p.getStringSet("lead_keys", emptySet()) ?: emptySet()
+        set(v) = p.edit().putStringSet("lead_keys", v.toSet()).apply()
+
     /** Millis of the newest call already uploaded, so a sync only sends what is new. */
     var lastSyncedAt: Long
         get() = p.getLong("last_synced", 0L)
@@ -92,6 +102,6 @@ class Session(context: Context) {
 
     fun signOut() {
         // settings (theme, language, clock) deliberately survive a sign-out
-        p.edit().remove("token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").apply()
+        p.edit().remove("token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("call_recording").apply()
     }
 }

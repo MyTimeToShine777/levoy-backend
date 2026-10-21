@@ -44,6 +44,7 @@ sealed interface Screen {
     object Troubleshooting : Screen
     object SyncStatus : Screen
     object QuickAction : Screen
+    object CallRecording : Screen
     object WhatsAppCall : Screen
     object Reminders : Screen
     object DeleteAccount : Screen
@@ -616,6 +617,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     fun changeNotePrompt(v: Boolean) { session.notePrompt = v; notePrompt = v }
     var missedPrompt by mutableStateOf(session.missedReminderPrompt)
     fun changeMissedPrompt(v: Boolean) { session.missedReminderPrompt = v; missedPrompt = v }
+    var callRecording by mutableStateOf(session.callRecording)
+    fun setCallRecording(v: Boolean) { session.callRecording = v; callRecording = v }
     var whatsappCalls by mutableStateOf(session.whatsappCalls)
     fun setWhatsapp(v: Boolean) { session.whatsappCalls = v; whatsappCalls = v }
 }

@@ -71,6 +71,7 @@ object Strings {
         "more_settings" to r("Settings", "Настройки", "Ajustes", "Einstellungen", "Paramètres", "Ayarlar"),
         "sim_number" to r("SIM Number", "Номер SIM", "Número SIM", "SIM-Nummer", "Numéro SIM", "SIM Numarası"),
         "whatsapp_call" to r("WhatsApp Call", "Звонки WhatsApp", "Llamada de WhatsApp", "WhatsApp-Anruf", "Appel WhatsApp", "WhatsApp Araması"),
+        "call_recording" to r("Call Recording", "Запись звонков", "Grabación de llamadas", "Anrufaufzeichnung", "Enregistrement des appels", "Arama Kaydı"),
         "quick_action" to r("Quick Action", "Быстрое действие", "Acción rápida", "Schnellaktion", "Action rapide", "Hızlı Eylem"),
         "language" to r("Language", "Язык", "Idioma", "Sprache", "Langue", "Dil"),
         "theme" to r("Theme", "Тема", "Tema", "Design", "Thème", "Tema"),

@@ -6,6 +6,8 @@ import com.google.gson.reflect.TypeToken
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -83,6 +85,20 @@ class Api(private val session: Session) {
     // ── calls ──
     suspend fun history(params: Map<String, Any?>): HistoryResponse = call("GET", "/call-history?${query(params)}")
     suspend fun uploadCalls(events: List<Map<String, Any?>>) { raw("POST", "/calls/batch", mapOf("events" to events)) }
+    /** Attach a finished call recording (m4a) to a call the server already holds. */
+    suspend fun uploadRecording(callId: Int, file: java.io.File, durationSeconds: Int) = withContext(Dispatchers.IO) {
+        val body = MultipartBody.Builder().setType(MultipartBody.FORM)
+            .addFormDataPart("duration", durationSeconds.toString())
+            .addFormDataPart("recording", file.name, file.asRequestBody("audio/mp4".toMediaType())).build()
+        val req = Request.Builder().url("${session.serverUrl}/calls/$callId/recordings").header("Authorization", "Bearer ${session.token}").post(body).build()
+        val res = try { client.newCall(req).execute() } catch (e: Exception) { throw ApiException("Cannot reach the server. Check your connection.", 0) }
+        res.use {
+            if (!it.isSuccessful) {
+                val map = runCatching { gson.fromJson(it.body?.string().orEmpty(), Map::class.java) }.getOrNull()
+                throw ApiException((map?.get("detail") as? String) ?: "Upload failed (${it.code})", it.code)
+            }
+        }
+    }
     suspend fun annotate(callId: Int, notes: String, tags: List<String>) { raw("PUT", "/call-history/$callId/annotate", mapOf("notes" to notes, "tags" to tags)) }
     suspend fun tags(): List<Tag> = call("GET", "/call-history/tags")
 

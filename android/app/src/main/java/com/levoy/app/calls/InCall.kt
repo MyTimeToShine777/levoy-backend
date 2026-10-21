@@ -80,7 +80,12 @@ object CallStore {
 
 class LevoyInCallService : InCallService() {
     private val callback = object : Call.Callback() {
-        override fun onStateChanged(call: Call, state: Int) { CallStore.changed(); if (state != Call.STATE_RINGING) cancelIncoming() }
+        override fun onStateChanged(call: Call, state: Int) {
+            CallStore.changed(); if (state != Call.STATE_RINGING) cancelIncoming()
+            // Record from the moment the line is answered until it ends; CallRecorder itself refuses anything that is not a lead call.
+            if (state == Call.STATE_ACTIVE) CallRecorder.start(this@LevoyInCallService, CallStore.numberOf(call))
+            else if (state == Call.STATE_DISCONNECTED) CallRecorder.stop(this@LevoyInCallService)
+        }
         override fun onDetailsChanged(call: Call, details: Call.Details) = CallStore.changed()
     }
 
@@ -94,6 +99,7 @@ class LevoyInCallService : InCallService() {
 
     override fun onCallRemoved(call: Call) {
         call.unregisterCallback(callback); CallStore.calls.remove(call); CallStore.changed(); cancelIncoming()
+        if (CallStore.calls.none { it.state == Call.STATE_ACTIVE }) CallRecorder.stop(this)
     }
 
     override fun onCallAudioStateChanged(audioState: CallAudioState) { CallStore.audio = audioState; CallStore.changed() }
@@ -141,6 +147,7 @@ class InCallActivity : ComponentActivity() {
 data class InCallUi(
     val name: String?, val number: String, val status: String, val ringing: Boolean,
     val muted: Boolean = false, val speaker: Boolean = false, val held: Boolean = false, val hasCall: Boolean = true,
+    val recording: Boolean = false,
 )
 
 class InCallActions(
@@ -166,7 +173,7 @@ private fun InCallScreen(onGone: () -> Unit) {
     }
     val svc = CallStore.service
     InCallView(
-        InCallUi(name, number, status, call?.state == Call.STATE_RINGING, CallStore.audio?.isMuted == true, CallStore.audio?.route == CallAudioState.ROUTE_SPEAKER, call?.state == Call.STATE_HOLDING, call != null),
+        InCallUi(name, number, status, call?.state == Call.STATE_RINGING, CallStore.audio?.isMuted == true, CallStore.audio?.route == CallAudioState.ROUTE_SPEAKER, call?.state == Call.STATE_HOLDING, call != null, CallRecorder.active),
         InCallActions(
             onAnswer = { call?.answer(VideoProfile.STATE_AUDIO_ONLY) }, onDecline = { call?.reject(false, null) }, onEnd = { call?.disconnect() },
             onMute = { svc?.setMuted(CallStore.audio?.isMuted != true) },
@@ -188,6 +195,7 @@ fun InCallView(ui: InCallUi, a: InCallActions, startWithKeypad: Boolean = false)
         if (ui.name != null) Text(ui.number, style = Txt.Body.copy(fontSize = 18.sp), color = Pal.textSecondary)
         Spacer(Modifier.height(10.dp))
         Text(ui.status, style = Txt.Body.copy(fontSize = 20.sp), color = if (ui.ringing) LevoyColors.Amber else Pal.textSecondary)
+        if (ui.recording) Text("● Recording", style = Txt.Small, color = Color(0xFFD6341C))
         Spacer(Modifier.weight(1f))
         if (keypad && ui.hasCall) Keypad(a.onDtmf) else if (!ui.ringing && ui.hasCall) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {

@@ -31,6 +31,8 @@ interface Os {
     fun hasCallPhone(): Boolean
     fun requestCallPhone(then: () -> Unit)
     fun requestOutgoingCalls(then: () -> Unit)
+    fun requestRecordAudio(then: () -> Unit)
+    fun hasRecordAudio(): Boolean
     fun startQuickCall()
     fun stopQuickCall()
     fun openRating()

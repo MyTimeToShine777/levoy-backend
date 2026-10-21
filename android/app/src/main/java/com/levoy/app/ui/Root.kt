@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.FilterAlt
 import androidx.compose.material.icons.filled.Layers
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -244,7 +245,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         Screen.ContactPicker -> ContactPicker(m, onDone = { m.pop(); m.loadCompare() }, onBack = back)
         Screen.Settings -> SettingsScreen(true, SettingsActions(
             premium = { m.pop(); m.openPremium() }, sim = { m.loadSims(); m.push(Screen.SimNumber) },
-            whatsapp = { m.push(Screen.WhatsAppCall) }, quickAction = { m.push(Screen.QuickAction) }, language = { m.push(Screen.Language) }, theme = { m.push(Screen.Theme) },
+            whatsapp = { m.push(Screen.WhatsAppCall) }, quickAction = { m.push(Screen.QuickAction) }, callRecording = { m.push(Screen.CallRecording) }, language = { m.push(Screen.Language) }, theme = { m.push(Screen.Theme) },
             timeFormat = { m.push(Screen.TimeFormat) }, defaultScreen = { m.push(Screen.DefaultScreen) },
             missingDetails = { m.backfillResult = null; m.push(Screen.MissingDetails) },
             defaultDialer = { if (m.defaultDialer) os.openDefaultAppsSettings() else os.requestDialerRole { ok -> m.defaultDialer = ok } },
@@ -278,6 +279,17 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         )
         Screen.QuickAction -> ToggleInfoScreen("Quick Action", { Icon(Icons.Filled.Layers, null, tint = Pal.text) }, "Quick Action", m.quickAction,
             { v -> if (!v) m.changeQuickAction(false) else if (!os.canDrawOverlays()) { m.session.pendingToggle = "quick_action"; os.openOverlaySettings() } else os.requestOutgoingCalls { m.changeQuickAction(true) } }, null, "Quick Action Feature :", QUICK_ACTION_BULLETS, back)
+        Screen.CallRecording -> ToggleInfoScreen("Call Recording", { Icon(Icons.Filled.Mic, null, tint = Pal.text) }, "Call Recording", m.callRecording,
+            { v ->
+                if (!v) m.setCallRecording(false)
+                else os.requestRecordAudio {
+                    if (!os.hasRecordAudio()) os.toast("Allow the microphone to record calls")
+                    else if (os.isDefaultDialer()) m.setCallRecording(true)
+                    else os.requestDialerRole { ok -> m.defaultDialer = ok; if (ok) m.setCallRecording(true) else os.toast("Set Levoy as your default phone app to record calls") }
+                }
+            },
+            "Only calls to your assigned leads are recorded, and your admin and managers can listen to them. Tell the person you are calling that the call is recorded.",
+            "Call Recording Limitations :", CALL_RECORDING_BULLETS, back)
         Screen.WhatsAppCall -> ToggleInfoScreen("WhatsApp Call", { WhatsAppGlyph(Modifier.fillMaxSize(), Pal.text) }, "WhatsApp Call", m.whatsappCalls,
             { v -> if (v && !os.notificationAccessGranted()) { m.session.pendingToggle = "whatsapp"; os.openNotificationAccess() } else m.setWhatsapp(v) },
             "Levoy will be able to read all notifications, including personal information such as contact names and the text of messages you receive.", "Whatsapp Call Log Limitations :", WHATSAPP_BULLETS, back)

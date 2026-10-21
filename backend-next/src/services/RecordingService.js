@@ -120,13 +120,17 @@ class RecordingService {
     if (query.date_from) where += ` AND ce.timestamp >= ${push(new Date(query.date_from).toISOString())}`;
     if (query.date_to) where += ` AND ce.timestamp <= ${push(new Date(query.date_to).toISOString())}`;
     if (query.phone) where += ` AND ce.phone_number ILIKE ${push(`%${query.phone}%`)}`;
+    // Recordings of calls with one lead: the lead is matched to the call by phone key, as in the call history.
+    if (query.lead_id) where += ` AND ce.phone_key = (SELECT phone_clean FROM leads WHERE id = ${push(parseInt(query.lead_id))})`;
 
     const limit = Math.min(Math.max(parseInt(query.limit) || 100, 1), 500);
     const offset = Math.max(parseInt(query.offset) || 0, 0);
     const rows = await q(
       `SELECT cr.id, cr.call_id, cr.user_id, cr.file_path, cr.file_size, cr.duration_seconds, cr.uploaded_at,
               ce.phone_number, ce.direction, ce.status, ce.timestamp, ce.duration_seconds AS call_duration_seconds,
-              u.name AS agent_name, u.email AS agent_email
+              u.name AS agent_name, u.email AS agent_email,
+              (SELECT json_build_object('id', l.id, 'name', COALESCE(NULLIF(l.pharmacy_name, ''), l.name))
+                 FROM leads l WHERE l.phone_clean = ce.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead
          FROM call_recordings cr
          JOIN call_events ce ON ce.id = cr.call_id
          LEFT JOIN users u ON u.id = cr.user_id${where}
@@ -147,6 +151,7 @@ class RecordingService {
         call: { id: x.call_id, phone_number: x.phone_number, direction: x.direction,
           status: x.status, timestamp: x.timestamp, duration_seconds: x.call_duration_seconds },
         agent: { id: x.user_id, name: x.agent_name, email: x.agent_email },
+        lead: x.lead || null,
       })),
     };
   }

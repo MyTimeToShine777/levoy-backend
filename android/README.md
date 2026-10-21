@@ -57,6 +57,7 @@ The server address can also be typed on the sign-in screen ("Server address"). T
 | `READ_CONTACTS` | saved names instead of bare numbers | first run, optional |
 | Display over other apps | Quick Action bubble | Settings → Quick Action |
 | Notification access | WhatsApp calls | Settings → WhatsApp Call |
+| Microphone (`RECORD_AUDIO`) | Call Recording: assigned-lead calls only, default phone app only | Settings → Call Recording |
 | Phone (`CALL_PHONE`) | place calls for Quick Call / as the default phone app | Linked Quick Call Extension |
 | `PROCESS_OUTGOING_CALLS` | number of outgoing calls for the bubble and post-call prompts | Quick Action / Note Popup / Missed Call Reminder |
 | Default phone app role | Levoy handles calls itself (**experimental**) | first run, or Settings |
