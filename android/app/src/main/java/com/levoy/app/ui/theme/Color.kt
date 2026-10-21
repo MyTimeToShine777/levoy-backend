@@ -64,7 +64,7 @@ val DarkPalette = Palette(
     divider = Color(0xFF787880),
     textPrimary = Color(0xFFFFFFFF),
     textSecondary = Color(0xFFA6A7AD),
-    textMuted = Color(0xFF787880),
+    textMuted = Color(0xFF8E8F97),
     chartGrid = Color(0xFF4B4C52),
     isDark = true,
 )
@@ -77,7 +77,7 @@ val LightPalette = Palette(
     divider = Color(0xFFC9C9CF),
     textPrimary = Color(0xFF1B1C20),
     textSecondary = Color(0xFF5F6068),
-    textMuted = Color(0xFF8A8B92),
+    textMuted = Color(0xFF6E6F77),
     chartGrid = Color(0xFFD5D5DA),
     isDark = false,
 )
