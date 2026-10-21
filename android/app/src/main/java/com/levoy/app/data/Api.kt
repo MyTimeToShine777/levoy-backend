@@ -70,13 +70,15 @@ class Api(private val session: Session) {
      */
     suspend fun myLeadNumbers(): Set<String> {
         val out = HashSet<String>()
+        val names = HashMap<String, String>()
         var offset = 0
         while (offset < 20_000) {
             val page = leads(mapOf("assigned" to "mine", "limit" to 500, "offset" to offset))
-            page.forEach { l -> phoneKeyOf(l.phone)?.let(out::add) }
+            page.forEach { l -> phoneKeyOf(l.phone)?.let { k -> out.add(k); if (l.name.isNotBlank()) names.putIfAbsent(k, l.name) } }
             if (page.size < 500) break
             offset += 500
         }
+        session.leadNames = names          // so the call screen can show who is being called
         return out
     }
     suspend fun statusRules(): StatusRules = call("GET", "/leads/status-rules")

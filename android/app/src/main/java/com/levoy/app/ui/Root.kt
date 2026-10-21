@@ -115,6 +115,7 @@ private fun RootContent(m: AppModel, os: Os) {
                     { m.verifyCode(email, code) },
                     { code = ""; m.requestCode(email) },
                     { code = ""; m.changeEmail() },
+                    resending = m.loginResending,
                 )
             }
             Stage.Main -> MainContent(m, os)

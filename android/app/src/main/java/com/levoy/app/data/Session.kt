@@ -90,6 +90,16 @@ class Session(context: Context) {
         get() = p.getStringSet("lead_keys", emptySet()) ?: emptySet()
         set(v) = p.edit().putStringSet("lead_keys", v.toSet()).apply()
 
+    /** Each assigned lead's name by phone key, refreshed on every sync, so a call to a lead who is not in the phone's contacts still shows a name. */
+    var leadNames: Map<String, String>
+        get() = (p.getStringSet("lead_names", emptySet()) ?: emptySet()).mapNotNull { e ->
+            val i = e.indexOf('\t'); if (i <= 0) null else e.substring(0, i) to e.substring(i + 1)
+        }.toMap()
+        set(v) = p.edit().putStringSet("lead_names", v.map { "${it.key}\t${it.value}" }.toSet()).apply()
+
+    /** The assigned lead's name for this number, if it is one of this person's leads. */
+    fun leadNameFor(number: String?): String? = phoneKeyOf(number)?.let { leadNames[it] }?.takeIf { it.isNotBlank() }
+
     /** Millis of the newest call already uploaded, so a sync only sends what is new. */
     var lastSyncedAt: Long
         get() = p.getLong("last_synced", 0L)
@@ -102,6 +112,6 @@ class Session(context: Context) {
 
     fun signOut() {
         // settings (theme, language, clock) deliberately survive a sign-out
-        p.edit().remove("token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("call_recording").apply()
+        p.edit().remove("token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("lead_names").remove("call_recording").apply()
     }
 }

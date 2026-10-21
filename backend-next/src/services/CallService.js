@@ -5,6 +5,10 @@ const { ValidationError, NotFoundError, ForbiddenError } = require('../exception
 const { visibleSql } = require('../utils/leadAccess');
 const SimService = require('./SimService');
 const { phoneKey, splitByLeadNumbers } = require('../utils/phoneKey');
+const WorkspaceSettingsService = require('./WorkspaceSettingsService');
+const { toE164 } = require('../utils/phoneFormat');
+const LeadScoringService = require('./LeadScoringService');
+const { normalizeCallStatus, dropDuplicates, leadsTouchedBy, durationOf, directionOf, DUPLICATE_WINDOW_MS } = require('../utils/callIngest');
 
 const callJson = c => ({
   id: c.id, phone_number: c.phone_number, direction: c.direction, status: c.status,
@@ -38,19 +42,82 @@ async function assignedLeadKeys(userId) {
   return new Set(r.rows.map(x => x.k).filter(Boolean));
 }
 
+// Calls this user already has around the given moments, so a call uploaded twice (a retry, or the same call from both the
+// live recorder and the call-log sync) is stored once.
+async function storedCallsBetween(userId, fromMs, toMs) {
+  const r = await q(
+    // The column is a plain timestamp that holds UTC clock time; hand it back as an explicit UTC string so the comparison
+    // does not depend on the time zone the server happens to run in.
+    `SELECT id, phone_key, direction, duration_seconds,
+            to_char(timestamp, 'YYYY-MM-DD"T"HH24:MI:SS.MS') || 'Z' AS timestamp
+       FROM call_events
+      WHERE user_id = $1 AND timestamp >= $2 AND timestamp <= $3`,
+    [parseInt(userId), new Date(fromMs - DUPLICATE_WINDOW_MS).toISOString(), new Date(toMs + DUPLICATE_WINDOW_MS).toISOString()]);
+  return r.rows;
+}
+
+// A call to one of your leads counts as having contacted that lead, so keep the lead in step with the call log instead of
+// waiting for someone to press "Mark contacted":
+//   • "last contacted" only ever moves forward;
+//   • a lead still showing "(Not called yet)" becomes "Called" (we spoke) or "Not Answered" (we rang, nobody spoke).
+//     A status the agent has already chosen is never overwritten.
+// The lead's score, tier and next action are recalculated, as they are after any edit of the call fields.
+async function touchLeads(userId, events) {
+  const touched = leadsTouchedBy(events);
+  if (touched.size === 0) return;
+  if ([...touched.values()].some(s => s.outcome === 'Called')) {
+    // The "Called" status is not in the original sheet; make sure its rule exists so the lead is not scored as closed.
+    await q(`INSERT INTO lead_status_rules (call_status, status_key, base_priority, active_pipeline, win_prob, next_action, reached, interested_plus, demo_plus, sort_order)
+             VALUES ('Called', 'called', 30, true, 0.02, 'Record the outcome of the call', true, false, false, 10)
+             ON CONFLICT (status_key) DO NOTHING`);
+  }
+  const NO_STATUS_YET = `lower(regexp_replace(COALESCE(call_status, ''), '[^a-zA-Z0-9]+', '', 'g')) IN ('', 'notcalledyet')`;
+  for (const [key, s] of touched) {
+    const at = new Date(s.latest).toISOString();
+    const r = await q(
+      `UPDATE leads SET
+              last_contacted_at   = CASE WHEN last_contacted_at IS NULL OR last_contacted_at < $3::timestamp THEN $3::timestamp ELSE last_contacted_at END,
+              call_status         = CASE WHEN $4::text IS NOT NULL AND ${NO_STATUS_YET} THEN $4::text ELSE call_status END,
+              call_attempted_date = CASE WHEN $4::text IS NOT NULL AND ${NO_STATUS_YET} THEN $3::timestamp::date ELSE call_attempted_date END,
+              updated_at = NOW()
+        WHERE assigned_to = $1 AND deleted_at IS NULL AND merged_into_lead_id IS NULL
+          AND right(regexp_replace(COALESCE(phone, ''), '\\D', '', 'g'), 10) = $2
+        RETURNING id`,
+      [parseInt(userId), key, at, s.outcome]);
+    for (const row of r.rows) {
+      try { await LeadScoringService.rescoreLead(row.id); } catch (e) { console.error(`rescore lead ${row.id} after call failed:`, e.message); }
+    }
+  }
+}
+
 class CallService {
   async create(ctx, body) {
     if (!body.phone_number) throw new ValidationError('phone_number required');
     if (leadOnly() && !(await assignedLeadKeys(ctx.userId)).has(phoneKey(body.phone_number))) return { id: null, ignored: true, reason: 'not_an_assigned_lead' };
     const ts = body.timestamp ? new Date(body.timestamp).toISOString() : new Date().toISOString();
     const sim = simOf(body);
+    const duration = durationOf(body);
+    const direction = directionOf(body);
+    const status = normalizeCallStatus(body.status, direction, duration);
+    const number = toE164(body.phone_number, await WorkspaceSettingsService.countryCode()) || body.phone_number;
+    const stored = await storedCallsBetween(ctx.userId, new Date(ts).getTime(), new Date(ts).getTime());
+    const { duplicates } = dropDuplicates([{ ...body, timestamp: ts }], stored);
+    if (duplicates) {                                                   // already have it: hand back the stored call
+      const key = phoneKey(body.phone_number);
+      const have = stored.find(s => s.phone_key === key && s.direction === direction && durationOf(s) === duration);
+      if (have) {
+        const row = await q('SELECT * FROM call_events WHERE id = $1', [have.id]);
+        return { ...callJson(row.rows[0]), duplicate: true };
+      }
+    }
     const r = await q(
       `INSERT INTO call_events (user_id,phone_number,direction,status,duration_seconds,timestamp,caller_id,notes,is_pinned,recording_path,source,sim_slot,sim_label)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,
-      [ctx.userId, body.phone_number, body.direction || 'outgoing', body.status || 'connected',
-        body.duration_seconds ?? body.duration ?? 0, ts, body.caller_id || null, body.notes || null,
+      [ctx.userId, number, direction, status,
+        duration, ts, body.caller_id || null, body.notes || null,
         body.is_pinned || false, body.recording_path || null, sim.source, sim.slot, sim.label]);
     if (sim.slot) await SimService.noteSeen(parseInt(ctx.userId), [{ slot: sim.slot, label: sim.label }]);
+    await touchLeads(ctx.userId, [{ ...body, timestamp: ts }]);
     return callJson(r.rows[0]);
   }
 
@@ -63,6 +130,14 @@ class CallService {
       ({ kept: events, ignored } = splitByLeadNumbers(events, await assignedLeadKeys(ctx.userId)));
       if (events.length === 0) return { received: 0, ignored, ids: [] };      // nothing here is a call to one of their leads
     }
+    // Drop calls this user already has (or that repeat inside this upload) before inserting.
+    const times = events.map(e => (e.timestamp ? new Date(e.timestamp).getTime() : Date.now())).filter(Number.isFinite);
+    const stored = times.length ? await storedCallsBetween(ctx.userId, Math.min(...times), Math.max(...times)) : [];
+    const deduped = dropDuplicates(events, stored);
+    events = deduped.kept;
+    const duplicates = deduped.duplicates;
+    if (events.length === 0) return { received: 0, ignored, duplicates, ids: [] };
+    const countryCode = await WorkspaceSettingsService.countryCode();
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
@@ -77,8 +152,10 @@ class CallService {
         const sim = simOf(e);
         if (sim.slot && !seen.has(sim.slot)) seen.set(sim.slot, sim.label);
         values.push('(' + Array.from({ length: COLS }, (_, k) => `$${k + 1 + i * COLS}`).join(',') + ')');
-        params.push(ctx.userId, e.phone_number || '', e.direction || 'outgoing', e.status || 'connected',
-          e.duration_seconds ?? e.duration ?? 0, ts, e.caller_id || null, e.notes || null, e.is_pinned || false,
+        const duration = durationOf(e);
+        const direction = directionOf(e);
+        params.push(ctx.userId, toE164(e.phone_number, countryCode) || e.phone_number || '', direction, normalizeCallStatus(e.status, direction, duration),
+          duration, ts, e.caller_id || null, e.notes || null, e.is_pinned || false,
           sim.source, sim.slot, sim.label);
       }
       const r = await client.query(
@@ -87,7 +164,8 @@ class CallService {
       const ids = r.rows.map(x => x.id);
       await client.query('COMMIT');
       await SimService.noteSeen(parseInt(ctx.userId), [...seen].map(([slot, label]) => ({ slot, label })));
-      return { received: ids.length, ignored, ids };
+      await touchLeads(ctx.userId, events);
+      return { received: ids.length, ignored, duplicates, ids };
     } catch (e) { await client.query('ROLLBACK'); throw e; } finally { client.release(); }
   }
 

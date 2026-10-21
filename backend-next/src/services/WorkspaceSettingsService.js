@@ -3,6 +3,7 @@
 const { q } = require('../config/db');
 const { ValidationError } = require('../exceptions');
 const { audit } = require('../utils/audit');
+const { normalizeCountryCode } = require('../utils/phoneFormat');
 
 // Workspace-wide settings. Stored as text rows; every read returns the right type, falling back to the
 // default so a missing row never breaks a report.
@@ -14,12 +15,13 @@ const DEFAULTS = {
   billing_pulse_seconds: 60,       // billed in blocks of this many seconds (60 = per started minute, 1 = per second)
   billing_charge_incoming: 0,      // 1 = incoming calls cost money too
   billing_currency: '₹',
+  default_country: '91',           // calling code added to numbers typed without one (leads, logged calls); set by the admin
   // shown in the phone app (More screen / Help & Support); blank = the button is hidden
   support_whatsapp: '',            // phone number for "quick technical support on WhatsApp" (Premium)
   social_twitter: '', social_instagram: '', social_facebook: '', social_telegram: '', social_reddit: '',
   blog_url: '',
 };
-const TEXT_MAX = { billing_currency: 4, support_whatsapp: 20, social_twitter: 200, social_instagram: 200, social_facebook: 200, social_telegram: 200, social_reddit: 200, blog_url: 200 };
+const TEXT_MAX = { billing_currency: 4, default_country: 4, support_whatsapp: 20, social_twitter: 200, social_instagram: 200, social_facebook: 200, social_telegram: 200, social_reddit: 200, blog_url: 200 };
 const NUMERIC = new Set(Object.keys(DEFAULTS).filter(k => !(k in TEXT_MAX)));
 const LINKS = new Set(['social_twitter', 'social_instagram', 'social_facebook', 'social_telegram', 'social_reddit', 'blog_url']);
 
@@ -32,6 +34,12 @@ class WorkspaceSettingsService {
       out[row.key] = NUMERIC.has(row.key) ? (Number.isFinite(Number(row.value)) ? Number(row.value) : DEFAULTS[row.key]) : (row.value ?? DEFAULTS[row.key]);
     }
     return out;
+  }
+
+  /** The calling code (digits only, e.g. "91") added to numbers typed without one. */
+  async countryCode() {
+    const r = await q("SELECT value FROM workspace_settings WHERE key = 'default_country'");
+    return normalizeCountryCode(r.rows[0] && r.rows[0].value, DEFAULTS.default_country);
   }
 
   async update(ctx, body) {
@@ -49,6 +57,10 @@ class WorkspaceSettingsService {
       } else {
         value = String(v ?? '').trim().slice(0, TEXT_MAX[k]);
         if (k === 'billing_currency') value = value || DEFAULTS[k];
+        if (k === 'default_country') {
+          value = value.replace(/^\+/, '');
+          if (!/^[1-9]\d{0,3}$/.test(value)) throw new ValidationError('default_country must be a calling code such as 91, 1 or 44');
+        }
         // links must be real web addresses: they open in the phone's browser
         if (LINKS.has(k) && value && !/^https:\/\/[^\s]+$/i.test(value)) throw new ValidationError(`'${k}' must be an https:// link`);
         if (k === 'support_whatsapp' && value && value.replace(/\D/g, '').length < 8) throw new ValidationError('support_whatsapp must be a phone number with country code');

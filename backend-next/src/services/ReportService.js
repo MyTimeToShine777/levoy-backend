@@ -39,6 +39,8 @@ class ReportService {
           q(`SELECT COUNT(*) ${base} AND status = 'rejected'`, rp),
           q(`SELECT COALESCE(SUM(duration_seconds),0) ${base}`, rp),
           q(`SELECT COUNT(DISTINCT phone_number) ${base}`, rp),
+          // "Connected" means someone spoke: the same rule the call analytics use (CONNECTED_SQL).
+          q(`SELECT COUNT(*) ${base} AND COALESCE(duration_seconds, 0) > 0`, rp),
         ]);
 
         reports.push({
@@ -50,6 +52,7 @@ class ReportService {
           rejected: parseInt(data[4].rows[0].count),
           total_duration: parseInt(data[5].rows[0].coalesce),
           unique_contacts: parseInt(data[6].rows[0].count),
+          connected: parseInt(data[7].rows[0].count),
         });
       } catch (e) { console.error(`Report day ${ds}:`, e.message); }
     }
@@ -72,7 +75,7 @@ class ReportService {
       q(`SELECT COUNT(*) ${base} AND direction = 'outgoing'`, rp),
       q(`SELECT COUNT(*) ${base} AND status = 'missed'`, rp),
       q(`SELECT COUNT(*) ${base} AND status = 'rejected'`, rp),
-      q(`SELECT COUNT(*) ${base} AND status = 'connected'`, rp),
+      q(`SELECT COUNT(*) ${base} AND COALESCE(duration_seconds, 0) > 0`, rp),
       q(`SELECT COALESCE(SUM(duration_seconds),0) ${base}`, rp),
       q(`SELECT COUNT(DISTINCT phone_number) ${base}`, rp),
     ]);
