@@ -1,7 +1,17 @@
 package com.levoy.app.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -44,9 +54,12 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -124,15 +137,58 @@ fun IconAction(icon: ImageVector, desc: String, tint: Color = Pal.text, onClick:
     }
 }
 
+/* ───────────────────────────── motion helpers ───────────────────────────── */
+
+/**
+ * How far to shrink something that is being pressed (1f when it is not). Give the same [source] to the `clickable`, and apply
+ * the result with [scaleTo], so a tap visibly "gives" under the finger. Android's own "remove animations" setting switches it off.
+ */
+@Composable
+fun rememberPressScale(source: MutableInteractionSource, pressedScale: Float = 0.96f): Float {
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) pressedScale else 1f, tween(110), label = "press")
+    return scale
+}
+
+fun Modifier.scaleTo(scale: Float): Modifier = graphicsLayer { scaleX = scale; scaleY = scale }
+
+/** A soft grey block that gently pulses: stands in for content that is still loading (calmer than a spinner or the word "Loading…"). */
+@Composable
+fun Skeleton(modifier: Modifier = Modifier, corner: Dp = 10.dp) {
+    val pulse = rememberInfiniteTransition(label = "skeleton")
+    val alpha by pulse.animateFloat(0.35f, 0.7f, infiniteRepeatable(tween(900), RepeatMode.Reverse), label = "alpha")
+    Box(modifier.clip(RoundedCornerShape(corner)).background(Pal.cardDeep.copy(alpha = alpha)))
+}
+
+/** A few rows shaped like a call or contact row (round picture, two lines of text), shown while a list loads. */
+@Composable
+fun SkeletonList(rows: Int = 6, modifier: Modifier = Modifier) {
+    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        repeat(rows) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Skeleton(Modifier.size(52.dp), corner = 26.dp)
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Skeleton(Modifier.fillMaxWidth(0.55f).height(16.dp))
+                    Skeleton(Modifier.fillMaxWidth(0.8f).height(12.dp))
+                }
+            }
+        }
+    }
+}
+
 /* ───────────────────────────── buttons ───────────────────────────── */
 
 @Composable
 fun AmberButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, height: Dp = 64.dp, corner: Dp = 20.dp, enabled: Boolean = true, upper: Boolean = false) {
     // A disabled button used to be the yellow at 40% with dark text, which was nearly unreadable. Now both states keep the same dark bold
     // text on yellow (disabled is only slightly softer), and the text stays on one line whatever the phone's font size.
+    val source = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(source)
+    val fill by animateColorAsState(if (enabled) LevoyColors.Amber else LevoyColors.Amber.copy(alpha = 0.8f), tween(160), label = "fill")
     Box(
-        modifier.height(height).clip(RoundedCornerShape(corner)).background(if (enabled) LevoyColors.Amber else LevoyColors.Amber.copy(alpha = 0.8f))
-            .clickable(enabled = enabled, onClick = onClick).padding(horizontal = 12.dp),
+        modifier.scaleTo(scale).height(height).clip(RoundedCornerShape(corner)).background(fill)
+            .clickable(interactionSource = source, indication = LocalIndication.current, enabled = enabled, onClick = onClick).padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
         Text(
@@ -146,16 +202,22 @@ fun AmberButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
 
 @Composable
 fun OutlineButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, height: Dp = 64.dp, corner: Dp = 16.dp) {
+    val source = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(source)
     Box(
-        modifier.height(height).clip(RoundedCornerShape(corner)).border(BorderStroke(1.5.dp, Pal.text), RoundedCornerShape(corner)).clickable(onClick = onClick),
+        modifier.scaleTo(scale).height(height).clip(RoundedCornerShape(corner)).border(BorderStroke(1.5.dp, Pal.text), RoundedCornerShape(corner))
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = Txt.Button, color = Pal.text) }
 }
 
 @Composable
 fun DangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    val source = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(source)
     Box(
-        modifier.height(48.dp).clip(RoundedCornerShape(6.dp)).background(LevoyColors.Danger).clickable(onClick = onClick).padding(horizontal = 20.dp),
+        modifier.scaleTo(scale).height(48.dp).clip(RoundedCornerShape(6.dp)).background(LevoyColors.Danger)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick).padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = Txt.Button.copy(fontSize = 17.sp), color = Color.White) }
 }
@@ -170,8 +232,11 @@ fun Card(modifier: Modifier = Modifier, corner: Dp = 18.dp, color: Color = Pal.c
 /** A white-on-card list row with an icon, used by the More menu. */
 @Composable
 fun MenuCard(icon: @Composable () -> Unit, label: String, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
+    val scale = rememberPressScale(source, pressedScale = 0.98f)
     Row(
-        Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(54.dp).clip(RoundedCornerShape(14.dp)).background(Pal.card).clickable(onClick = onClick).padding(horizontal = 14.dp),
+        Modifier.scaleTo(scale).fillMaxWidth().padding(horizontal = 16.dp).height(54.dp).clip(RoundedCornerShape(14.dp)).background(Pal.card)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick).padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(36.dp), contentAlignment = Alignment.Center) { icon() }
@@ -212,13 +277,16 @@ fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
 
 @Composable
 fun SwitchPill(on: Boolean, onChange: (Boolean) -> Unit) {
+    // the track and the knob ease between their on and off colours instead of snapping
+    val track by animateColorAsState(if (on) LevoyColors.Amber.copy(alpha = 0.25f) else Pal.cardDeep.copy(alpha = 0.6f), tween(180), label = "track")
+    val knob by animateColorAsState(if (on) LevoyColors.Amber else Color.White, tween(180), label = "knob")
     Row(
-        Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(if (on) LevoyColors.Amber.copy(alpha = 0.25f) else Pal.cardDeep.copy(alpha = 0.6f))
+        Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(track)
             .clickable { onChange(!on) }.padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (on) { Text("ON", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = LevoyColors.Amber, modifier = Modifier.padding(horizontal = 10.dp)) }
-        Box(Modifier.size(32.dp).clip(CircleShape).background(if (on) LevoyColors.Amber else Color.White))
+        Box(Modifier.size(32.dp).clip(CircleShape).background(knob))
         if (!on) { Text("OFF", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = Pal.text, modifier = Modifier.padding(horizontal = 10.dp)) }
     }
 }

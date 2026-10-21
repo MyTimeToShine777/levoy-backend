@@ -5,6 +5,7 @@ const { ValidationError, NotFoundError, ForbiddenError } = require('../exception
 const PlanService = require('./PlanService');
 const WorkspaceSettingsService = require('./WorkspaceSettingsService');
 const { KIND_SQL, TABS, TAB_WHERE, TS_ISO_SQL, SAVED_CONTACT_SQL, phoneKeyOf } = require('../utils/callKinds');
+const { leadPhoneKeySql } = require('../utils/leadPhoneKey');
 
 const isoOrNull = v => {
   if (!v) return null;
@@ -118,7 +119,7 @@ class CallHistoryService {
               (c.recording_path IS NOT NULL OR EXISTS (SELECT 1 FROM call_recordings r WHERE r.call_id = c.id)) AS has_recording,
               c.user_id, u.name AS user_name,
               (SELECT json_build_object('id', l.id, 'name', COALESCE(NULLIF(l.pharmacy_name, ''), l.name))
-                 FROM leads l WHERE l.phone_clean = c.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead,
+                 FROM leads l WHERE ${leadPhoneKeySql('l')} = c.phone_key AND l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL ORDER BY l.id LIMIT 1) AS lead,
               COALESCE((SELECT json_agg(json_build_object('id', t.id, 'name', t.name, 'color', t.color) ORDER BY t.name)
                           FROM call_event_tags ct JOIN tags t ON t.id = ct.tag_id WHERE ct.call_id = c.id), '[]'::json) AS tags
               ${cost ? `, ${cost.sql} AS cost` : ''}
