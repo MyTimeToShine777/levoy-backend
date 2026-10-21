@@ -14,7 +14,7 @@
     if (!a || e.defaultPrevented || e.button !== 0) return;
     e.preventDefault();
     chrome.runtime.sendMessage({ type: 'levoy-dial', number: a.getAttribute('href'), name: (a.textContent || '').trim().slice(0, 60) }, function (r) {
-      if (chrome.runtime.lastError || !r) { toast('Levoy: could not reach the extension. Reload the page.', false); return; }
+      if (chrome.runtime.lastError || !r) { toast('Callio: could not reach the extension. Reload the page.', false); return; }
       toast(r.message, r.ok);
     });
   }, true);

@@ -70,7 +70,7 @@
 
                 <!-- Headline QA score -->
                 <com.google.android.material.card.MaterialCardView
-                    style="@style/Widget.Levoy.Card"
+                    style="@style/Widget.Callio.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/gap_lg">
@@ -205,7 +205,7 @@
                     android:visibility="gone" />
 
                 <com.google.android.material.card.MaterialCardView
-                    style="@style/Widget.Levoy.Card"
+                    style="@style/Widget.Callio.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/gap">

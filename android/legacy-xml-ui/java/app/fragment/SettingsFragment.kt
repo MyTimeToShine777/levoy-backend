@@ -124,7 +124,7 @@ class SettingsFragment : Fragment() {
             onClick = { (activity as? MainActivity)?.openTimeFormat() }
         )
 
-        // Levoy ships dark-first with no light theme, so this switch is
+        // Callio ships dark-first with no light theme, so this switch is
         // deliberately inert: it shows the current state and says why.
         val darkRow = addRow(
             group, R.drawable.ic_layers, R.string.settings_dark_theme,

@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { ButtonLink } from "@/components/ui/primitives";
-import { LevoyLogo, Icon } from "@/components/ui/icons";
+import { CallioLogo, Icon } from "@/components/ui/icons";
 import { navLinks, site } from "@/lib/site";
 
 const links = [
   { label: "Home", href: "#top" },
   { label: "Features", href: "#features" },
-  { label: "Why Levoy", href: "#why-levoy" },
+  { label: "Why Callio", href: "#why-levoy" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Contact", href: "#contact" },
 ];
@@ -55,7 +55,7 @@ export function SiteHeader() {
     >
       <div className="container-page flex h-16 items-center justify-between gap-4 lg:h-18">
         <a href="#top" aria-label={`${site.name} home`} className="shrink-0">
-          <LevoyLogo markClassName="h-8 w-8 lg:h-9 lg:w-9" />
+          <CallioLogo markClassName="h-9 lg:h-10" />
         </a>
 
         <nav aria-label="Primary" className="hidden lg:block">

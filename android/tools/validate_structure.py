@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validation 1 + 2 for the Levoy Android app.
+Validation 1 + 2 for the Callio Android app.
 
   1. Kotlin brace / paren / bracket balance, ignoring strings and comments.
   2. Every res/*.xml file parses with xml.etree.

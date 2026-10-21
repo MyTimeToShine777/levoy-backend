@@ -7,7 +7,7 @@
         unstyled widget (switches, ripples, dialogs, text cursors) inherits dark
         colours automatically instead of flashing white.
     -->
-    <style name="Theme.Levoy" parent="Theme.MaterialComponents.NoActionBar">
+    <style name="Theme.Callio" parent="Theme.MaterialComponents.NoActionBar">
         <item name="colorPrimary">@color/accent</item>
         <item name="colorPrimaryDark">@color/background</item>
         <item name="colorPrimaryVariant">@color/accent_pressed</item>
@@ -31,13 +31,13 @@
         <item name="android:navigationBarColor">@color/surface</item>
         <item name="android:windowLightStatusBar" tools:targetApi="23">false</item>
         <item name="android:windowLightNavigationBar" tools:targetApi="27">false</item>
-        <item name="materialAlertDialogTheme">@style/Theme.Levoy.Dialog</item>
-        <item name="bottomSheetDialogTheme">@style/Theme.Levoy.BottomSheet</item>
+        <item name="materialAlertDialogTheme">@style/Theme.Callio.Dialog</item>
+        <item name="bottomSheetDialogTheme">@style/Theme.Callio.BottomSheet</item>
     </style>
 
     <!-- ContactSaveActivity: no chrome, no animation, so the name prompt looks
          like it belongs to the in-call overlay rather than a separate screen. -->
-    <style name="Theme.Levoy.Transparent" parent="Theme.Levoy">
+    <style name="Theme.Callio.Transparent" parent="Theme.Callio">
         <item name="android:windowBackground">@color/transparent</item>
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowContentOverlay">@null</item>
@@ -46,42 +46,42 @@
         <item name="android:windowAnimationStyle">@null</item>
     </style>
 
-    <style name="Theme.Levoy.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+    <style name="Theme.Callio.Dialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
-        <item name="materialAlertDialogTitleTextStyle">@style/Levoy.DialogTitle</item>
-        <item name="buttonBarPositiveButtonStyle">@style/Levoy.DialogButton</item>
-        <item name="buttonBarNegativeButtonStyle">@style/Levoy.DialogButtonMuted</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/Callio.DialogTitle</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Callio.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Callio.DialogButtonMuted</item>
     </style>
 
-    <style name="Levoy.DialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
+    <style name="Callio.DialogTitle" parent="MaterialAlertDialog.MaterialComponents.Title.Text">
         <item name="android:textColor">@color/text_primary</item>
         <item name="android:textSize">18sp</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="Levoy.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+    <style name="Callio.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textColor">@color/accent</item>
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="Levoy.DialogButtonMuted" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+    <style name="Callio.DialogButtonMuted" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textColor">@color/text_secondary</item>
     </style>
 
-    <style name="Theme.Levoy.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
-        <item name="bottomSheetStyle">@style/Levoy.BottomSheetStyle</item>
+    <style name="Theme.Callio.BottomSheet" parent="ThemeOverlay.MaterialComponents.BottomSheetDialog">
+        <item name="bottomSheetStyle">@style/Callio.BottomSheetStyle</item>
         <item name="android:navigationBarColor">@color/background</item>
     </style>
 
-    <style name="Levoy.BottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
+    <style name="Callio.BottomSheetStyle" parent="Widget.MaterialComponents.BottomSheet.Modal">
         <item name="backgroundTint">@color/surface</item>
-        <item name="shapeAppearanceOverlay">@style/Levoy.SheetShape</item>
+        <item name="shapeAppearanceOverlay">@style/Callio.SheetShape</item>
     </style>
 
-    <style name="Levoy.SheetShape" parent="">
+    <style name="Callio.SheetShape" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSizeTopLeft">20dp</item>
         <item name="cornerSizeTopRight">20dp</item>

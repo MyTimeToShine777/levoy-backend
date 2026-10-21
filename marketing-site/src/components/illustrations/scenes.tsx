@@ -195,7 +195,7 @@ export function IntegrationArt({ className }: SceneProps) {
             <span className="flex h-6 w-6 items-center justify-center rounded-sm bg-brand-500 text-2xs font-extrabold text-white">
               CZ
             </span>
-            <span className="text-2xs font-bold text-ink-200">Levoy API</span>
+            <span className="text-2xs font-bold text-ink-200">Callio API</span>
           </span>
           <span className="relative flex h-8 w-8 items-center justify-center">
             <span className="absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-gradient-to-r from-brand-500 to-info-500" />

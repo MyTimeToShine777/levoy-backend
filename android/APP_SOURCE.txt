@@ -1,4 +1,4 @@
-# Levoy Clone — Android App (Kotlin)
+# Callio Clone — Android App (Kotlin)
 # Complete source: call log tracking, sync to backend, dialer, lead management
 
 # ─── Project Config ───
@@ -71,20 +71,20 @@
 #     <uses-permission android:name="android.permission.WAKE_LOCK" />
 #
 #     <application
-#         android:name=".LevoyApp"
+#         android:name=".CallioApp"
 #         android:allowBackup="true"
 #         android:icon="@mipmap/ic_launcher"
 #         android:label="@string/app_name"
 #         android:roundIcon="@mipmap/ic_launcher_round"
 #         android:supportsRtl="true"
-#         android:theme="@style/Theme.Levoy"
+#         android:theme="@style/Theme.Callio"
 #         android:usesCleartextTraffic="true"
 #         tools:targetApi="34">
 #
 #         <activity
 #             android:name=".MainActivity"
 #             android:exported="true"
-#             android:theme="@style/Theme.Levoy">
+#             android:theme="@style/Theme.Callio">
 #             <intent-filter>
 #                 <action android:name="android.intent.action.MAIN" />
 #                 <category android:name="android.intent.category.LAUNCHER" />
@@ -129,7 +129,7 @@
 # ════════════════════════════════════════════════════════════════
 # 1. APP / APPLICATION CLASS
 # ════════════════════════════════════════════════════════════════
-# File: android/app/src/main/java/com/levoy/app/LevoyApp.kt
+# File: android/app/src/main/java/com/levoy/app/CallioApp.kt
 
 package com.levoy.app
 
@@ -138,7 +138,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 
-class LevoyApp : Application() {
+class CallioApp : Application() {
 
     companion object {
         const val CHANNEL_SYNC = "call_sync_channel"
@@ -939,7 +939,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
-import com.levoy.app.LevoyApp
+import com.levoy.app.CallioApp
 import com.levoy.app.MainActivity
 import com.levoy.app.calllog.CallLogTracker
 import com.levoy.app.network.TokenStorage
@@ -947,7 +947,7 @@ import java.util.concurrent.Executors
 
 /**
  * Foreground service that keeps call log sync alive in background.
- * Shows a persistent notification: "Levoy is tracking calls".
+ * Shows a persistent notification: "Callio is tracking calls".
  */
 class CallSyncService : Service() {
 
@@ -986,7 +986,7 @@ class CallSyncService : Service() {
     private fun createWakeLock() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             wakeLock = getSystemService(Context.POWER_SERVICE) as PowerManager
-                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Levoy::CallSyncLock")
+                .newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Callio::CallSyncLock")
                 .apply { setReferenceCounted(false) }
         }
     }
@@ -1000,8 +1000,8 @@ class CallSyncService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, LevoyApp.CHANNEL_SYNC)
-            .setContentTitle("Levoy")
+        return NotificationCompat.Builder(this, CallioApp.CHANNEL_SYNC)
+            .setContentTitle("Callio")
             .setContentText("Tracking your call activity")
             .setSmallIcon(android.R.drawable.stat_call_made)
             .setContentIntent(pendingIntent)
@@ -1278,7 +1278,7 @@ class MainActivity : AppCompatActivity() {
         if (token != null) {
             // Load user info
             val userInfo = TokenStorage.getInstance(this).getUser()
-            supportActionBar?.title = userInfo?.name ?: "Levoy"
+            supportActionBar?.title = userInfo?.name ?: "Callio"
             loadDashboard()
         } else {
             showLoginScreen()
@@ -1348,7 +1348,7 @@ class MainActivity : AppCompatActivity() {
             LeadsFragment::class.java -> "Leads"
             ReportsFragment::class.java -> "Reports"
             TeamFragment::class.java -> "Team"
-            else -> "Levoy"
+            else -> "Callio"
         }
     }
 
@@ -1393,7 +1393,7 @@ class MainActivity : AppCompatActivity() {
     private fun showPermissionDenied() {
         AlertDialog.Builder(this)
             .setTitle("Permission Required")
-            .setMessage("Levoy needs Call Log and Phone State permissions to track calls. Please enable them in Settings.")
+            .setMessage("Callio needs Call Log and Phone State permissions to track calls. Please enable them in Settings.")
             .setPositiveButton("Open Settings") { _, _ ->
                 val intent = android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 intent.data = android.net.Uri.fromParts("package", packageName, null)
@@ -1412,7 +1412,7 @@ class MainActivity : AppCompatActivity() {
         com.levoy.app.calllog.CallUploadQueue.getInstance(this).clear()
         TokenStorage.getInstance(this).clearAll()
 
-        supportActionBar?.title = "Levoy"
+        supportActionBar?.title = "Callio"
         showLoginScreen()
         Toast.makeText(this, "Logged out", Toast.LENGTH_SHORT).show()
     }
@@ -2353,7 +2353,7 @@ class LoginFragment : Fragment() {
 # ─── res/values/strings.xml ───
 # <?xml version="1.0" encoding="utf-8"?>
 # <resources>
-#     <string name="app_name">Levoy Clone</string>
+#     <string name="app_name">Callio Clone</string>
 #     <string name="tracking_active">Call tracking active</string>
 #     <string name="no_calls_yet">No calls tracked yet. Start making calls from this device.</string>
 #     <string name="login">Login</string>
@@ -2369,7 +2369,7 @@ class LoginFragment : Fragment() {
 #     <string name="generate_report">Generate Report</string>
 #     <string name="invite_member">Invite Member</string>
 #     <string name="permission_required">Permission Required</string>
-#     <string name="permission_explanation">Levoy needs Call Log and Phone State permissions to track your call activity.</string>
+#     <string name="permission_explanation">Callio needs Call Log and Phone State permissions to track your call activity.</string>
 #     <string name="notification_channel_sync">Call Sync</string>
 #     <string name="notification_channel_sync_desc">Background call log synchronization</string>
 # </resources>
@@ -2397,7 +2397,7 @@ class LoginFragment : Fragment() {
 # ─── res/values/themes.xml ───
 # <?xml version="1.0" encoding="utf-8"?>
 # <resources>
-#     <style name="Theme.Levoy" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+#     <style name="Theme.Callio" parent="Theme.MaterialComponents.DayNight.NoActionBar">
 #         <item name="colorPrimary">@color/primary</item>
 #         <item name="colorPrimaryDark">@color/primary_dark</item>
 #         <item name="colorAccent">@color/accent</item>
@@ -2442,7 +2442,7 @@ class LoginFragment : Fragment() {
 #         android:layout_height="?attr/actionBarSize"
 #         android:background="@color/primary"
 #         android:elevation="4dp"
-#         app:popupTheme="@style/Theme.Levoy"
+#         app:popupTheme="@style/Theme.Callio"
 #         app:titleTextColor="@color/white" />
 #
 #     <!-- Bottom navigation -->

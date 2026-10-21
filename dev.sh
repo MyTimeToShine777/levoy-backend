@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Levoy dev runner.
+# Callio dev runner.
 #
 # Starts the three stack processes (backend, frontend, marketing) without
 # systemd, for local development. Dependency-ordered: the frontend is not

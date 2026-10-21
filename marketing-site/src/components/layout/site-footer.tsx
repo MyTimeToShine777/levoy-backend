@@ -1,5 +1,5 @@
 import { ButtonLink } from "@/components/ui/primitives";
-import { LevoyLogo, Icon, SocialIcon } from "@/components/ui/icons";
+import { CallioLogo, Icon, SocialIcon } from "@/components/ui/icons";
 import { footerColumns, site, socialLinks } from "@/lib/site";
 
 /** Site footer: brand block, contact details, link columns and legal line. */
@@ -12,10 +12,7 @@ export function SiteFooter() {
         <div className="grid gap-10 lg:grid-cols-[1.4fr_2fr]">
           {/* Brand + contact */}
           <div>
-            <LevoyLogo
-              markClassName="h-10 w-10"
-              className="[&_span]:text-white"
-            />
+            <CallioLogo tone="dark" markClassName="h-12" />
             <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
               {site.tagline} Monitor every telesales and marketing call from one
               central dashboard and turn calling data into decisions.
@@ -134,7 +131,7 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-col gap-3 border-t border-ink-800 pt-6 text-xs text-ink-500 sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {year} {site.legal.company}. All Rights Reserved.{" "}
-            <span className="font-bold text-ink-300">levoy®</span>
+            <span className="font-bold text-ink-300">Callio®</span>
           </p>
           <p className="flex flex-wrap gap-x-4 gap-y-1">
             {footerColumns[2].links.map((l) => (

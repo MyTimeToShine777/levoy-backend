@@ -36,7 +36,7 @@ export function Hero() {
             <h1 className="mt-5 text-[2.15rem] leading-[1.08] sm:text-5xl lg:text-[3.4rem]">
               Unleash Telecalling{" "}
               <span className="text-gradient-brand">Success Secrets</span> with
-              Levoy
+              Callio
             </h1>
 
             <p className="mt-5 max-w-xl text-base leading-relaxed text-ink-500 sm:text-lg">
@@ -82,7 +82,7 @@ export function Hero() {
               </div>
               <p className="text-sm text-ink-500">
                 <span className="font-extrabold text-ink-800">1,000+ clients</span>{" "}
-                worldwide trust Levoy
+                worldwide trust Callio
               </p>
             </div>
           </div>

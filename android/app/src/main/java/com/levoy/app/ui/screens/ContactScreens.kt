@@ -49,7 +49,7 @@ import com.levoy.app.data.ContactDetail
 import com.levoy.app.data.ContactRow
 import com.levoy.app.ui.SkeletonList
 import com.levoy.app.ui.ActionIcons
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.ChartCard
 import com.levoy.app.ui.Donut
 import com.levoy.app.ui.FullScreen
@@ -65,7 +65,7 @@ import com.levoy.app.ui.SearchField
 import com.levoy.app.ui.Slice
 import com.levoy.app.ui.TabDef
 import com.levoy.app.ui.TopBar
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Fmt
@@ -101,7 +101,7 @@ fun ContactsScreen(ui: ContactsUi, a: ContactsActions) {
 
 @Composable
 fun Avatar(name: String, size: androidx.compose.ui.unit.Dp = 52.dp) {
-    Box(Modifier.size(size).clip(CircleShape).border(3.dp, LevoyColors.Amber, CircleShape).padding(4.dp).clip(CircleShape).background(Color(0xFF111111)), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(size).clip(CircleShape).border(3.dp, Pal.primary, CircleShape).padding(4.dp).clip(CircleShape).background(Color(0xFF111111)), contentAlignment = Alignment.Center) {
         Text(name.trim().firstOrNull { it.isLetterOrDigit() }?.uppercase() ?: "?", style = Txt.Name.copy(fontSize = 22.sp), color = Color.White)
     }
 }
@@ -118,11 +118,11 @@ private fun ContactCard(c: ContactRow, a: ContactsActions) {
             }
             Column(horizontalAlignment = Alignment.End) {
                 Row(
-                    Modifier.clip(RoundedCornerShape(24.dp)).border(1.5.dp, LevoyColors.Amber, RoundedCornerShape(24.dp)).clickable { a.onAddToGroup(c) }.padding(horizontal = 10.dp, vertical = 6.dp),
+                    Modifier.clip(RoundedCornerShape(24.dp)).border(1.5.dp, Pal.primary, RoundedCornerShape(24.dp)).clickable { a.onAddToGroup(c) }.padding(horizontal = 10.dp, vertical = 6.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    Icon(Icons.Filled.Add, null, tint = LevoyColors.Amber, modifier = Modifier.size(16.dp))
-                    Text(c.groups.firstOrNull()?.name ?: T("add_to_group"), style = Txt.Body.copy(fontSize = 13.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = LevoyColors.Amber, maxLines = 1)
+                    Icon(Icons.Filled.Add, null, tint = Pal.primary, modifier = Modifier.size(16.dp))
+                    Text(c.groups.firstOrNull()?.name ?: T("add_to_group"), style = Txt.Body.copy(fontSize = 13.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Pal.primary, maxLines = 1)
                 }
                 Spacer(Modifier.height(8.dp))
                 Text("${T("total_calls")} : ${c.total_calls}", style = Txt.Body.copy(fontSize = 14.sp), color = Pal.text)
@@ -156,8 +156,8 @@ fun ContactDetailScreen(ui: ContactDetailUi, a: ContactDetailActions) {
                     Text(ui.title, style = Txt.Title.copy(fontSize = 25.sp), color = Pal.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text(ui.number, style = Txt.BodyRoboto.copy(fontSize = 16.sp), color = Pal.text)
                     Row(Modifier.clickable(onClick = a.onAddToGroup).padding(vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.Add, null, tint = LevoyColors.Amber, modifier = Modifier.size(22.dp))
-                        Text(ui.detail?.contact?.groups?.firstOrNull()?.name ?: T("add_to_group"), style = Txt.Body.copy(fontSize = 17.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = LevoyColors.Amber)
+                        Icon(Icons.Filled.Add, null, tint = Pal.primary, modifier = Modifier.size(22.dp))
+                        Text(ui.detail?.contact?.groups?.firstOrNull()?.name ?: T("add_to_group"), style = Txt.Body.copy(fontSize = 17.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Pal.primary)
                     }
                 }
                 IconAction(Icons.Filled.FilterAlt, "Filter", onClick = a.onFilter)
@@ -207,7 +207,7 @@ fun SummaryBlock(s: Map<String, CallsAndDuration>) {
             Spacer(Modifier.weight(1.1f)); Text(T("calls"), style = Txt.BodyRoboto.copy(fontSize = 17.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = Pal.text, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
             Text(T("duration"), style = Txt.BodyRoboto.copy(fontSize = 17.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = Pal.text, modifier = Modifier.weight(1.3f), textAlign = TextAlign.Center)
         }
-        listOf(Triple("Incoming", "incoming", LevoyColors.IncomingText), Triple("Outgoing", "outgoing", LevoyColors.OutgoingText), Triple("Missed", "missed", LevoyColors.MissedText), Triple("Rejected", "rejected", LevoyColors.RejectedText)).forEach { (label, k, color) ->
+        listOf(Triple("Incoming", "incoming", CallioColors.IncomingText), Triple("Outgoing", "outgoing", CallioColors.OutgoingText), Triple("Missed", "missed", CallioColors.MissedText), Triple("Rejected", "rejected", CallioColors.RejectedText)).forEach { (label, k, color) ->
             Row(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Text(label, style = Txt.BodyRoboto.copy(fontSize = 19.sp), color = color, modifier = Modifier.weight(1.1f))
                 Text(n(k).toString(), style = Txt.BodyRoboto.copy(fontSize = 19.sp), color = Pal.text, modifier = Modifier.weight(1f), textAlign = TextAlign.Center)
@@ -263,10 +263,10 @@ private fun HistoryTab(d: ContactDetail, onNote: (Int) -> Unit) {
         items(d.history, key = { it.id }) { h ->
             val z = Fmt.parse(h.timestamp)
             val (label, color) = when (h.callKind) {
-                CallKind.incoming -> "Incoming" to LevoyColors.IncomingText
-                CallKind.outgoing -> "Outgoing" to LevoyColors.OutgoingText
-                CallKind.missed -> "Missed" to LevoyColors.MissedText
-                CallKind.rejected -> "Rejected" to LevoyColors.RejectedText
+                CallKind.incoming -> "Incoming" to CallioColors.IncomingText
+                CallKind.outgoing -> "Outgoing" to CallioColors.OutgoingText
+                CallKind.missed -> "Missed" to CallioColors.MissedText
+                CallKind.rejected -> "Rejected" to CallioColors.RejectedText
             }
             Column {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -296,11 +296,11 @@ fun CompareScreen(ui: CompareUi, onAdd: () -> Unit, onRemove: (String) -> Unit, 
             TopBar(T("compare"), onBack)
             if (ui.rows.isEmpty()) {
                 Column(Modifier.weight(1f).padding(horizontal = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-                    Icon(Icons.Filled.GroupAdd, null, tint = LevoyColors.Amber, modifier = Modifier.size(120.dp))
+                    Icon(Icons.Filled.GroupAdd, null, tint = Pal.primary, modifier = Modifier.size(120.dp))
                     Spacer(Modifier.height(36.dp))
                     Text(T("compare_hint"), style = Txt.Body.copy(fontSize = 18.sp, lineHeight = 28.sp), color = Pal.text, textAlign = TextAlign.Center)
                     Spacer(Modifier.height(28.dp))
-                    AmberButton(T("add_contacts"), onAdd, Modifier.fillMaxWidth(), height = 68.dp)
+                    PrimaryButton(T("add_contacts"), onAdd, Modifier.fillMaxWidth(), height = 68.dp)
                     Spacer(Modifier.height(120.dp))
                 }
             } else {
@@ -317,7 +317,7 @@ fun CompareScreen(ui: CompareUi, onAdd: () -> Unit, onRemove: (String) -> Unit, 
                             }
                             Spacer(Modifier.height(10.dp))
                             Box(Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(5.dp)).background(Pal.cardDeep)) {
-                                Box(Modifier.fillMaxWidth(r.calls.toFloat() / max).height(10.dp).clip(RoundedCornerShape(5.dp)).background(LevoyColors.Amber))
+                                Box(Modifier.fillMaxWidth(r.calls.toFloat() / max).height(10.dp).clip(RoundedCornerShape(5.dp)).background(Pal.primary))
                             }
                             Spacer(Modifier.height(10.dp))
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -328,7 +328,7 @@ fun CompareScreen(ui: CompareUi, onAdd: () -> Unit, onRemove: (String) -> Unit, 
                             Text("In ${r.incoming} (${Fmt.duration(r.incoming_duration)}) · Out ${r.outgoing} (${Fmt.duration(r.outgoing_duration)}) · Missed ${r.missed + r.rejected}", style = Txt.Small, color = Pal.textSecondary)
                         }
                     }
-                    if (ui.rows.size < 5) AmberButton(T("add_contacts"), onAdd, Modifier.fillMaxWidth(), height = 60.dp)
+                    if (ui.rows.size < 5) PrimaryButton(T("add_contacts"), onAdd, Modifier.fillMaxWidth(), height = 60.dp)
                 }
             }
         }

@@ -1,4 +1,4 @@
-# Levoy live test – bug log
+# Callio live test – bug log
 
 - **Date:** 2026-10-21
 - **Frontend:** https://levoy-frontend.vercel.app (proxies `/api` to https://api-levoy.medivoy.in/api)
@@ -188,7 +188,7 @@ Nobody should have to type `+91`. Instead:
 - Two QA reviews by Pugazh for Luzf3r (calls 358 and 359), score 80 each, notes start "QA test review".
 - Contact group "QA Test Group" (empty).
 - One call (id 359, outgoing, 45 s) with its recording, from the emulator.
-- Emulator state: Levoy is the default phone app and Call Recording is ON.
+- Emulator state: Callio is the default phone app and Call Recording is ON.
 - Local, uncommitted code changes: `android/.../AppModel.kt` (B12) and `levoy-frontend` `src/app/(app)/reviews/new/page.tsx` + `src/lib/api.ts` (B17). `npm ci` and `tsc --noEmit` pass.
 
 ## Not tested yet
@@ -218,7 +218,7 @@ Built with Gradle 8.5 after applying the B12 fix. Logged in as `luzf3r7@gmail.co
 |---|---|
 | Build | Fails as committed (B12); passes with the `@JvmName` fix |
 | Install | A differently signed `com.levoy.app` was already on the emulator; had to uninstall first |
-| Onboarding | Privacy → Default phone app → Contacts access all work; set Levoy as default dialer |
+| Onboarding | Privacy → Default phone app → Contacts access all work; set Callio as default dialer |
 | OTP login | Works. Fails to recover when DNS is down (B13) |
 | Call History | Loads 358 server calls; duplicates visible (B2) |
 | Leads | Shows the one assigned lead; Edit Lead form opens (cancelled, not saved); "Not called yet" wrong (B14) |

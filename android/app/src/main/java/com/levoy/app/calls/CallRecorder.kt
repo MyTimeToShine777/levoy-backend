@@ -23,7 +23,7 @@ import com.levoy.app.sync.CallSync
 import java.io.File
 
 /**
- * Records the call audio of a LEAD call, only while Levoy is the default phone app (the one place Google Play still allows it —
+ * Records the call audio of a LEAD call, only while Callio is the default phone app (the one place Google Play still allows it —
  * the Accessibility-API route was banned for call recording in May 2022) and only when the person switched Call Recording on.
  * Files wait in `filesDir/recordings` until [CallSync] has uploaded the call and attached the file to it.
  *
@@ -75,7 +75,7 @@ class RecordingService : Service() {
         val nm = getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CHANNEL, "Call recording", NotificationManager.IMPORTANCE_LOW))
         val n: Notification = NotificationCompat.Builder(this, CHANNEL).setSmallIcon(android.R.drawable.ic_btn_speak_now)
-            .setContentTitle("Recording this lead call").setContentText("Levoy is recording the call for your team's quality review")
+            .setContentTitle("Recording this lead call").setContentText("Callio is recording the call for your team's quality review")
             .setOngoing(true).setCategory(NotificationCompat.CATEGORY_CALL).build()
         if (Build.VERSION.SDK_INT >= 29) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE) else startForeground(ID, n)
 

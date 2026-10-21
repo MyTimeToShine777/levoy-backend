@@ -2,7 +2,7 @@
 # Rapid crash-loops back off instead of hot-spinning the CPU.
 StartLimitIntervalSec=60
 StartLimitBurst=5
-Description=Levoy web frontend (Next.js production build, port 3000)
+Description=Callio web frontend (Next.js production build, port 3000)
 Documentation=file:///root/callyzer-clone/README.md
 After=network.target levoy-backend.service
 Wants=levoy-backend.service

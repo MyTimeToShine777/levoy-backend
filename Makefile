@@ -1,4 +1,4 @@
-# Levoy — build, seed and service control.
+# Callio — build, seed and service control.
 #
 # Run `make help` for the target list.
 
@@ -24,7 +24,7 @@ NODE_BIN   := $(shell command -v node 2>/dev/null || echo /root/.hermes/tools/no
 
 ## help: show this help
 help:
-	@echo "Levoy — available targets:"
+	@echo "Callio — available targets:"
 	@echo
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed -e 's/^## /  make /' | sort
 	@echo

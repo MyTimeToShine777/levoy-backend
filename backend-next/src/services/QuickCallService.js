@@ -41,7 +41,7 @@ class QuickCallService {
     const number = String((body && body.number) || '').trim();
     if (phoneKeyOf(number).length < 6 || !/^[+\d\s().-]{6,30}$/.test(number)) throw new ValidationError('that does not look like a phone number');
     const online = (await this.devices(ctx)).filter(d => d.online);
-    if (!online.length) throw new ConflictError('No linked phone is online. On the phone open Levoy → More → Linked Quick Call Extension and switch it on.');
+    if (!online.length) throw new ConflictError('No linked phone is online. On the phone open Callio → More → Linked Quick Call Extension and switch it on.');
     // anything older than two minutes is stale: do not let a forgotten command dial hours later
     await q(`DELETE FROM quick_call_commands WHERE user_id = $1 AND delivered_at IS NULL AND created_at < (NOW() AT TIME ZONE 'UTC') - interval '2 minutes'`, [parseInt(ctx.userId)]);
     const r = await q(

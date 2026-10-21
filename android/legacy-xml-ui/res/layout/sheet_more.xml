@@ -37,7 +37,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnSheetLogout"
-        style="@style/Widget.Levoy.Button.Text"
+        style="@style/Widget.Callio.Button.Text"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"

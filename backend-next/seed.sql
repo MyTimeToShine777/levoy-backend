@@ -1,4 +1,4 @@
--- Levoy clone: seed realistic demo data
+-- Callio clone: seed realistic demo data
 -- Run: psql -d levoy -f backend-next/seed.sql
 -- Idempotent: clears and reseeds demo content, keeps the schema.
 
@@ -113,7 +113,7 @@ WHERE u.email IN ('agent1@levoy.co','agent2@levoy.co','agent3@levoy.co','agent4@
 
 -- ─── Notifications ───
 INSERT INTO notifications (user_id, type, title, message)
-SELECT id, 'system', 'Welcome to Levoy', 'Your account is ready. Start by connecting your team members.'
+SELECT id, 'system', 'Welcome to Callio', 'Your account is ready. Start by connecting your team members.'
 FROM users WHERE email='manager@levoy.co';
 
 INSERT INTO notifications (user_id, type, title, message)

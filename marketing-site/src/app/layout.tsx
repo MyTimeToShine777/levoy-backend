@@ -12,8 +12,8 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL("https://levoy.co"),
   title: {
-    default: "Levoy — SIM-based Telecalling Analytics & Call Monitoring",
-    template: "%s | Levoy",
+    default: "Callio — SIM-based Telecalling Analytics & Call Monitoring",
+    template: "%s | Callio",
   },
   description:
     "Monitor all telesales and marketing calls and discover real-time insights to improve caller productivity and track lead status from a central dashboard.",
@@ -28,14 +28,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     url: "https://levoy.co",
-    siteName: "Levoy",
-    title: "Levoy — SIM-based Telecalling Analytics & Call Monitoring",
+    siteName: "Callio",
+    title: "Callio — SIM-based Telecalling Analytics & Call Monitoring",
     description:
       "Monitor all telesales and marketing calls and discover real-time insights to improve caller productivity and track lead status from a central dashboard.",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Levoy — Telecalling Analytics for Growing Sales Teams",
+    title: "Callio — Telecalling Analytics for Growing Sales Teams",
     description:
       "Real-time call monitoring, lead management and CRM sync for every SIM in your fleet.",
   },

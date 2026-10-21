@@ -2,7 +2,7 @@
 # Rapid crash-loops back off instead of hot-spinning the CPU.
 StartLimitIntervalSec=60
 StartLimitBurst=5
-Description=Levoy marketing site (Next.js production build, port 3002)
+Description=Callio marketing site (Next.js production build, port 3002)
 Documentation=file:///root/callyzer-clone/README.md
 After=network.target
 # Deliberately NOT Requires=postgresql.service: the marketing site never touches

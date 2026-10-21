@@ -22,7 +22,7 @@ import androidx.core.content.FileProvider
 import com.levoy.app.sync.CallLogReader
 import com.levoy.app.sync.DeviceCall
 import com.levoy.app.sync.DeviceSim
-import com.levoy.app.ui.LevoyRoot
+import com.levoy.app.ui.CallioRoot
 import java.io.File
 
 class MainActivity : ComponentActivity(), Os {
@@ -46,7 +46,7 @@ class MainActivity : ComponentActivity(), Os {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { LevoyRoot(model, this) }
+        setContent { CallioRoot(model, this) }
         handleDial(intent)
     }
 
@@ -79,7 +79,7 @@ class MainActivity : ComponentActivity(), Os {
     private fun start(intent: Intent) { runCatching { startActivity(intent) }.onFailure { toast("Nothing on this phone can handle that") } }
 
     override fun dial(number: String) {
-        // as the default phone app Levoy places the call itself; otherwise the system dialler opens with the number
+        // as the default phone app Callio places the call itself; otherwise the system dialler opens with the number
         if (isDefaultDialer() && hasCallPhone()) {
             runCatching { (getSystemService(Context.TELECOM_SERVICE) as TelecomManager).placeCall(Uri.fromParts("tel", number, null), null); return }
         }
@@ -134,6 +134,8 @@ class MainActivity : ComponentActivity(), Os {
         if (Build.VERSION.SDK_INT >= 33) arrayOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.POST_NOTIFICATIONS) else arrayOf(Manifest.permission.RECORD_AUDIO), then,
     )
     override fun hasRecordAudio() = CallLogReader.has(this, Manifest.permission.RECORD_AUDIO)
+    override fun requestAudioLibrary(then: () -> Unit) = ask(arrayOf(com.levoy.app.sync.PhoneRecordings.permission()), then)
+    override fun hasAudioLibrary() = com.levoy.app.sync.PhoneRecordings.canRead(this)
     override fun requestNotifications() { if (Build.VERSION.SDK_INT >= 33) ask(arrayOf(Manifest.permission.POST_NOTIFICATIONS)) { } }
     override fun startQuickCall() = QuickCallService.start(this)
     override fun stopQuickCall() = QuickCallService.stop(this)

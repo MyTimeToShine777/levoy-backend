@@ -1,5 +1,5 @@
 /**
- * Levoy clone — full E2E walkthrough with Playwright.
+ * Callio clone — full E2E walkthrough with Playwright.
  * Logs in as admin, visits every route, captures console errors, failed
  * requests, screenshots, and asserts real content rendered (not blank pages).
  */
@@ -204,7 +204,7 @@ function log(...a) { console.log(...a); }
   await m.goto('http://localhost:3002/', { waitUntil: 'domcontentloaded' });
   await m.waitForTimeout(1800);
   const mText = await m.innerText('body');
-  const mOk = /Unleash|Levoy/i.test(mText);
+  const mOk = /Unleash|Callio/i.test(mText);
   log(`  renders content: ${mOk} (${mText.length}ch)`);
   await m.screenshot({ path: `${SHOTS}/marketing.png`, fullPage: true });
   results.push({ step: 'marketing site', ok: mOk, detail: `${mText.length}ch` });

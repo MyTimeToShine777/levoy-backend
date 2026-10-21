@@ -33,17 +33,17 @@ class PaymentController {
       if (r.status === 'paid') {
         const plan = await StripeService.inCustomer(req.query.c, () => PlanCatalog.get(r.plan));
         const name = plan ? plan.name : 'Your plan';
-        return res.type('html').send(page('Payment received', `${name} is now active. You can go back to Levoy.`, true, back, 'Back to Levoy'));
+        return res.type('html').send(page('Payment received', `${name} is now active. You can go back to Callio.`, true, back, 'Back to Callio'));
       }
-      return res.type('html').send(page('Payment not completed yet', 'Stripe has not confirmed this payment. If you were charged, it will activate on its own within a few minutes.', false, back, 'Back to Levoy'));
+      return res.type('html').send(page('Payment not completed yet', 'Stripe has not confirmed this payment. If you were charged, it will activate on its own within a few minutes.', false, back, 'Back to Callio'));
     } catch (e) {
-      return res.status(e.status || 400).type('html').send(page('Could not confirm the payment', e.message || 'Please try again from Levoy.', false, back, 'Back to Levoy'));
+      return res.status(e.status || 400).type('html').send(page('Could not confirm the payment', e.message || 'Please try again from Callio.', false, back, 'Back to Callio'));
     }
   };
 
   cancel = async (req, res) => {
     const back = StripeService.safeReturn(req, req.query.r);
-    res.type('html').send(page('Payment cancelled', 'Nothing was charged.', false, back, 'Back to Levoy'));
+    res.type('html').send(page('Payment cancelled', 'Nothing was charged.', false, back, 'Back to Callio'));
   };
 
   // ── push tokens ──
@@ -54,7 +54,7 @@ class PaymentController {
   testPush = async (req, res) => {
     const ctx = ctxOf(req);
     const tokens = await PushService.tokensOf(parseInt(ctx.userId));
-    const r = await PushService.send(parseInt(ctx.userId), { title: 'Levoy', body: 'Push notifications are working on this phone.', data: { type: 'test' } });
+    const r = await PushService.send(parseInt(ctx.userId), { title: 'Callio', body: 'Push notifications are working on this phone.', data: { type: 'test' } });
     res.json({ devices: tokens.length, push_enabled: PushService.enabled(), ...r });
   };
 }

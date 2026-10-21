@@ -18,7 +18,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -55,7 +57,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Preset
@@ -67,38 +69,44 @@ enum class Tab(val key: String) { History("history"), Leads("leads"), Analytics(
 
 @Composable
 fun BottomBar(current: Tab, showPremium: Boolean, onSelect: (Tab) -> Unit) {
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp)).background(Pal.card).padding(top = 12.dp, bottom = 14.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-    ) {
-        data class Item(val tab: Tab, val label: String, val icon: ImageVector, val tint: Color?)
-        listOf(
-            Item(Tab.History, T("nav_history"), Icons.Filled.Call, null),
-            Item(Tab.Leads, "Leads", Icons.Filled.Groups, null),
-            Item(Tab.Analytics, T("nav_analytics"), Icons.Filled.BarChart, null),
-            Item(Tab.Premium, T("nav_premium"), Icons.Filled.Diamond, LevoyColors.Amber),
-            Item(Tab.Contacts, T("nav_contacts"), Icons.Filled.ContactPage, null),
-        ).filter { showPremium || it.tab != Tab.Premium }.forEach { it ->
-            BottomBarItem(Modifier.weight(1f), it.label, it.icon, it.tint, it.tab == current) { onSelect(it.tab) }
+    // A floating pill instead of a slab across the bottom. The open tab grows into a blue chip that shows its name.
+    Box(Modifier.fillMaxWidth().padding(start = 14.dp, end = 14.dp, top = 6.dp, bottom = 14.dp)) {
+        Row(
+            Modifier.fillMaxWidth().height(68.dp).clip(RoundedCornerShape(34.dp)).background(Pal.card).padding(horizontal = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            data class Item(val tab: Tab, val label: String, val icon: ImageVector, val tint: Color?)
+            listOf(
+                Item(Tab.History, T("nav_history"), Icons.Filled.Call, null),
+                Item(Tab.Leads, "Leads", Icons.Filled.Groups, null),
+                Item(Tab.Analytics, T("nav_analytics"), Icons.Filled.BarChart, null),
+                Item(Tab.Premium, T("nav_premium"), Icons.Filled.Diamond, Pal.primary),
+                Item(Tab.Contacts, T("nav_contacts"), Icons.Filled.ContactPage, null),
+            ).filter { showPremium || it.tab != Tab.Premium }.forEach { it ->
+                BottomBarItem(it.label, it.icon, it.tint, it.tab == current) { onSelect(it.tab) }
+            }
         }
     }
 }
 
-/** One tab of the bottom bar. The selected tab's icon grows a little and the colours ease in, so a change of tab is seen, not just snapped. */
+/** One tab of the bottom bar. The open tab widens into a blue chip with its name; the colours and width ease in, so a change of tab is seen, not just snapped. */
 @Composable
-private fun BottomBarItem(modifier: Modifier, label: String, icon: ImageVector, tint: Color?, selected: Boolean, onClick: () -> Unit) {
+private fun RowScope.BottomBarItem(label: String, icon: ImageVector, tint: Color?, selected: Boolean, onClick: () -> Unit) {
     val source = remember { MutableInteractionSource() }
-    val press = rememberPressScale(source, pressedScale = 0.92f)
-    val grow by animateFloatAsState(if (selected) 1.12f else 1f, tween(180), label = "grow")
-    val iconColor by animateColorAsState(tint ?: if (selected) Pal.text else Pal.textMuted, tween(180), label = "iconColor")
-    val labelColor by animateColorAsState(if (selected) Pal.text else Pal.textSecondary, tween(180), label = "labelColor")
-    Column(
-        modifier.scaleTo(press).clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
-        horizontalAlignment = Alignment.CenterHorizontally,
+    val press = rememberPressScale(source, pressedScale = 0.94f)
+    val width by animateFloatAsState(if (selected) 2.3f else 1f, tween(220, easing = FastOutSlowInEasing), label = "width")
+    val chip by animateColorAsState(if (selected) Pal.primary else Color.Transparent, tween(200), label = "chip")
+    val iconColor by animateColorAsState(if (selected) Pal.onPrimary else tint ?: Pal.textMuted, tween(200), label = "iconColor")
+    Row(
+        Modifier.weight(width).height(52.dp).scaleTo(press).clip(RoundedCornerShape(26.dp)).background(chip)
+            .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
+        horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, null, tint = iconColor, modifier = Modifier.size(32.dp).scaleTo(grow))
-        Spacer(Modifier.height(4.dp))
-        Text(label, style = Txt.NavLabel.copy(fontSize = 13.sp), color = labelColor, maxLines = 1)
+        Icon(icon, label, tint = iconColor, modifier = Modifier.size(24.dp))
+        if (selected) {
+            Spacer(Modifier.width(6.dp))
+            Text(label, style = Txt.NavLabel.copy(fontSize = 13.sp), color = Pal.onPrimary, maxLines = 1)
+        }
     }
 }
 
@@ -118,11 +126,11 @@ fun DialFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val source = remember { MutableInteractionSource() }
     val scale = rememberPressScale(source, pressedScale = 0.92f)
     Box(
-        modifier.scaleTo(scale).size(66.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(LevoyColors.Amber)
+        modifier.scaleTo(scale).size(66.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(Pal.primary)
             .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Icon(Icons.Filled.Dialpad, "Dial", tint = Color(0xFF111111), modifier = Modifier.size(34.dp))
+        Icon(Icons.Filled.Dialpad, "Dial", tint = Pal.onPrimary, modifier = Modifier.size(34.dp))
     }
 }
 
@@ -157,7 +165,7 @@ fun PresetSheetContent(selected: Preset, onPick: (Preset) -> Unit) {
         Preset.entries.forEach { p ->
             Row(Modifier.fillMaxWidth().height(48.dp).clickable { onPick(p) }.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                    if (p == selected) Icon(Icons.Filled.Check, null, tint = LevoyColors.Amber, modifier = Modifier.size(22.dp))
+                    if (p == selected) Icon(Icons.Filled.Check, null, tint = Pal.primary, modifier = Modifier.size(22.dp))
                 }
                 Spacer(Modifier.size(16.dp))
                 Text(presetLabel(p), style = Txt.Row.copy(fontSize = 19.sp), color = Pal.text)

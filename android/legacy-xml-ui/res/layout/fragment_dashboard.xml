@@ -130,7 +130,7 @@
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/pipelineCard"
-                    style="@style/Widget.Levoy.Card"
+                    style="@style/Widget.Callio.Card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content">
 
@@ -167,7 +167,7 @@
 
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/recentCallsCard"
-                    style="@style/Widget.Levoy.Card.Flat"
+                    style="@style/Widget.Callio.Card.Flat"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/gap">

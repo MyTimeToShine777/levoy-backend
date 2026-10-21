@@ -47,7 +47,7 @@ const PAGES = [
   { key: 'reports',        label: 'Reports',          path: '/reports',        module: 'calls',     actions: ['view', 'export'],
     defaults: { admin: 'all', manager: 'all', agent: ['view'] } },
 
-  // Call analytics, modelled on the Levoy app: tabbed call history, graphs, per-contact detail, plans.
+  // Call analytics, modelled on the Callio app: tabbed call history, graphs, per-contact detail, plans.
   // 'update' on call-history = notes/tags/reminders; on call-analytics = the billing and idle-gap settings.
   { key: 'call-history',   label: 'Call History',     path: '/call-history',   module: 'calls',     actions: ['view', 'update', 'export'],
     defaults: { admin: 'all', manager: 'all', agent: 'all' } },

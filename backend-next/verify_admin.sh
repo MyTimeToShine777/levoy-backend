@@ -46,7 +46,7 @@ except Exception:
 " 2>/dev/null; }
 
 echo "###########################################################" >> "$LOG"
-echo "# Levoy — multi-assignee / admin users / audit / capacity" >> "$LOG"
+echo "# Callio — multi-assignee / admin users / audit / capacity" >> "$LOG"
 echo "# run: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LOG"
 echo "###########################################################" >> "$LOG"
 

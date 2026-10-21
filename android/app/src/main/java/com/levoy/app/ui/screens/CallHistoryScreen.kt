@@ -58,7 +58,7 @@ import com.levoy.app.ui.RootTitle
 import com.levoy.app.ui.ScrollTabs
 import com.levoy.app.ui.SearchField
 import com.levoy.app.ui.TabDef
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Fmt
@@ -88,12 +88,12 @@ fun callTabs(): List<TabDef> {
     fun ic(v: ImageVector): @Composable (Color) -> Unit = { tint -> Icon(v, null, tint = tint, modifier = Modifier.size(24.dp)) }
     return listOf(
         TabDef("all", T("tab_all"), ic(Icons.Filled.Call), Color.Unspecified),
-        TabDef("incoming", T("tab_incoming"), ic(Icons.Filled.PhoneCallback), LevoyColors.Incoming),
-        TabDef("outgoing", T("tab_outgoing"), ic(Icons.Filled.PhoneForwarded), LevoyColors.Outgoing),
-        TabDef("missed", T("tab_missed"), ic(Icons.Filled.PhoneMissed), LevoyColors.Missed),
-        TabDef("rejected", T("tab_rejected"), ic(Icons.Filled.PhoneDisabled), LevoyColors.RejectedText),
-        TabDef("never_attended", T("tab_never"), ic(Icons.Filled.PhoneCallback), LevoyColors.RejectedText),
-        TabDef("not_pickup", T("tab_notpickup"), ic(Icons.Filled.PhoneForwarded), LevoyColors.RejectedText),
+        TabDef("incoming", T("tab_incoming"), ic(Icons.Filled.PhoneCallback), CallioColors.Incoming),
+        TabDef("outgoing", T("tab_outgoing"), ic(Icons.Filled.PhoneForwarded), CallioColors.Outgoing),
+        TabDef("missed", T("tab_missed"), ic(Icons.Filled.PhoneMissed), CallioColors.Missed),
+        TabDef("rejected", T("tab_rejected"), ic(Icons.Filled.PhoneDisabled), CallioColors.RejectedText),
+        TabDef("never_attended", T("tab_never"), ic(Icons.Filled.PhoneCallback), CallioColors.RejectedText),
+        TabDef("not_pickup", T("tab_notpickup"), ic(Icons.Filled.PhoneForwarded), CallioColors.RejectedText),
     ).map { t -> if (t.tint == Color.Unspecified) t.copy(icon = { _ -> Icon(Icons.Filled.Call, null, tint = Pal.text, modifier = Modifier.size(24.dp)) }) else t }
 }
 
@@ -130,7 +130,7 @@ private fun CenterMessage(text: String, action: String? = null, onAction: () -> 
         Text(text, style = Txt.Body, color = Pal.textSecondary, textAlign = TextAlign.Center)
         if (action != null) {
             Spacer(Modifier.height(16.dp))
-            Text(action, style = Txt.Button, color = LevoyColors.Amber, modifier = Modifier.clickable(onClick = onAction).padding(12.dp))
+            Text(action, style = Txt.Button, color = Pal.primary, modifier = Modifier.clickable(onClick = onAction).padding(12.dp))
         }
     }
 }
@@ -156,7 +156,7 @@ private fun CallList(ui: CallHistoryUi, a: CallHistoryActions, bottomInset: andr
 
 @Composable
 fun CallCard(r: CallRow, a: CallHistoryActions) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Pal.card)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(Pal.card)) {
         Row(Modifier.fillMaxWidth().clickable { a.onOpenContact(r.phone_key) }.padding(start = 14.dp, end = 14.dp, top = 14.dp), verticalAlignment = Alignment.Top) {
             KindCircle(r.callKind)
             Spacer(Modifier.width(12.dp))
@@ -175,7 +175,7 @@ fun CallCard(r: CallRow, a: CallHistoryActions) {
         ActionIcons(r.phone_number, { a.call.onCopy(r.phone_number) }, { a.call.onSms(r.phone_number) }, { a.call.onWhatsApp(r.phone_number) }, { a.call.onCall(r.phone_number) },
             Modifier.fillMaxWidth().padding(horizontal = 34.dp))
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth().background(Color(0xFF3B3C41)).clickable { a.onNote(r) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().background(Pal.divider.copy(alpha = 0.55f)).clickable { a.onNote(r) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Description, null, tint = Pal.textMuted, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             val note = r.notes?.takeIf { it.isNotBlank() }
@@ -185,7 +185,7 @@ fun CallCard(r: CallRow, a: CallHistoryActions) {
                     Spacer(Modifier.height(6.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         r.tags.take(3).forEach { t ->
-                            val c = runCatching { Color(android.graphics.Color.parseColor(t.color ?: "")) }.getOrDefault(LevoyColors.Amber)
+                            val c = runCatching { Color(android.graphics.Color.parseColor(t.color ?: "")) }.getOrDefault(Pal.primary)
                             Text(t.name, style = Txt.Small.copy(fontSize = 12.sp), color = c, maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.clip(RoundedCornerShape(10.dp)).border(1.dp, c.copy(alpha = 0.7f), RoundedCornerShape(10.dp)).padding(horizontal = 9.dp, vertical = 3.dp))
                         }
@@ -216,7 +216,7 @@ private fun GroupedList(ui: CallHistoryUi, a: CallHistoryActions, bottomInset: a
         items(ui.groups, key = { it.phone_key + it.phone_number }) { g ->
             Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Pal.card).padding(14.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(46.dp).clip(CircleShape).background(if (notPickup) LevoyColors.OutgoingIcon else LevoyColors.MissedIcon), contentAlignment = Alignment.Center) {
+                    Box(Modifier.size(46.dp).clip(CircleShape).background(if (notPickup) CallioColors.OutgoingIcon else CallioColors.MissedIcon), contentAlignment = Alignment.Center) {
                         Icon(if (notPickup) Icons.Filled.PhoneForwarded else Icons.Filled.PhoneMissed, null, tint = Color(0xFF222328), modifier = Modifier.size(26.dp))
                     }
                     Spacer(Modifier.width(10.dp))

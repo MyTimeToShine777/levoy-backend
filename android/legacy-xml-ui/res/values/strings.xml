@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Levoy</string>
+    <string name="app_name">Callio</string>
 
     <!-- ═══ Navigation / chrome ═══ -->
     <string name="tracking_active">Call tracking active</string>
@@ -63,7 +63,7 @@
 
     <!-- ═══ Permissions ═══ -->
     <string name="permission_required">Permission Required</string>
-    <string name="permission_explanation">Levoy needs Call Log and Phone State permissions to track your call activity.</string>
+    <string name="permission_explanation">Callio needs Call Log and Phone State permissions to track your call activity.</string>
     <string name="open_settings">Open Settings</string>
     <string name="tracking_started">Call tracking started</string>
 
@@ -298,8 +298,8 @@
     <string name="settings_time_12">12 hr</string>
     <string name="settings_time_24">24 hr</string>
     <string name="settings_dark_theme">Dark theme</string>
-    <string name="settings_dark_theme_sub">Levoy is dark-first; this keeps every screen consistent</string>
-    <string name="settings_dark_theme_on">Dark theme is always on in Levoy.</string>
+    <string name="settings_dark_theme_sub">Callio is dark-first; this keeps every screen consistent</string>
+    <string name="settings_dark_theme_on">Dark theme is always on in Callio.</string>
     <string name="settings_sim_verification">SIM Number Verification</string>
     <string name="settings_sim_verification_sub">Confirm this device is calling from your number</string>
     <string name="settings_sim_verified">Verified</string>
@@ -309,14 +309,14 @@
     <string name="settings_sync_now">Sync now</string>
     <string name="settings_sync_now_sub">Upload any calls waiting in the queue</string>
     <string name="settings_account_sub">Signed in as %1$s</string>
-    <string name="settings_version">Levoy %1$s</string>
+    <string name="settings_version">Callio %1$s</string>
     <string name="settings_signed_out">Signed out</string>
-    <string name="settings_logout_confirm">Sign out of Levoy on this device?</string>
+    <string name="settings_logout_confirm">Sign out of Callio on this device?</string>
     <string name="settings_time_format_title">Time Format</string>
 
     <!-- ═══ SIM verification ═══ -->
     <string name="sim_title">Verify your number</string>
-    <string name="sim_subtitle">Verifying the SIM number helps Levoy attribute calls to you correctly and keeps your reports accurate.</string>
+    <string name="sim_subtitle">Verifying the SIM number helps Callio attribute calls to you correctly and keeps your reports accurate.</string>
     <string name="sim_your_number">Your number</string>
     <string name="sim_unknown_number">Could not read this device\'s number</string>
     <string name="sim_read_device_number">Read device number</string>
@@ -345,7 +345,7 @@
     <string name="quick_action_save_contact">Save Contact</string>
     <string name="quick_action_save_contact_sub">Add this number to your device contacts</string>
     <string name="quick_action_view_details">View Details</string>
-    <string name="quick_action_view_details_sub">Open this call in Levoy\'s history</string>
+    <string name="quick_action_view_details_sub">Open this call in Callio\'s history</string>
     <string name="quick_action_dismiss">Dismiss</string>
     <string name="quick_action_in_call">Call in progress</string>
     <string name="quick_action_unknown_number">Unknown number</string>
@@ -354,10 +354,10 @@
     <string name="quick_action_contact_name_prompt">Save contact</string>
     <string name="quick_action_contact_name_hint">Name</string>
     <string name="quick_action_already_saved">This number is already in your contacts</string>
-    <string name="quick_action_contact_permission_rationale">Allow Levoy to write contacts so it can save this caller.</string>
+    <string name="quick_action_contact_permission_rationale">Allow Callio to write contacts so it can save this caller.</string>
     <string name="quick_action_enabled">Quick Action enabled</string>
     <string name="quick_action_disabled">Quick Action turned off</string>
-    <string name="quick_action_needs_overlay">Allow Levoy to draw over other apps to show Quick Action.</string>
+    <string name="quick_action_needs_overlay">Allow Callio to draw over other apps to show Quick Action.</string>
 
     <!-- ═══ Misc ═══ -->
     <string name="generate_report_confirm">Generate and email the latest call report?</string>

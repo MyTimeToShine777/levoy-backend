@@ -10,7 +10,7 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import androidx.core.app.NotificationCompat
-import com.levoy.app.LevoyApp
+import com.levoy.app.CallioApp
 import com.levoy.app.MainActivity
 import com.levoy.app.calllog.CallLogTracker
 import com.levoy.app.network.TokenStorage
@@ -18,7 +18,7 @@ import java.util.concurrent.Executors
 
 /**
  * Foreground service that keeps call log sync alive in background.
- * Shows a persistent notification: "Levoy is tracking calls".
+ * Shows a persistent notification: "Callio is tracking calls".
  */
 class CallSyncService : Service() {
 
@@ -56,7 +56,7 @@ class CallSyncService : Service() {
 
     private fun createWakeLock() {
         val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Levoy::CallSyncLock")
+        wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Callio::CallSyncLock")
             .apply { setReferenceCounted(false) }
     }
 
@@ -69,8 +69,8 @@ class CallSyncService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        return NotificationCompat.Builder(this, LevoyApp.CHANNEL_SYNC)
-            .setContentTitle("Levoy")
+        return NotificationCompat.Builder(this, CallioApp.CHANNEL_SYNC)
+            .setContentTitle("Callio")
             .setContentText("Tracking your call activity")
             .setSmallIcon(com.levoy.app.R.drawable.ic_calls)
             .setContentIntent(pendingIntent)

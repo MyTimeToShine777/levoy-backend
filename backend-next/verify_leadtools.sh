@@ -44,7 +44,7 @@ HTTP() { echo "$1" | grep -o 'HTTP [0-9]*' | awk '{print $2}' | tail -1; }
 fmt() { python3 -m json.tool "$1" 2>/dev/null || cat "$1"; }
 
 echo "###########################################################" >> "$LOG"
-echo "# Levoy — lead tools: timeline / tags / import / merge /" >> "$LOG"
+echo "# Callio — lead tools: timeline / tags / import / merge /" >> "$LOG"
 echo "#              rules / bulk status / pipeline" >> "$LOG"
 echo "# run: $(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$LOG"
 echo "###########################################################" >> "$LOG"

@@ -63,7 +63,7 @@ import com.levoy.app.ui.RootTitle
 import com.levoy.app.ui.ScrollTabs
 import com.levoy.app.ui.TabDef
 import com.levoy.app.ui.WhatsAppGlyph
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Fmt
@@ -104,7 +104,7 @@ fun AnalyticsScreen(ui: AnalyticsUi, a: AnalyticsActions) {
                 val s = ui.summary
                 if (ui.error != null) {
                     Text(ui.error, style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp), textAlign = TextAlign.Center)
-                    Text("Retry", style = Txt.Button, color = LevoyColors.Amber, modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = a.onRetry).padding(12.dp))
+                    Text("Retry", style = Txt.Button, color = Pal.primary, modifier = Modifier.align(Alignment.CenterHorizontally).clickable(onClick = a.onRetry).padding(12.dp))
                 } else if (s == null) {
                     Text("Loading…", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(32.dp))
                 } else {
@@ -169,14 +169,14 @@ private fun Tiles(s: Summary, a: AnalyticsActions) {
     val rows: List<List<Tile>> = listOf(
         listOf(
             Tile(T("total_phone_calls"), Icons.Filled.Call, Color(0xFFFFB020), s.totals.calls, s.totals.duration, tab = "all"),
-            Tile(T("incoming_calls"), Icons.Filled.CallReceived, LevoyColors.Incoming, s.incoming.calls, s.incoming.duration, tab = "incoming"),
+            Tile(T("incoming_calls"), Icons.Filled.CallReceived, CallioColors.Incoming, s.incoming.calls, s.incoming.duration, tab = "incoming"),
         ),
         listOf(
-            Tile(T("outgoing_calls"), Icons.Filled.CallMade, LevoyColors.OutgoingText, s.outgoing.calls, s.outgoing.duration, tab = "outgoing"),
-            Tile(T("missed_calls"), Icons.Filled.CallMissed, LevoyColors.MissedText, s.missed.calls, null, tab = "missed"),
+            Tile(T("outgoing_calls"), Icons.Filled.CallMade, CallioColors.OutgoingText, s.outgoing.calls, s.outgoing.duration, tab = "outgoing"),
+            Tile(T("missed_calls"), Icons.Filled.CallMissed, CallioColors.MissedText, s.missed.calls, null, tab = "missed"),
         ),
         listOf(
-            Tile(T("rejected_calls"), Icons.Filled.PhoneDisabled, LevoyColors.RejectedText, s.rejected.calls, null, tab = "rejected"),
+            Tile(T("rejected_calls"), Icons.Filled.PhoneDisabled, CallioColors.RejectedText, s.rejected.calls, null, tab = "rejected"),
             Tile(T("never_calls"), Icons.Filled.PhoneCallback, Color(0xFFE8E8EC), s.never_attended.calls, null, tab = "never_attended"),
         ),
         listOf(

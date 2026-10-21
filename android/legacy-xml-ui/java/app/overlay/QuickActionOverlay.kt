@@ -122,7 +122,7 @@ object QuickActionOverlay {
         }
     }
 
-    /** Opens Levoy's own call history. */
+    /** Opens Callio's own call history. */
     private fun openCallHistory(context: Context) {
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP

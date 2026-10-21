@@ -46,7 +46,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/emptyAction"
-        style="@style/Widget.Levoy.Button.Outlined"
+        style="@style/Widget.Callio.Button.Outlined"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"

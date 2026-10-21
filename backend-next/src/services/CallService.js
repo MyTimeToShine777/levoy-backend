@@ -28,7 +28,7 @@ function simOf(e) {
   return { source, slot, label: e.sim_label ? String(e.sim_label).trim().slice(0, 100) || null : null };
 }
 
-// Levoy only tracks calls to the leads assigned to a person. The phone app already sends only those, but an older app (or a
+// Callio only tracks calls to the leads assigned to a person. The phone app already sends only those, but an older app (or a
 // stray client) may send the whole call log, so the server enforces it too. Set CALLS_LEAD_ONLY=false to switch this off.
 const leadOnly = () => !['0', 'false', 'off', 'no'].includes(String(process.env.CALLS_LEAD_ONLY || 'true').trim().toLowerCase());
 

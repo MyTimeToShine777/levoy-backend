@@ -35,13 +35,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.OutlineButton
 import com.levoy.app.ui.SwitchPill
 import com.levoy.app.ui.TopBar
 import com.levoy.app.ui.WhatsAppGlyph
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 
@@ -109,7 +109,7 @@ fun LinkedExtensionScreen(linked: Boolean, premium: Boolean, deviceName: String,
                 }
                 SwitchPill(linked, onToggle)
             }
-            if (!premium) Text("Quick Call is part of the Premium plan. You can link this phone now, but the browser is refused until the workspace is on Premium.", style = Txt.Body.copy(fontSize = 15.sp), color = LevoyColors.Amber, modifier = Modifier.padding(16.dp))
+            if (!premium) Text("Quick Call is part of the Premium plan. You can link this phone now, but the browser is refused until the workspace is on Premium.", style = Txt.Body.copy(fontSize = 15.sp), color = Pal.primary, modifier = Modifier.padding(16.dp))
             if (linked && !canCall) {
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 14.dp)) {
                     Text("Without the Phone permission the phone shows a “Tap to call” notification instead of dialling by itself.", style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary)
@@ -122,10 +122,10 @@ fun LinkedExtensionScreen(linked: Boolean, premium: Boolean, deviceName: String,
             Spacer(Modifier.height(8.dp))
             Column(Modifier.padding(horizontal = 16.dp)) {
                 listOf(
-                    "Install the Levoy Quick Call extension in Chrome (Load unpacked → the chrome-extension folder).",
+                    "Install the Callio Quick Call extension in Chrome (Load unpacked → the chrome-extension folder).",
                     "Click the extension icon and sign in with the same account and server as this app.",
                     "Switch this phone on above. Keep the notification — it is what keeps the link alive.",
-                    "Click any phone number on a web page, or select a number and choose “Call with Levoy”. This phone dials it.",
+                    "Click any phone number on a web page, or select a number and choose “Call with Callio”. This phone dials it.",
                     "The dashboard's Call History and Contacts also have a “Dial on my phone” button.",
                 ).forEach { BulletText(it) }
             }
@@ -143,7 +143,7 @@ fun HelpScreen(whatsappSupport: String?, premium: Boolean, onWhatsApp: () -> Uni
             TopBar("Help & Support", onBack)
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 listOf(
-                    "Levoy reads your phone's call log and shows it as call history, analytics and contacts.",
+                    "Callio reads your phone's call log and shows it as call history, analytics and contacts.",
                     "Privacy: your call log is sent to your own workspace server only. It is never sold or shared. You can delete your account and its data from Settings → Delete Account.",
                     "Calls not showing? Open More → Troubleshooting → Call Sync and check the three items.",
                     "Names missing? Settings → Missing Call Details fills in names and SIMs for calls already uploaded.",
@@ -154,7 +154,7 @@ fun HelpScreen(whatsappSupport: String?, premium: Boolean, onWhatsApp: () -> Uni
                     WhatsAppGlyph(Modifier.size(34.dp), Color.White); Spacer(Modifier.width(12.dp)); Text("Chat with support on WhatsApp", style = Txt.Button, color = Color.White)
                 } else {
                     Text("Quick support on WhatsApp is part of the Premium plan.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.textSecondary, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth())
-                    Spacer(Modifier.height(10.dp)); AmberButton("See Premium", onUpgrade, Modifier.fillMaxWidth(), height = 58.dp)
+                    Spacer(Modifier.height(10.dp)); PrimaryButton("See Premium", onUpgrade, Modifier.fillMaxWidth(), height = 58.dp)
                 }
             }
         }
@@ -172,9 +172,9 @@ fun MissingDetailsScreen(busy: Boolean, result: String?, onScan: () -> Unit, onB
                 Text("Some calls may show as “Unknown” or without a SIM — for example when the contact was not readable at the time, or the SIM was not yet detected.", style = Txt.Body.copy(fontSize = 19.sp, lineHeight = 28.sp), color = Pal.text)
                 Spacer(Modifier.height(14.dp))
                 Text("Scanning looks again at the last 90 days of your calls to the leads assigned to you and fills in the missing names and SIMs. Other calls on this phone are never read. It never changes a name or SIM that is already there.", style = Txt.Body.copy(fontSize = 16.sp, lineHeight = 24.sp), color = Pal.textSecondary)
-                if (result != null) Text(result, style = Txt.Body.copy(fontSize = 18.sp), color = LevoyColors.Amber, modifier = Modifier.padding(top = 24.dp))
+                if (result != null) Text(result, style = Txt.Body.copy(fontSize = 18.sp), color = Pal.primary, modifier = Modifier.padding(top = 24.dp))
             }
-            AmberButton(if (busy) "Scanning…" else "Scan now", { if (!busy) onScan() }, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
+            PrimaryButton(if (busy) "Scanning…" else "Scan now", { if (!busy) onScan() }, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
         }
     }
 }
@@ -190,7 +190,7 @@ fun BlogsScreen(url: String?, onOpen: () -> Unit, onBack: () -> Unit) {
                 if (url.isNullOrBlank()) Text("Your workspace admin has not added a blog yet. They can add the link in the dashboard under Premium → Support & links.", style = Txt.Body.copy(fontSize = 19.sp, lineHeight = 28.sp), color = Pal.textSecondary)
                 else Text("Tips and updates from your team.", style = Txt.Body.copy(fontSize = 19.sp), color = Pal.text)
             }
-            if (!url.isNullOrBlank()) AmberButton("Open blog", onOpen, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
+            if (!url.isNullOrBlank()) PrimaryButton("Open blog", onOpen, Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp), height = 66.dp)
         }
     }
 }

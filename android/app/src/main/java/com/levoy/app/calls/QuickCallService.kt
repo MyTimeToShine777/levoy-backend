@@ -48,7 +48,7 @@ class QuickCallService : Service() {
         }
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
         val n: Notification = NotificationCompat.Builder(this, CHANNEL).setSmallIcon(android.R.drawable.sym_action_call)
-            .setContentTitle("Levoy is linked to your browser").setContentText("Numbers sent from Chrome will be dialled here")
+            .setContentTitle("Callio is linked to your browser").setContentText("Numbers sent from Chrome will be dialled here")
             .setContentIntent(open).setOngoing(true).setPriority(NotificationCompat.PRIORITY_MIN).build()
         if (Build.VERSION.SDK_INT >= 34) startForeground(ID, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(ID, n)
 

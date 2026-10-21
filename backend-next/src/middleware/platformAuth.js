@@ -3,7 +3,7 @@
 const { pq } = require('../config/db');
 const authMW = require('./auth');
 
-// Platform owners (the people who run Levoy itself) sign in with a session that has no customer. It is accepted
+// Platform owners (the people who run Callio itself) sign in with a session that has no customer. It is accepted
 // ONLY by the /api/platform/* routes; workspace routes refuse it (see authMW).
 async function platformMW(req, res, next) {
   const { payload: p, error } = authMW.readToken(req);

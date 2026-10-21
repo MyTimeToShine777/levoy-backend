@@ -99,7 +99,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnGenerateReport"
-            style="@style/Widget.Levoy.Button.Outlined"
+            style="@style/Widget.Callio.Button.Outlined"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/screen_padding"

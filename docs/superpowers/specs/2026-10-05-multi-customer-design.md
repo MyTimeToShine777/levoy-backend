@@ -1,6 +1,6 @@
-# Levoy multi-customer platform — design
+# Callio multi-customer platform — design
 
-Levoy is sold as a tool: each customer company gets its own system, its own team and agents, and its own
+Callio is sold as a tool: each customer company gets its own system, its own team and agents, and its own
 subscription. The platform owner (you) manages customers and their subscriptions.
 
 ## Decisions (agreed with the owner)
@@ -24,7 +24,7 @@ Not managed by Prisma; plain SQL migrations in `src/platform/migrations/` tracke
 | `subscriptions` | one row per customer: plan, status (`trial`/`active`/`expired`/`cancelled`), trial dates, current_period_end, cancel_at_period_end |
 | `subscription_events` | history of every change (grant, extend, set date, cancel, refund, payment, trial) |
 
-The existing Levoy data (schema `levoy`, or `public` in the test DB) is registered as **customer #1**.
+The existing Callio data (schema `levoy`, or `public` in the test DB) is registered as **customer #1**.
 
 ## Request flow
 

@@ -1,4 +1,4 @@
-# Levoy Android — Screenshot Feature Inventory (WA0029–WA0038)
+# Callio Android — Screenshot Feature Inventory (WA0029–WA0038)
 
 Source: `/root/drive-shots/IMG-20261002-WA00{29..38}.jpg` (all 738x1600)
 Theme observed: near-black bg (#101010-ish), dark charcoal surfaces, white/grey text, amber/yellow (#F0B000-ish) accent.
@@ -93,7 +93,7 @@ Screen type: settings detail page describing a feature.
 
 **Body copy (exact)**
 - Heading: `Quick Action Feature :`
-- Bullet: `Levoy's quick action is designed to give you instant access to essential call actions and insights — right when you need them most.`
+- Bullet: `Callio's quick action is designed to give you instant access to essential call actions and insights — right when you need them most.`
 - Bullet: `Once a call begins, the quick action appears on your screen. Tapping it opens up two smart options:`
 
 **Embedded marketing screenshot (image inside the page)**
@@ -104,13 +104,13 @@ Screen type: settings detail page describing a feature.
 
 **Feature bullets (the "two smart options")**
 - `Save Contact – If the number isn't saved on your device, you can add it to your contacts with a single tap.`
-- `View Details – Instantly access Levoy's in-depth call history and analytics for the on-going call.`
+- `View Details – Instantly access Callio's in-depth call history and analytics for the on-going call.`
 - Third bullet is TRUNCATED at bottom: `This feature helps you stay informed, take action faster, and manage calls more efficiently — all`
 
 **Bottom ad banner**
 - Headline: `Get winning sales scripts, objection handling tactics & pro tips — free!` ("Get winning" and "free!" in amber; rest grey)
 - CTA button (coral/red): `Claim your free scripts`
-- Art: trophy, confetti, people figures, `Levoy` logo at right
+- Art: trophy, confetti, people figures, `Callio` logo at right
 
 **Navigation**: no bottom nav. No dialogs, no stat cards, no empty state.
 **Premium gate**: none (no lock on the toggle).
@@ -177,7 +177,7 @@ Screen type: per-contact detail screen, 3 tabs, summary strip + chronological ca
 **Ad banners — SAME creative, appears TWICE (in-list after record 2, and pinned at bottom, bottom one clipped)**
 - Headline: `Get winning sales scripts, objection` / `handling tactics & pro tips — free!` (amber on `Get winning` + `free!`)
 - CTA: `Claim your free scripts`
-- Art: gold trophy, confetti, celebratory figures; logo `Caliper` — **NOTE: reads "Caliper", not "Levoy"**
+- Art: gold trophy, confetti, celebratory figures; logo `Caliper` — **NOTE: reads "Caliper", not "Callio"**
 - No `Ad` disclosure label visible.
 
 **Premium gate**: none on any record.
@@ -196,7 +196,7 @@ Screen type: plan-selection paywall.
 |---|---|---|
 | `Premium` | large muted-grey 5-point star | inactive, grey label |
 | `Premium Plus` | bright yellow award/medal w/ ribbon tails + dark star | **SELECTED** — bold off-white label + white dot beneath |
-| `Levoy Biz` | muted-grey trophy | inactive, grey label |
+| `Callio Biz` | muted-grey trophy | inactive, grey label |
 - No lock icon / no "Locked" ribbon on tiers.
 
 **Premium Plus feature list — 3 items, each preceded by a small orange outlined rosette/circular icon**
@@ -257,7 +257,7 @@ Screen type: plan-selection paywall, different tier + different price from S6.
 |---|---|---|
 | `Premium` | gold star | **SELECTED** — white dot beneath |
 | `Premium Plus` | grey ribbon/medal | inactive |
-| `Levoy Biz` | grey trophy | inactive |
+| `Callio Biz` | grey trophy | inactive |
 
 **Section heading**: `Here is what you will unlock`
 **Feature list — 4 items, each preceded by a yellow/gold checkmark in a circle:**
@@ -316,7 +316,7 @@ Screen type: primary call-log list with date-range header + dropdown + 2 injecte
 **Ad banners — SAME creative, appears TWICE (after row 2 and after row 7), injected between rows**
 - Headline: `Get winning sales scripts, objection` / `handling tactics & pro tips — free!` (`Get winning` + `free!` in yellow/orange)
 - CTA: `Claim your free scripts` (coral-red pill, bold white text)
-- Art: gold trophy, confetti, celebratory figures; small phone-style logo at right reading **`Levoy`** — **note: THIS instance spells it `Levoy`, unlike WA0031/0033 which read `Caliper`**
+- Art: gold trophy, confetti, celebratory figures; small phone-style logo at right reading **`Callio`** — **note: THIS instance spells it `Callio`, unlike WA0031/0033 which read `Caliper`**
 
 **Absent**: no stat/metric cards, no Premium/lock ribbons, no dialogs/sheets/snackbars, no empty state, no FAB, no sort/filter button, no pagination, no bottom nav (Android gesture bar only).
 **Premium gate**: none (the `free!` copy is the external ad, not a paywall).
@@ -328,14 +328,14 @@ Screen type: primary call-log list with date-range header + dropdown + 2 injecte
 **Premium / paid gates (complete list)**
 1. **WA0034** — paywall, **Premium Plus** selected, `1 Month` `₹125`, Subscribe + `7 days free trial for new subscribers only` + `Already have an account? Sign In` + cancel-via-Play-Store notice. No bottom nav.
 2. **WA0036** — paywall, **Premium** selected, `1 Month` `₹75`, Subscribe + trial line. Bottom nav present.
-- Shared: 3 tiers `Premium` / `Premium Plus` / `Levoy Biz`; both show only a single `1 Month` plan card; both show the trial line; **neither screenshot shows any lock/crown ribbon on any individual feature** — gating is expressed only by tier selection.
-- Tier → icon mapping (consistent across both): `Premium`=star, `Premium Plus`=medal/ribbon, `Levoy Biz`=trophy. In each screenshot the SELECTED tier's icon is gold and the other two are grey.
+- Shared: 3 tiers `Premium` / `Premium Plus` / `Callio Biz`; both show only a single `1 Month` plan card; both show the trial line; **neither screenshot shows any lock/crown ribbon on any individual feature** — gating is expressed only by tier selection.
+- Tier → icon mapping (consistent across both): `Premium`=star, `Premium Plus`=medal/ribbon, `Callio Biz`=trophy. In each screenshot the SELECTED tier's icon is gold and the other two are grey.
 - Premium Plus feature set (WA0034) vs Premium feature set (WA0036) are DIFFERENT lists — tier switch must swap the bullet list.
 
 **Recurring ad creative (appears on WA0031 once, WA0033 twice, WA0037 twice — 5 impressions across 3 screens)** — reproduce as one reusable banner:
 - `Get winning sales scripts, objection handling tactics & pro tips — free!`
 - Button `Claim your free scripts` (coral/red)
-- Logo text reads **`Caliper`** on WA0031/WA0033 but **`Levoy`** on WA0037 — inconsistent in the reference app
+- Logo text reads **`Caliper`** on WA0031/WA0033 but **`Callio`** on WA0037 — inconsistent in the reference app
 - Injects INTO scrollable lists at row boundaries (WA0033 after record 2 + pinned bottom; WA0037 after row 2 and row 7), not only pinned. WA0031 has it pinned at the bottom only.
 
 **Screens appearing more than once**: none of the 10 are duplicates of each other; WA0031/0033/0036 share the ad banner, and WA0034/0036 are the two paywall variants.

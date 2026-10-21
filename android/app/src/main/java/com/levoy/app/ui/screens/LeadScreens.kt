@@ -46,13 +46,13 @@ import com.levoy.app.data.CallStatusOption
 import com.levoy.app.data.LeadRow
 import com.levoy.app.data.statusKeyOf
 import com.levoy.app.ui.SkeletonList
-import com.levoy.app.ui.AmberButton
+import com.levoy.app.ui.PrimaryButton
 import com.levoy.app.ui.FullScreen
 import com.levoy.app.ui.OutlineButton
 import com.levoy.app.ui.RootTitle
 import com.levoy.app.ui.SearchField
 import com.levoy.app.ui.TopBar
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 
@@ -68,13 +68,13 @@ fun LeadsScreen(ui: LeadsUi, onSearch: (String) -> Unit, onOpen: (LeadRow) -> Un
             SearchField(ui.search, onSearch, "Search name, phone or email", Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(10.dp))
             ui.notice?.let {
-                Text(it, style = Txt.Body.copy(fontSize = 15.sp), color = LevoyColors.OnAmber, modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(LevoyColors.Success).padding(12.dp))
+                Text(it, style = Txt.Body.copy(fontSize = 15.sp), color = Pal.onPrimary, modifier = Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(CallioColors.Success).padding(12.dp))
                 Spacer(Modifier.height(10.dp))
             }
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 when {
                     ui.error != null -> {
-                        Text(ui.error, style = Txt.Body, color = LevoyColors.MissedText, modifier = Modifier.padding(vertical = 16.dp))
+                        Text(ui.error, style = Txt.Body, color = CallioColors.MissedText, modifier = Modifier.padding(vertical = 16.dp))
                         OutlineButton("Retry", onRetry, Modifier.fillMaxWidth(), height = 52.dp)
                     }
                     ui.leads == null -> SkeletonList(rows = 4)
@@ -95,11 +95,11 @@ private fun LeadCard(l: LeadRow, onOpen: (LeadRow) -> Unit, onCall: (String) -> 
             Text(l.phone, style = Txt.Number, color = Pal.textSecondary)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Chip(l.call_status ?: "Not called yet", if (l.call_status == null) Pal.textMuted else LevoyColors.Amber)
+                Chip(l.call_status ?: "Not called yet", if (l.call_status == null) Pal.textMuted else Pal.primary)
                 l.tier?.let { Chip(if (l.priority_score != null) "$it · ${l.priority_score}" else it, tierColor(it)) }
             }
         }
-        Icon(Icons.Filled.Call, "Call", tint = LevoyColors.Link, modifier = Modifier.size(44.dp).clickable { onCall(l.phone) }.padding(8.dp))
+        Icon(Icons.Filled.Call, "Call", tint = CallioColors.Link, modifier = Modifier.size(44.dp).clickable { onCall(l.phone) }.padding(8.dp))
     }
 }
 
@@ -110,10 +110,10 @@ private fun Chip(text: String, color: Color) {
 }
 
 private fun tierColor(tier: String): Color = when (tier) {
-    "Hot" -> LevoyColors.Missed
-    "Warm" -> LevoyColors.AmberOrange
-    "Won" -> LevoyColors.Success
-    else -> LevoyColors.Link
+    "Hot" -> CallioColors.Missed
+    "Warm" -> CallioColors.Warm
+    "Won" -> CallioColors.Success
+    else -> CallioColors.Link
 }
 
 private fun stageLabel(stage: String?) = stage?.replaceFirstChar { it.uppercase() } ?: "—"
@@ -162,8 +162,8 @@ fun EditLeadDialog(
                 listOf("high" to "High", "normal" to "Normal", "low" to "Low").forEach { (k, label) ->
                     val on = priority == k
                     Text(
-                        label, style = Txt.Body.copy(fontSize = 16.sp), color = if (on) LevoyColors.OnAmber else Pal.text,
-                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(if (on) LevoyColors.Amber else Pal.card).clickable { priority = k }.padding(horizontal = 20.dp, vertical = 14.dp),
+                        label, style = Txt.Body.copy(fontSize = 16.sp), color = if (on) Pal.onPrimary else Pal.text,
+                        modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(if (on) Pal.primary else Pal.card).clickable { priority = k }.padding(horizontal = 20.dp, vertical = 14.dp),
                     )
                 }
             }
@@ -171,13 +171,13 @@ fun EditLeadDialog(
             Label("Notes")
             Box(Modifier.fillMaxWidth().heightIn(min = 96.dp).clip(RoundedCornerShape(22.dp)).background(Pal.card).border(1.dp, Pal.divider.copy(alpha = 0.5f), RoundedCornerShape(22.dp)).padding(horizontal = 20.dp, vertical = 16.dp)) {
                 if (notes.isEmpty()) Text("Context for the team…", style = Txt.Body.copy(fontSize = 19.sp), color = Pal.textSecondary)
-                BasicTextField(notes, { notes = it.take(2000) }, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(LevoyColors.Amber), modifier = Modifier.fillMaxWidth())
+                BasicTextField(notes, { notes = it.take(2000) }, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(Pal.primary), modifier = Modifier.fillMaxWidth())
             }
-            error?.let { Text(it, style = Txt.Body.copy(fontSize = 15.sp), color = LevoyColors.MissedText, modifier = Modifier.padding(top = 12.dp)) }
+            error?.let { Text(it, style = Txt.Body.copy(fontSize = 15.sp), color = CallioColors.MissedText, modifier = Modifier.padding(top = 12.dp)) }
             Spacer(Modifier.height(18.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlineButton("Cancel", { if (!saving) onCancel() }, Modifier.weight(1f), height = 56.dp)
-                AmberButton(if (saving) "Saving…" else "Save", { if (!saving) onSave(name, phone, email, callStatus, priority, notes) }, Modifier.weight(1f), height = 56.dp, corner = 16.dp)
+                PrimaryButton(if (saving) "Saving…" else "Save", { if (!saving) onSave(name, phone, email, callStatus, priority, notes) }, Modifier.weight(1f), height = 56.dp, corner = 16.dp)
             }
         }
     }
@@ -199,18 +199,18 @@ private fun StatusPickerPanel(current: String?, statuses: List<CallStatusOption>
             Text("Call status", style = Txt.Section.copy(fontSize = 22.sp), color = Pal.text)
         }
         Spacer(Modifier.height(14.dp))
-        Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, LevoyColors.Amber, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
+        Box(Modifier.fillMaxWidth().height(52.dp).clip(RoundedCornerShape(14.dp)).border(1.dp, Pal.primary, RoundedCornerShape(14.dp)).padding(horizontal = 16.dp), contentAlignment = Alignment.CenterStart) {
             if (q.isEmpty()) Text("Search…", style = Txt.Body.copy(fontSize = 17.sp), color = Pal.textSecondary)
-            BasicTextField(q, { q = it }, singleLine = true, textStyle = Txt.Body.copy(fontSize = 17.sp, color = Pal.text), cursorBrush = SolidColor(LevoyColors.Amber), modifier = Modifier.fillMaxWidth())
+            BasicTextField(q, { q = it }, singleLine = true, textStyle = Txt.Body.copy(fontSize = 17.sp, color = Pal.text), cursorBrush = SolidColor(Pal.primary), modifier = Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(8.dp))
         Column(Modifier.heightIn(max = 460.dp).verticalScroll(rememberScrollState())) {
             val opts = listOf<String?>(null) + statuses.map { it.name }
             opts.filter { q.isBlank() || (it ?: "(Not called yet)").contains(q.trim(), ignoreCase = true) }.forEach { o ->
                 val on = statusKeyOf(o.orEmpty()) == statusKeyOf(current.orEmpty())
-                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (on) LevoyColors.Amber.copy(alpha = 0.18f) else Color.Transparent).clickable { onPick(o) }.padding(horizontal = 14.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(if (on) Pal.primary.copy(alpha = 0.18f) else Color.Transparent).clickable { onPick(o) }.padding(horizontal = 14.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(o ?: "(Not called yet)", style = Txt.Body.copy(fontSize = 17.sp), color = Pal.text, modifier = Modifier.weight(1f))
-                    if (on) Icon(Icons.Filled.Check, null, tint = LevoyColors.Amber, modifier = Modifier.size(24.dp))
+                    if (on) Icon(Icons.Filled.Check, null, tint = Pal.primary, modifier = Modifier.size(24.dp))
                 }
             }
         }

@@ -165,7 +165,7 @@ class CallExportService {
   async restore(ctx, body) {
     await PlanService.assert('auto_backup');
     const b = body || {};
-    if (b.app !== 'levoy' || !Array.isArray(b.calls)) throw new ValidationError('this does not look like a Levoy backup file');
+    if (b.app !== 'levoy' || !Array.isArray(b.calls)) throw new ValidationError('this does not look like a Callio backup file');
     if (b.calls.length > 200000) throw new AppError(413, 'backup is too large to restore in one go');
     const uid = parseInt(ctx.userId);
     return tx(async ({ q: tq }) => {

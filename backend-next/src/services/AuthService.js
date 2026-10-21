@@ -15,7 +15,7 @@ const { toTenant } = Registry;
 
 // Same answer whether or not the address has an account — any difference would
 // turn the send endpoint into an account-enumeration oracle.
-const SENT_MESSAGE = 'If that email has a Levoy account, a 6-digit code is on its way.';
+const SENT_MESSAGE = 'If that email has a Callio account, a 6-digit code is on its way.';
 const BAD_CODE = 'That code is incorrect or has expired. Request a new one.';
 const SUSPENDED = 'This workspace is suspended. Contact support.';
 const PLATFORM_TOKEN_TTL = '12h';
@@ -115,7 +115,7 @@ class AuthService {
     return { message: SENT_MESSAGE, resend_in: OTP_RESEND_SECONDS };
   }
 
-  // Step 2: medivoy.api checks the code; Levoy then issues its own session, with
+  // Step 2: medivoy.api checks the code; Callio then issues its own session, with
   // the same payload shape the old password login returned.
   async verifyOtp(ctx, body, valid) {
     if (!valid) throw new ValidationError('Enter the 6-digit code from your email');

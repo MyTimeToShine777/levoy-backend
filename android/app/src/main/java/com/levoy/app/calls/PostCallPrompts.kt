@@ -35,6 +35,8 @@ object PostCallPrompts {
         if (s.token == null || number.isNullOrBlank()) return
         if (missed && !s.missedReminderPrompt) return
         if (!missed && !s.notePrompt) return
+        // show who it was (saved contact, else the assigned lead), not just the digits
+        val who = com.levoy.app.sync.CallLogReader.nameFor(context, number) ?: s.leadNameFor(number) ?: number
         val nm = context.getSystemService(NotificationManager::class.java)
         if (Build.VERSION.SDK_INT >= 26) nm.createNotificationChannel(NotificationChannel(CHANNEL, "After a call", NotificationManager.IMPORTANCE_HIGH))
         val action = if (missed) ACTION_REMINDER else ACTION_NOTE
@@ -46,7 +48,7 @@ object PostCallPrompts {
             .addRemoteInput(androidx.core.app.RemoteInput.Builder(KEY_TEXT).setLabel(remote.label).build()).build()
         nm.notify(("post" + number).hashCode(), NotificationCompat.Builder(context, CHANNEL)
             .setSmallIcon(android.R.drawable.sym_action_call)
-            .setContentTitle(if (missed) "Missed call from $number" else "Call with $number ended")
+            .setContentTitle(if (missed) "Missed call from $who" else "Call with $who ended")
             .setContentText(if (missed) "Write a reminder to call back" else "Tap to add a note")
             .setPriority(NotificationCompat.PRIORITY_HIGH).setAutoCancel(true).addAction(act).build())
     }

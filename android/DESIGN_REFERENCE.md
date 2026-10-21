@@ -1,7 +1,7 @@
-# Levoy Android — reference design tokens
+# Callio Android — reference design tokens
 
 Extracted from 50 reference screenshots (`/root/drive-shots/IMG-20261002-WA00xx.jpg`,
-738x1600 each) of the real Levoy Android app.
+738x1600 each) of the real Callio Android app.
 
 ## Palette (sampled, not guessed)
 

@@ -163,8 +163,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             try {
                 val r = api.verifyOtp(email.trim(), code)
-                // a platform owner manages Levoy from the web console: their login is not a workspace session
-                if (r.platform) throw ApiException("This account manages Levoy on the web. Sign in with it in a browser at the platform console, not in this app.", 403)
+                // a platform owner manages Callio from the web console: their login is not a workspace session
+                if (r.platform) throw ApiException("This account manages Callio on the web. Sign in with it in a browser at the platform console, not in this app.", 403)
                 session.token = r.access_token; session.user = r.user
                 runCatching { api.acceptConsent() }
                 codeSent = false; resendIn = 0
@@ -498,7 +498,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                     premiumMessage = "Finish the payment in your browser, then come back here."
                     os.openUrl(c.url)
                 }
-                else premiumMessage = "Online payment is not available yet. Contact Levoy support to get this plan."
+                else premiumMessage = "Online payment is not available yet. Contact Callio support to get this plan."
             } catch (e: ApiException) { premiumMessage = if (e.code == 403) "Only a workspace admin can buy a plan." else e.message } finally { premiumBusy = false }
         }
     }

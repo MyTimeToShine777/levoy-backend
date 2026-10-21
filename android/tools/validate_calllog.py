@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validation 4 for the Levoy Android app — regression guard on the call-log
+Validation 4 for the Callio Android app — regression guard on the call-log
 query fix, plus manifest/theme sanity.
 
 Background: `CallLogTracker.fetchNewCalls()` used to request

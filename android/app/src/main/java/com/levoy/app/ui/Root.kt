@@ -71,8 +71,8 @@ import com.levoy.app.Screen
 import com.levoy.app.Stage
 import com.levoy.app.data.CallRow
 import com.levoy.app.ui.screens.*
-import com.levoy.app.ui.theme.LevoyColors
-import com.levoy.app.ui.theme.LevoyTheme
+import com.levoy.app.ui.theme.CallioColors
+import com.levoy.app.ui.theme.CallioTheme
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.DateRange
@@ -85,8 +85,8 @@ import java.time.LocalDate
 import java.time.ZoneOffset
 
 @Composable
-fun LevoyRoot(model: AppModel, os: Os) {
-    LevoyTheme(model.theme) {
+fun CallioRoot(model: AppModel, os: Os) {
+    CallioTheme(model.theme) {
         // language and clock format are read from plain objects, so changing them rebuilds the tree once
         key(model.lang, model.is24) { RootContent(model, os) }
     }
@@ -107,12 +107,12 @@ private fun RootContent(m: AppModel, os: Os) {
                 onAgree = { os.requestDialerRole { m.afterDefaultPhone() } }, onSkip = { m.afterDefaultPhone() }, onPolicy = { m.push(Screen.Help) },
             )
             Stage.CallLogPrimer -> PermissionPrimerScreen(
-                "ACCESS TO YOUR DEVICE'S CALL LOG", "Your default dialer only shows your call history. Levoy helps you understand it.",
+                "ACCESS TO YOUR DEVICE'S CALL LOG", "Your default dialer only shows your call history. Callio helps you understand it.",
                 "All data is processed locally and remains securely stored on your device.", CALL_LOG_USES, "Allow Access",
                 onAllow = { os.requestCallLog { m.afterCallLogPrimer() } }, onPolicy = { m.push(Screen.Help) },
             )
             Stage.ContactsPrimer -> PermissionPrimerScreen(
-                "Contacts Access", "Access to contacts allows Levoy to map phone numbers to saved contact names, photos, and details. This improves the accuracy and readability of call history, reports, and analytics.",
+                "Contacts Access", "Access to contacts allows Callio to map phone numbers to saved contact names, photos, and details. This improves the accuracy and readability of call history, reports, and analytics.",
                 "All contact data is accessed only for this purpose and remains stored locally on your device.", CONTACTS_USES, "Let's do it",
                 onAllow = { os.requestContacts { m.afterContactsPrimer() } }, onPolicy = { m.push(Screen.Help) },
             )
@@ -237,7 +237,7 @@ private fun SideDrawer(m: AppModel, os: Os) {
                     socials = socialLinks(m), openLink = os::openUrl, premium = m::openPremium,
                     export = m::openExport, blogs = { m.push(Screen.Blogs) }, quickCall = { m.push(Screen.LinkedExtension) },
                     reminder = { m.loadReminders(); m.push(Screen.Reminders) }, troubleshooting = { m.push(Screen.Troubleshooting) }, compare = m::openCompare,
-                    settings = { m.push(Screen.Settings) }, help = { m.push(Screen.Help) }, invite = { os.shareText("Track and analyse your calls with Levoy — ${m.serverUrl.removeSuffix("/api")}") },
+                    settings = { m.push(Screen.Settings) }, help = { m.push(Screen.Help) }, invite = { os.shareText("Track and analyse your calls with Callio — ${m.serverUrl.removeSuffix("/api")}") },
                     rate = os::openRating, about = { m.push(Screen.About) }, privacy = { m.push(Screen.Help) },
                 ),
                 m.user?.name.orEmpty(), m.user?.email.orEmpty(), m.planBadge, close,
@@ -319,16 +319,22 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
             { v ->
                 if (!v) m.setCallRecording(false)
                 else os.requestRecordAudio {
-                    if (!os.hasRecordAudio()) os.toast("Allow the microphone to record calls")
-                    else if (os.isDefaultDialer()) m.setCallRecording(true)
-                    else os.requestDialerRole { ok -> m.defaultDialer = ok; if (ok) m.setCallRecording(true) else os.toast("Set Levoy as your default phone app to record calls") }
+                    // Two ways to get a recording: Callio's own (microphone, needs Callio as the default phone app), or the phone's own
+                    // call recorder (both voices), whose files Callio reads from the audio library. The second works without the first.
+                    os.requestAudioLibrary {
+                        if (os.isDefaultDialer()) m.setCallRecording(true)
+                        else if (os.hasRecordAudio() || os.hasAudioLibrary()) {
+                            m.setCallRecording(true)
+                            os.toast("On. Turn on call recording in your phone app, and Callio will upload it")
+                        } else os.toast("Allow the microphone or audio files so Callio can record calls")
+                    }
                 }
             },
             "Only calls to your assigned leads are recorded, and your admin and managers can listen to them. Tell the person you are calling that the call is recorded.",
             "Call Recording Limitations :", CALL_RECORDING_BULLETS, back)
         Screen.WhatsAppCall -> ToggleInfoScreen("WhatsApp Call", { WhatsAppGlyph(Modifier.fillMaxSize(), Pal.text) }, "WhatsApp Call", m.whatsappCalls,
             { v -> if (v && !os.notificationAccessGranted()) { m.session.pendingToggle = "whatsapp"; os.openNotificationAccess() } else m.setWhatsapp(v) },
-            "Levoy will be able to read all notifications, including personal information such as contact names and the text of messages you receive.", "Whatsapp Call Log Limitations :", WHATSAPP_BULLETS, back)
+            "Callio will be able to read all notifications, including personal information such as contact names and the text of messages you receive.", "Whatsapp Call Log Limitations :", WHATSAPP_BULLETS, back)
         Screen.Reminders -> RemindersScreen(m.reminders, m.missedPrompt, { v -> if (v) os.requestOutgoingCalls { m.changeMissedPrompt(true) } else m.changeMissedPrompt(false) }, { m.overlay = Overlay.AddReminder }, m::finishReminder, os::dial, back)
         Screen.NotePopup -> ToggleInfoScreen("Note Popup", { Icon(Icons.Filled.Description, null, tint = Pal.text) }, "Note Popup", m.notePrompt, { v -> if (v) os.requestOutgoingCalls { m.changeNotePrompt(true) } else m.changeNotePrompt(false) }, null, "How it works :", NOTE_POPUP_BULLETS, back)
         Screen.DeleteAccount -> {
@@ -341,7 +347,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
         Screen.Premium -> Column(Modifier.fillMaxSize().background(Pal.background)) { TopBar(T("nav_premium"), back); Box(Modifier.weight(1f)) { premiumPage(m, os) } }
         Screen.Blogs -> BlogsScreen(m.ws.blog_url.ifBlank { null }, { os.openUrl(m.ws.blog_url) }, back)
         Screen.Help -> HelpScreen(m.ws.support_whatsapp.ifBlank { null }, m.plan?.has("whatsapp_support") == true, { os.openUrl("https://wa.me/" + m.ws.support_whatsapp.filter { it.isDigit() }) }, { m.pop(); m.openPremium() }, back)
-        Screen.About -> TextInfoScreen("About App", listOf("Levoy 1.0.0", "Call tracking and analytics for telecallers and sales teams."), onBack = back)
+        Screen.About -> TextInfoScreen("About App", listOf("Callio 1.0.0", "Call tracking and analytics for telecallers and sales teams."), onBack = back)
     }
 }
 
@@ -393,10 +399,10 @@ private fun ExportReportScreen(m: AppModel, os: Os, onBack: () -> Unit) {
 private fun ExportRow(r: CallRow) {
     val z = Fmt.parse(r.timestamp)
     val color = when (r.callKind) {
-        com.levoy.app.data.CallKind.incoming -> LevoyColors.IncomingText
-        com.levoy.app.data.CallKind.outgoing -> LevoyColors.OutgoingText
-        com.levoy.app.data.CallKind.missed -> LevoyColors.MissedText
-        com.levoy.app.data.CallKind.rejected -> LevoyColors.RejectedText
+        com.levoy.app.data.CallKind.incoming -> CallioColors.IncomingText
+        com.levoy.app.data.CallKind.outgoing -> CallioColors.OutgoingText
+        com.levoy.app.data.CallKind.missed -> CallioColors.MissedText
+        com.levoy.app.data.CallKind.rejected -> CallioColors.RejectedText
     }
     Column {
         Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -415,7 +421,7 @@ private fun ContactPicker(m: AppModel, onDone: () -> Unit, onBack: () -> Unit) {
     FullScreen {
         Column(Modifier.fillMaxSize()) {
             TopBar("Add Contacts (${m.compareKeys.size}/5)", onBack) {
-                Text("Done", style = Txt.Button, color = LevoyColors.Amber, modifier = Modifier.clickable(onClick = onDone).padding(16.dp))
+                Text("Done", style = Txt.Button, color = Pal.primary, modifier = Modifier.clickable(onClick = onDone).padding(16.dp))
             }
             SearchField(m.contactSearch, m::changeContactSearch, T("search_contacts"), Modifier.padding(horizontal = 16.dp))
             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 8.dp)) {
@@ -425,7 +431,7 @@ private fun ContactPicker(m: AppModel, onDone: () -> Unit, onBack: () -> Unit) {
                         Avatar(c.contact_name?.takeIf { it.isNotBlank() } ?: c.phone_number.takeLast(2), 46.dp)
                         Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) { Text(c.contact_name?.takeIf { it.isNotBlank() } ?: "Unknown", style = Txt.Name, color = Pal.text); Text(c.phone_number, style = Txt.Number, color = Pal.textSecondary) }
-                        if (on) Box(Modifier.size(34.dp).clip(CircleShape).background(LevoyColors.Amber), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Check, null, tint = LevoyColors.OnAmber) }
+                        if (on) Box(Modifier.size(34.dp).clip(CircleShape).background(Pal.primary), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Check, null, tint = Pal.onPrimary) }
                     }
                 }
             }
@@ -450,7 +456,7 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
                         TextButton({
                             val a = state.selectedStartDateMillis; val b = state.selectedEndDateMillis ?: a
                             if (a != null && b != null) m.pickCustom(Instant.ofEpochMilli(a).atZone(ZoneOffset.UTC).toLocalDate(), Instant.ofEpochMilli(b).atZone(ZoneOffset.UTC).toLocalDate())
-                        }) { Text(T("done"), color = LevoyColors.Amber) }
+                        }) { Text(T("done"), color = Pal.primary) }
                     }
                 }
             }
@@ -486,9 +492,9 @@ private fun OverlayFor(o: Overlay, m: AppModel, os: Os) {
                 Spacer(Modifier.height(10.dp))
                 if (m.tags.isEmpty()) Text("No tags yet. Add tags from a call's note.", style = Txt.Body, color = Pal.textSecondary, modifier = Modifier.padding(vertical = 10.dp))
                 Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
-                    m.tags.forEach { t -> Text(t.name, style = Txt.Body.copy(fontSize = 19.sp), color = if (m.filterDraft.tagId == t.id.toString()) LevoyColors.Amber else Pal.text, modifier = Modifier.fillMaxWidth().clickable { m.filterDraft = m.filterDraft.copy(tagId = t.id.toString(), tagName = t.name); m.overlay = null }.padding(vertical = 12.dp)) }
+                    m.tags.forEach { t -> Text(t.name, style = Txt.Body.copy(fontSize = 19.sp), color = if (m.filterDraft.tagId == t.id.toString()) Pal.primary else Pal.text, modifier = Modifier.fillMaxWidth().clickable { m.filterDraft = m.filterDraft.copy(tagId = t.id.toString(), tagName = t.name); m.overlay = null }.padding(vertical = 12.dp)) }
                 }
-                if (m.filterDraft.tagId.isNotEmpty()) Text("Clear tag", style = Txt.Button.copy(fontSize = 17.sp), color = LevoyColors.Amber, modifier = Modifier.clickable { m.filterDraft = m.filterDraft.copy(tagId = "", tagName = ""); m.overlay = null }.padding(vertical = 12.dp))
+                if (m.filterDraft.tagId.isNotEmpty()) Text("Clear tag", style = Txt.Button.copy(fontSize = 17.sp), color = Pal.primary, modifier = Modifier.clickable { m.filterDraft = m.filterDraft.copy(tagId = "", tagName = ""); m.overlay = null }.padding(vertical = 12.dp))
             }
         }
         is Overlay.ContactMenu -> Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.6f)).clickable { m.overlay = null }, contentAlignment = Alignment.Center) {
@@ -518,7 +524,7 @@ private fun AlertBox(text: String, primary: String, onPrimary: () -> Unit, secon
             Spacer(Modifier.height(22.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 if (secondary != null) { Text(secondary, style = Txt.Button.copy(fontSize = 19.sp), color = Pal.text, modifier = Modifier.clickable(onClick = onSecondary).padding(10.dp)); Spacer(Modifier.width(14.dp)) }
-                Text(primary, style = Txt.Button.copy(fontSize = 19.sp), color = LevoyColors.Amber, modifier = Modifier.clickable(onClick = onPrimary).padding(10.dp))
+                Text(primary, style = Txt.Button.copy(fontSize = 19.sp), color = Pal.primary, modifier = Modifier.clickable(onClick = onPrimary).padding(10.dp))
             }
         }
     }
@@ -540,7 +546,7 @@ private fun NoteDialog(row: CallRow, m: AppModel) {
             Spacer(Modifier.height(18.dp))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlineButton(T("cancel"), { m.overlay = null }, Modifier.weight(1f), height = 56.dp)
-                AmberButton(T("save"), { m.saveNote(row, notes, tagText.split(',').map { it.trim() }.filter { it.isNotEmpty() }) }, Modifier.weight(1f), height = 56.dp, corner = 16.dp)
+                PrimaryButton(T("save"), { m.saveNote(row, notes, tagText.split(',').map { it.trim() }.filter { it.isNotEmpty() }) }, Modifier.weight(1f), height = 56.dp, corner = 16.dp)
             }
         }
     }
@@ -559,7 +565,7 @@ private fun GroupDialog(key: String, m: AppModel) {
             Spacer(Modifier.height(10.dp))
             Field(name, { name = it }, "New group name")
             Spacer(Modifier.height(14.dp))
-            AmberButton("Create & add", { if (name.isNotBlank()) m.newGroup(key, name.trim()) }, Modifier.fillMaxWidth(), height = 56.dp, corner = 16.dp)
+            PrimaryButton("Create & add", { if (name.isNotBlank()) m.newGroup(key, name.trim()) }, Modifier.fillMaxWidth(), height = 56.dp, corner = 16.dp)
         }
     }
 }

@@ -55,6 +55,7 @@ object CallSync {
                 session.lastSyncedAt = chunk.last().date
             }
             if (calls.isEmpty() && after > session.lastSyncedAt) session.lastSyncedAt = after
+            runCatching { PhoneRecordings.importFor(context, session, leadNumbers) }      // the phone's own recorder (both voices)
             uploadRecordings(context, session, api)
             reportDevice(context, api)
             Result.Done(uploaded)
@@ -71,7 +72,7 @@ object CallSync {
      * A recording whose call is not on the server yet waits for the next sync; one older than [KEEP_DAYS] is dropped.
      */
     private suspend fun uploadRecordings(context: Context, session: Session, api: Api) {
-        val files = CallRecorder.dir(context).listFiles { f -> f.name.endsWith(".m4a") }?.toList().orEmpty()
+        val files = CallRecorder.dir(context).listFiles { f -> f.extension.lowercase() in PhoneRecordings.EXTENSIONS }?.toList().orEmpty()
         if (files.isEmpty()) return
         val uid = session.user?.id
         val rows = runCatching { api.history(mapOf("limit" to 200, "user_id" to uid)).rows }.getOrNull() ?: return

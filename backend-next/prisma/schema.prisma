@@ -1,4 +1,4 @@
-// Levoy data model.
+// Callio data model.
 //
 // Postgres is the database; Prisma is the schema source of truth (migrations live
 // in prisma/migrations, applied with `prisma migrate deploy` at startup — see

@@ -149,7 +149,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnPrevPage"
-                style="@style/Widget.Levoy.Button.Outlined"
+                style="@style/Widget.Callio.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:layout_marginEnd="8dp"
@@ -161,7 +161,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnNextPage"
-                style="@style/Widget.Levoy.Button.Outlined"
+                style="@style/Widget.Callio.Button.Outlined"
                 android:layout_width="wrap_content"
                 android:layout_height="36dp"
                 android:minWidth="0dp"

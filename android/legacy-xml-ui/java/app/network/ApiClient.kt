@@ -308,6 +308,6 @@ class LoggingInterceptor : Interceptor {
     }
 
     companion object {
-        private const val TAG = "LevoyApi"
+        private const val TAG = "CallioApi"
     }
 }
