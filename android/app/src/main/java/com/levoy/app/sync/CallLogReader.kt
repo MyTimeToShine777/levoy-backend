@@ -72,14 +72,17 @@ object CallLogReader {
             val iName = c.getColumnIndex(CallLog.Calls.CACHED_NAME); val iAcc = c.getColumnIndex(CallLog.Calls.PHONE_ACCOUNT_ID)
             if (iNumber < 0 || iDate < 0 || iType < 0) return emptyList()
             while (c.moveToNext() && out.size < limit) {
-                val (direction, status) = classify(c.getInt(iType)) ?: continue
+                val (direction, typeStatus) = classify(c.getInt(iType)) ?: continue
+                val seconds = if (iDur >= 0) c.getInt(iDur) else 0
+                // "Connected" means someone spoke. A call that lasted 0 seconds was not answered, whatever its type says.
+                val status = if (typeStatus == "connected" && seconds <= 0) (if (direction == "incoming") "missed" else "unanswered") else typeStatus
                 val number = c.getString(iNumber)?.replace(Regex("[^\\d+]"), "")?.take(20).orEmpty()
                 if (only != null && com.levoy.app.data.phoneKeyOf(number) !in only) continue      // not one of this person's leads
                 if (number.isEmpty()) continue            // private / hidden numbers cannot be attributed to a person
                 val acc = if (iAcc >= 0) c.getString(iAcc) else null
                 val sim = sims.firstOrNull { acc != null && (acc == it.subscriptionId.toString() || acc == it.iccId) } ?: if (sims.size == 1) sims[0] else null
                 val name = (if (iName >= 0) c.getString(iName) else null)?.takeIf { it.isNotBlank() } ?: (if (names.containsKey(number)) names[number] else nameFor(context, number).also { names[number] = it })
-                out.add(DeviceCall(c.getLong(iDate), number, name, direction, status, if (iDur >= 0) c.getInt(iDur) else 0, sim?.slot, sim?.label))
+                out.add(DeviceCall(c.getLong(iDate), number, name, direction, status, seconds, sim?.slot, sim?.label))
             }
         }
         return out

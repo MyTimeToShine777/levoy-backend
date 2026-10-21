@@ -252,8 +252,10 @@ class QualityService {
       // Gap between "always 5" and where this agent actually lands.
       pct_of_max: Math.round((parseFloat(c.avg_score) / 5) * 1000) / 10,
     }));
-    // Worst = lowest average score; null when nothing has been reviewed yet.
-    const worst = categories.length ? categories.reduce((a, b) => (b.avg_score < a.avg_score ? b : a)) : null;
+    // Worst = lowest average score; null when nothing has been reviewed yet, or when every category scores the same
+    // (nothing stands out, so pointing at one would be arbitrary).
+    const allEqual = categories.length > 0 && categories.every(c => c.avg_score === categories[0].avg_score);
+    const worst = categories.length && !allEqual ? categories.reduce((a, b) => (b.avg_score < a.avg_score ? b : a)) : null;
 
     const trend = await q(
       `SELECT to_char(date_trunc('month', cr.created_at), 'YYYY-MM') AS period,

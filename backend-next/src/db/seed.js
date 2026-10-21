@@ -30,6 +30,8 @@ const DEFAULT_STATUS_RULES = [
   ['Converted',                    'converted',                   100, false, 1.00, 'Won – support & onboarding',                          true,  true,  true,  7],
   ['Switched Off / Invalid Number','switchedoffinvalidnumber',      0, false, 0.00, 'Verify the number or drop the lead',                   false, false, false, 8],
   ['(Not called yet)',             'notcalledyet',                 10, true,  0.01, 'Make the first call',                                 false, false, false, 9],
+  // Not in the sheet: set automatically when a call to the lead was answered but nobody has recorded the outcome yet.
+  ['Called',                       'called',                       30, true,  0.02, 'Record the outcome of the call',                      true,  false, false, 10],
 ];
 
 const DEFAULT_SCORING_SETTINGS = [

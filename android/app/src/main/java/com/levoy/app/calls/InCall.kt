@@ -112,7 +112,7 @@ class LevoyInCallService : InCallService() {
         val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         val full = PendingIntent.getActivity(this, 0, Intent(this, InCallActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), flags)
         fun act(code: Int, label: String) = NotificationCompat.Action(0, label, PendingIntent.getBroadcast(this, code, Intent(this, CallActionReceiver::class.java).setAction(label), flags))
-        val who = CallLogReader.nameFor(this, CallStore.numberOf(call)) ?: CallStore.numberOf(call).ifBlank { "Unknown" }
+        val who = CallLogReader.nameFor(this, CallStore.numberOf(call)) ?: com.levoy.app.data.Session(this).leadNameFor(CallStore.numberOf(call)) ?: CallStore.numberOf(call).ifBlank { "Unknown" }
         nm.notify(INCOMING_ID, NotificationCompat.Builder(this, CHANNEL)
             .setSmallIcon(android.R.drawable.sym_call_incoming).setContentTitle(who).setContentText("Incoming call")
             .setCategory(NotificationCompat.CATEGORY_CALL).setPriority(NotificationCompat.PRIORITY_MAX).setOngoing(true)
@@ -164,7 +164,8 @@ private fun InCallScreen(onGone: () -> Unit) {
     }
     val ctx = androidx.compose.ui.platform.LocalContext.current
     val number = call?.let(CallStore::numberOf).orEmpty()
-    val name = remember(number) { CallLogReader.nameFor(ctx, number) }
+    // The phone's saved contact name wins; otherwise the name of the assigned lead, so a lead is never shown as a bare number.
+    val name = remember(number) { CallLogReader.nameFor(ctx, number) ?: com.levoy.app.data.Session(ctx).leadNameFor(number) }
     var seconds by remember { mutableIntStateOf(0) }
     LaunchedEffect(call?.state) { while (true) { seconds = call?.details?.connectTimeMillis?.takeIf { it > 0 }?.let { ((System.currentTimeMillis() - it) / 1000).toInt() } ?: 0; delay(1000) } }
     val status = when (call?.state) {

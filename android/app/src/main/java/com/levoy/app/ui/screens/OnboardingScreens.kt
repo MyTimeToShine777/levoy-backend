@@ -181,6 +181,7 @@ fun LoginScreen(
     email: String, code: String, codeSent: Boolean, resendIn: Int, busy: Boolean, error: String?,
     onEmail: (String) -> Unit, onCode: (String) -> Unit,
     onSend: () -> Unit, onVerify: () -> Unit, onResend: () -> Unit, onChangeEmail: () -> Unit,
+    resending: Boolean = false,
 ) {
     FullScreen {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -203,7 +204,7 @@ fun LoginScreen(
                 Spacer(Modifier.height(12.dp))
                 Text("We will email you a code. No password needed.", style = Txt.Small, color = Pal.textMuted, textAlign = TextAlign.Center)
             } else {
-                AmberButton(if (busy) "Signing in…" else "Sign in", onVerify, Modifier.fillMaxWidth(), height = 66.dp, corner = 22.dp, enabled = !busy && code.length == 6)
+                AmberButton(if (busy && resending) "Sending a new code…" else if (busy) "Signing in…" else "Sign in", onVerify, Modifier.fillMaxWidth(), height = 66.dp, corner = 22.dp, enabled = !busy && code.length == 6)
                 Spacer(Modifier.height(18.dp))
                 Text(if (resendIn > 0) "Resend code in ${resendIn}s" else "Resend code", style = Txt.Small.copy(fontSize = 15.sp, textDecoration = if (resendIn > 0) TextDecoration.None else TextDecoration.Underline), color = if (resendIn > 0) Pal.textMuted else Pal.textSecondary, modifier = Modifier.clickable(enabled = resendIn == 0 && !busy, onClick = onResend).padding(8.dp))
                 Text("Use a different email", style = Txt.Small.copy(fontSize = 15.sp, textDecoration = TextDecoration.Underline), color = Pal.textSecondary, modifier = Modifier.clickable(onClick = onChangeEmail).padding(8.dp))

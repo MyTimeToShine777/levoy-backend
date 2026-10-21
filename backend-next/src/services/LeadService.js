@@ -12,6 +12,8 @@ const LeadTagService = require('./LeadTagService');
 const LeadActivityService = require('./LeadActivityService');
 const PipelineStageService = require('./PipelineStageService');
 const LeadScoringService = require('./LeadScoringService');
+const WorkspaceSettingsService = require('./WorkspaceSettingsService');
+const { toE164 } = require('../utils/phoneFormat');
 
 // Columns the spreadsheet engine adds on top of the generic CRM columns. Returned
 // additively so the Leads table can render assignment + scoring without a second call.
@@ -19,6 +21,9 @@ const ENGINE_COLUMNS = `l.segment, l.call_status, l.tier, l.priority_score, l.fo
               l.telecaller_name, l.customer_name, l.pharmacy_name, l.locality, l.phone_clean,
               l.is_duplicate, l.next_best_action, l.days_since_last_call, l.external_id,
               l.received_at, l.import_batch_id`;
+
+// A lead with an open follow-up task whose time has passed: the same test the Follow-ups page uses for "Overdue".
+const OVERDUE_TASK_SQL = `EXISTS (SELECT 1 FROM lead_follow_ups f WHERE f.lead_id = l.id AND f.completed_at IS NULL AND f.due_at < NOW())`;
 
 const SORTS = {
   updated: 'l.updated_at DESC',
@@ -34,11 +39,14 @@ class LeadService {
     // kanban would silently drop the lead into an "unmapped" bucket.
     const requestedStatus = body.status || 'new';
     if (body.status !== undefined) await PipelineStageService.assertValidStage(requestedStatus);
+    // One canonical form for every number (country code added from the workspace's default country when it was left off).
+    const phone = toE164(body.phone, await WorkspaceSettingsService.countryCode());
+    if (!phone) throw new ValidationError('phone is not a valid phone number');
 
     const r = await q(
       `INSERT INTO leads (name,phone,email,status,source,priority,notes,owner_id,assigned_to)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
-      [body.name, body.phone, body.email || null, requestedStatus, body.source || null,
+      [body.name, phone, body.email || null, requestedStatus, body.source || null,
         body.priority || 'normal', body.notes || null, ctx.userId, body.assigned_to || null]);
     const l = r.rows[0];
     // A lead created with assigned_to should immediately have an owner row, or it
@@ -125,7 +133,14 @@ class LeadService {
     if (query.import_batch_id) { where += ` AND l.import_batch_id = $${idx}`; params.push(parseInt(query.import_batch_id)); idx++; }
     if (query.segment) { where += ` AND l.segment = $${idx}`; params.push(query.segment); idx++; }
     if (query.tier) { where += ` AND l.tier = $${idx}`; params.push(query.tier); idx++; }
-    if (query.followup_window) { where += ` AND l.followup_window = $${idx}`; params.push(query.followup_window); idx++; }
+    if (query.followup_window) {
+      // "Overdue" also covers a lead with an open follow-up task past its time, so this tab agrees with the Follow-ups page
+      // (the stored window is only refreshed when a lead is imported or re-scored).
+      where += query.followup_window === 'Overdue'
+        ? ` AND (l.followup_window = $${idx} OR ${OVERDUE_TASK_SQL})`
+        : ` AND l.followup_window = $${idx}`;
+      params.push(query.followup_window); idx++;
+    }
     if (query.call_status) { where += ` AND l.call_status = $${idx}`; params.push(query.call_status); idx++; }
     if (query.tag_id) {
       // EXISTS rather than a JOIN: the join would multiply a lead's row by its tag
@@ -159,10 +174,11 @@ class LeadService {
     const totalR = await q(`SELECT COUNT(*)::int AS c FROM leads l${where}`, params);
     const r = await q(
       `SELECT l.id,l.name,l.phone,l.email,l.status,l.source,l.priority,l.owner_id,l.assigned_to,l.notes,l.last_contacted_at,l.created_at,l.updated_at,
-              au.name AS assigned_to_name, au.avatar_url AS assigned_to_avatar,
+              au.name AS assigned_to_name, au.avatar_url AS assigned_to_avatar, ou.name AS owner_name,
               ${ENGINE_COLUMNS}
          FROM leads l
-         LEFT JOIN users au ON au.id = l.assigned_to${where}
+         LEFT JOIN users au ON au.id = l.assigned_to
+         LEFT JOIN users ou ON ou.id = l.owner_id${where}
         ORDER BY ${order} LIMIT $${idx} OFFSET $${idx + 1}`, [...params, limit, offset]);
 
     // Two extra queries for the whole page (not per lead) — a 200-lead list is
@@ -176,7 +192,7 @@ class LeadService {
       const fu = fuByLead.get(l.id) || { next: null, open: 0, overdue: 0 };
       return {
         id: l.id, name: l.name, phone: l.phone, email: l.email, status: l.status, source: l.source,
-        priority: l.priority, owner_id: l.owner_id, assigned_to: l.assigned_to,
+        priority: l.priority, owner_id: l.owner_id, owner_name: l.owner_name, assigned_to: l.assigned_to,
         assigned_to_name: l.assigned_to_name, assigned_to_avatar: l.assigned_to_avatar,
         notes: l.notes, last_contacted_at: l.last_contacted_at, created_at: l.created_at, updated_at: l.updated_at,
         segment: l.segment, call_status: l.call_status, tier: l.tier, priority_score: l.priority_score,
@@ -210,7 +226,7 @@ class LeadService {
               COUNT(*) FILTER (WHERE l.tier = 'Hot')::int AS hot,
               COUNT(*) FILTER (WHERE l.tier = 'Warm')::int AS warm,
               COUNT(*) FILTER (WHERE l.followup_window = 'Due Today')::int AS due_today,
-              COUNT(*) FILTER (WHERE l.followup_window = 'Overdue')::int AS overdue,
+              COUNT(*) FILTER (WHERE l.followup_window = 'Overdue' OR ${OVERDUE_TASK_SQL})::int AS overdue,
               COUNT(*) FILTER (WHERE COALESCE(l.is_duplicate, false))::int AS duplicates,
               COUNT(*) FILTER (WHERE l.created_at >= NOW() - INTERVAL '7 days')::int AS new_this_week
          FROM leads l
@@ -221,8 +237,9 @@ class LeadService {
 
   async get(ctx, leadId) {
     const r = await q(
-      `SELECT l.*, au.name AS assigned_to_name, au.avatar_url AS assigned_to_avatar, au.email AS assigned_to_email
+      `SELECT l.*, au.name AS assigned_to_name, au.avatar_url AS assigned_to_avatar, au.email AS assigned_to_email, ou.name AS owner_name
          FROM leads l LEFT JOIN users au ON au.id = l.assigned_to
+         LEFT JOIN users ou ON ou.id = l.owner_id
         WHERE l.id = $1`, [leadId]);
     if (r.rows.length === 0) throw new NotFoundError('Not found');
     const l = r.rows[0];
@@ -254,7 +271,7 @@ class LeadService {
 
     return {
       id: l.id, name: l.name, phone: l.phone, email: l.email, status: l.status,
-      source: l.source, priority: l.priority, owner_id: l.owner_id,
+      source: l.source, priority: l.priority, owner_id: l.owner_id, owner_name: l.owner_name,
       assigned_to: l.assigned_to, assigned_to_name: l.assigned_to_name,
       assigned_to_avatar: l.assigned_to_avatar, assigned_to_email: l.assigned_to_email,
       notes: l.notes, last_contacted_at: l.last_contacted_at,
@@ -319,6 +336,11 @@ class LeadService {
     const values = [];
     let idx = 1;
     const CALL_FIELDS = ['call_status', 'remarks', 'followup_date', 'call_attempted_date'];
+    if (body.phone !== undefined) {
+      const phone = toE164(body.phone, await WorkspaceSettingsService.countryCode());
+      if (!phone) throw new ValidationError('phone is not a valid phone number');
+      body = { ...body, phone };
+    }
     for (const k of ['name', 'phone', 'email', 'status', 'source', 'priority', 'notes', ...CALL_FIELDS]) {
       if (body[k] !== undefined) { fields.push(`${k} = $${idx}`); values.push(body[k]); idx++; }
     }

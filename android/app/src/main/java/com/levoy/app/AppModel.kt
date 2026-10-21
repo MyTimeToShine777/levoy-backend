@@ -143,13 +143,18 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         resendIn = seconds
         viewModelScope.launch { while (resendIn > 0) { delay(1000); resendIn -= 1 } }
     }
+    /** True while a NEW code is being requested from the code screen, so the button does not claim to be "Signing in…". */
+    var loginResending by mutableStateOf(false)
     fun requestCode(email: String) {
-        loginBusy = true; loginError = null
+        loginBusy = true; loginError = null; loginResending = codeSent
         viewModelScope.launch {
             try {
                 val r = api.sendOtp(email.trim())
                 codeSent = true; startCooldown(r.resend_in)
-            } catch (e: ApiException) { loginError = e.message } finally { loginBusy = false }
+            } catch (e: ApiException) { loginError = e.message
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) { throw e
+            } catch (e: Exception) { loginError = "Something went wrong. Check your connection and try again."
+            } finally { loginBusy = false; loginResending = false }
         }
     }
     fun verifyCode(email: String, code: String) {
@@ -165,7 +170,10 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                 codeSent = false; resendIn = 0
                 stage = Stage.Main
                 onSignedIn()
-            } catch (e: ApiException) { loginError = e.message } finally { loginBusy = false }
+            } catch (e: ApiException) { loginError = e.message
+            } catch (e: kotlin.coroutines.cancellation.CancellationException) { throw e
+            } catch (e: Exception) { loginError = "Something went wrong. Check your connection and try again."
+            } finally { loginBusy = false }
         }
     }
     fun changeEmail() { codeSent = false; resendIn = 0; loginError = null }
@@ -618,6 +626,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var missedPrompt by mutableStateOf(session.missedReminderPrompt)
     fun changeMissedPrompt(v: Boolean) { session.missedReminderPrompt = v; missedPrompt = v }
     var callRecording by mutableStateOf(session.callRecording)
+    @JvmName("applyCallRecording")
     fun setCallRecording(v: Boolean) { session.callRecording = v; callRecording = v }
     var whatsappCalls by mutableStateOf(session.whatsappCalls)
     fun setWhatsapp(v: Boolean) { session.whatsappCalls = v; whatsappCalls = v }
