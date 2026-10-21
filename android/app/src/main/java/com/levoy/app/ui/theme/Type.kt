@@ -1,11 +1,9 @@
 package com.levoy.app.ui.theme
 
 import androidx.compose.material3.Typography
-import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.levoy.app.R
@@ -13,17 +11,14 @@ import com.levoy.app.R
 /**
  * The reference app mixes two faces: Montserrat for settings rows, headings and buttons, and the
  * system font (Roboto) for the big screen titles ("Call History", "Analytics") and bold names.
- * Montserrat ships as one variable font, so each weight is an instance of the same file.
+ * Montserrat ships as one real font file per weight. (It used to be one variable font, but a lot of phones ignore the
+ * "pick this weight" request and show the font's default, which is Thin: hairline text that is hard to read.)
  */
-@OptIn(ExperimentalTextApi::class)
 val Montserrat = FontFamily(
-    listOf(400, 500, 600, 700, 800).map { w ->
-        Font(
-            resId = R.font.montserrat_vf,
-            weight = FontWeight(w),
-            variationSettings = FontVariation.Settings(FontVariation.weight(w)),
-        )
-    }
+    Font(R.font.montserrat_regular, FontWeight.Normal),
+    Font(R.font.montserrat_medium, FontWeight.Medium),
+    Font(R.font.montserrat_semibold, FontWeight.SemiBold),
+    Font(R.font.montserrat_bold, FontWeight.Bold),
 )
 
 val Roboto = FontFamily.Default
