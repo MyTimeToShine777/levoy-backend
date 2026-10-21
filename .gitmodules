@@ -1,4 +1,3 @@
-[submodule "Medivoy-lead-Tool"]
-	path = Medivoy-lead-Tool
-	url = https://github.com/MediVoy/Medivoy-lead-Tool.git
-	branch = dev
+[submodule "levoy-frontend"]
+	path = levoy-frontend
+	url = https://github.com/MyTimeToShine777/levoy-frontend.git
