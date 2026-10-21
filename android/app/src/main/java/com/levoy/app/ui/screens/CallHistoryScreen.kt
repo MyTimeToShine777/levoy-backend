@@ -156,7 +156,7 @@ private fun CallList(ui: CallHistoryUi, a: CallHistoryActions, bottomInset: andr
 
 @Composable
 fun CallCard(r: CallRow, a: CallHistoryActions) {
-    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(Pal.card)) {
+    Column(Modifier.fillMaxWidth().clip(RoundedCornerShape(26.dp)).background(Pal.card)) {
         Row(Modifier.fillMaxWidth().clickable { a.onOpenContact(r.phone_key) }.padding(start = 14.dp, end = 14.dp, top = 14.dp), verticalAlignment = Alignment.Top) {
             KindCircle(r.callKind)
             Spacer(Modifier.width(12.dp))
@@ -175,7 +175,7 @@ fun CallCard(r: CallRow, a: CallHistoryActions) {
         ActionIcons(r.phone_number, { a.call.onCopy(r.phone_number) }, { a.call.onSms(r.phone_number) }, { a.call.onWhatsApp(r.phone_number) }, { a.call.onCall(r.phone_number) },
             Modifier.fillMaxWidth().padding(horizontal = 34.dp))
         Spacer(Modifier.height(8.dp))
-        Row(Modifier.fillMaxWidth().background(Color(0xFF3B3C41)).clickable { a.onNote(r) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.fillMaxWidth().background(Pal.divider.copy(alpha = 0.55f)).clickable { a.onNote(r) }.padding(horizontal = 14.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Filled.Description, null, tint = Pal.textMuted, modifier = Modifier.size(24.dp))
             Spacer(Modifier.width(12.dp))
             val note = r.notes?.takeIf { it.isNotBlank() }

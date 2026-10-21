@@ -316,12 +316,12 @@ fun PermissionBanner(onFix: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 fun SearchField(value: String, onChange: (String) -> Unit, hint: String, modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().height(56.dp).clip(RoundedCornerShape(10.dp)).background(Pal.card).padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Filled.Search, null, tint = Pal.textSecondary, modifier = Modifier.size(28.dp))
-        Spacer(Modifier.width(14.dp))
+    Row(modifier.fillMaxWidth().height(54.dp).clip(RoundedCornerShape(27.dp)).background(Pal.card).padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Filled.Search, null, tint = Pal.textMuted, modifier = Modifier.size(24.dp))
+        Spacer(Modifier.width(12.dp))
         Box(Modifier.weight(1f)) {
-            if (value.isEmpty()) Text(hint, style = Txt.Body.copy(fontSize = 19.sp), color = Pal.textSecondary)
-            BasicTextField(value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(CallioColors.Amber), modifier = Modifier.fillMaxWidth())
+            if (value.isEmpty()) Text(hint, style = Txt.Body.copy(fontSize = 16.sp), color = Pal.textMuted)
+            BasicTextField(value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 16.sp, color = Pal.text), cursorBrush = SolidColor(CallioColors.Amber), modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -330,13 +330,13 @@ fun SearchField(value: String, onChange: (String) -> Unit, hint: String, modifie
 @Composable
 fun RangeStrip(label: String, presetLabel: String, onClick: () -> Unit) {
     Row(Modifier.fillMaxWidth().background(Pal.strip).padding(horizontal = 16.dp, vertical = 14.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, style = Txt.Section.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp), color = Color.White, modifier = Modifier.weight(1f).padding(end = 12.dp))
+        Text(label, style = Txt.Section.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold, fontSize = 20.sp), color = Pal.text, modifier = Modifier.weight(1f).padding(end = 12.dp))
         Row(
-            Modifier.width(112.dp).height(72.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFF2B2C31)).clickable(onClick = onClick).padding(horizontal = 12.dp),
+            Modifier.width(112.dp).height(72.dp).clip(RoundedCornerShape(22.dp)).background(Pal.card).clickable(onClick = onClick).padding(horizontal = 12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(presetLabel, style = Txt.Section.copy(fontSize = 16.sp), color = Color.White, modifier = Modifier.weight(1f), maxLines = 1)
-            Icon(Icons.Filled.KeyboardArrowDown, null, tint = Color.White, modifier = Modifier.size(26.dp))
+            Text(presetLabel, style = Txt.Section.copy(fontSize = 16.sp), color = Pal.text, modifier = Modifier.weight(1f), maxLines = 1)
+            Icon(Icons.Filled.KeyboardArrowDown, null, tint = Pal.text, modifier = Modifier.size(26.dp))
         }
     }
 }
@@ -367,19 +367,23 @@ fun ScrollTabs(tabs: List<TabDef>, selected: String, onSelect: (String) -> Unit,
 
 /* ───────────────────────────── call row bits ───────────────────────────── */
 
-/** The round coloured icon at the left of a call card. */
+/** The soft coloured rounded square at the left of a call card: lime for incoming, amber for outgoing, coral for missed. */
 @Composable
 fun KindCircle(kind: com.levoy.app.data.CallKind, size: Dp = 52.dp) {
-    val (bg, icon) = when (kind) {
+    val (tint, icon) = when (kind) {
         com.levoy.app.data.CallKind.incoming -> CallioColors.IncomingIcon to Icons.Filled.PhoneCallback
         com.levoy.app.data.CallKind.outgoing -> CallioColors.OutgoingIcon to Icons.Filled.PhoneForwarded
         com.levoy.app.data.CallKind.missed -> CallioColors.MissedIcon to Icons.Filled.PhoneMissed
         com.levoy.app.data.CallKind.rejected -> CallioColors.MissedIcon to Icons.Filled.PhoneDisabled
     }
-    Box(Modifier.size(size).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
-        Icon(icon, null, tint = Color(0xFF222328), modifier = Modifier.size(size * 0.52f))
+    // the icon keeps the bright colour; the square behind it is the same colour, very faint, so it works on dark and light screens
+    Box(Modifier.size(size).clip(RoundedCornerShape(size * 0.36f)).background(tint.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+        Icon(icon, null, tint = if (Pal.isDark) tint else tint.darker(), modifier = Modifier.size(size * 0.5f))
     }
 }
+
+/** A deeper shade of the same colour, so a pale icon colour still shows on a light screen. */
+private fun Color.darker(): Color = Color(red * 0.55f, green * 0.55f, blue * 0.55f, alpha)
 
 /** copy · message · whatsapp · call — the four glyphs under every number. */
 @Composable

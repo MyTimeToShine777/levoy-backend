@@ -6,33 +6,33 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 
 /**
- * Colours sampled from the 50 reference screenshots (738×1600 px each). The reference app is dark
- * only; every dark value here was read off a pixel. The light palette is an extra for the "Theme"
- * setting and keeps the same roles.
+ * The "Warm Graphite" look: warm dark greys (never pure black), one amber accent used sparingly, and soft
+ * lime / amber / coral for incoming / outgoing / missed. Every pair of text and background here is at least
+ * 4.5:1 so it stays readable on any phone. The light palette keeps the same roles for the "Theme" setting.
  */
 object CallioColors {
     // brand
-    val Amber = Color(0xFFFDBC00)            // primary buttons, selection, FAB, active accents
-    val AmberOrange = Color(0xFFFEA500)      // outgoing in charts and the Premium ribbons
-    val OnAmber = Color(0xFF222328)
+    val Amber = Color(0xFFFFB938)            // primary buttons, selection, FAB, active accents
+    val AmberOrange = Color(0xFFFF9F1C)      // outgoing in charts and the Premium ribbons
+    val OnAmber = Color(0xFF231A00)
 
     // call kinds
-    val Incoming = Color(0xFF98CC00)         // chart slice / bar for incoming (lime)
-    val IncomingIcon = Color(0xFFD7F54A)     // round icon on a call card
-    val IncomingText = Color(0xFFC4F03C)
-    val Outgoing = Color(0xFFFEA500)
-    val OutgoingIcon = Color(0xFFFFBC4A)
-    val OutgoingText = Color(0xFFFFB020)
-    val Missed = Color(0xFFFF4B4B)
-    val MissedIcon = Color(0xFFFF5757)
-    val MissedText = Color(0xFFFF6B6B)
-    val Rejected = Color(0xFF8B0000)
-    val RejectedText = Color(0xFFD63B3B)
+    val Incoming = Color(0xFFA9D84F)         // chart slice / bar for incoming (lime)
+    val IncomingIcon = Color(0xFFC4EB7A)     // icon on a call card
+    val IncomingText = Color(0xFFC4EB7A)
+    val Outgoing = Color(0xFFFFB938)
+    val OutgoingIcon = Color(0xFFFFC95C)
+    val OutgoingText = Color(0xFFFFC95C)
+    val Missed = Color(0xFFFF7A5C)
+    val MissedIcon = Color(0xFFFF9C80)
+    val MissedText = Color(0xFFFF9C80)
+    val Rejected = Color(0xFFB23A2E)
+    val RejectedText = Color(0xFFE5705F)
 
     // semantic
-    val Success = Color(0xFF4CBC18)          // "Verified", granted
-    val Danger = Color(0xFFD6341C)           // destructive / disable-battery button
-    val DangerText = Color(0xFFE5483A)
+    val Success = Color(0xFF6CC24A)          // "Verified", granted
+    val Danger = Color(0xFFE5392A)           // destructive / end call / disable-battery button
+    val DangerText = Color(0xFFFF8A78)
     val Link = Color(0xFF2A7DE1)             // "FIX NOW", Privacy Policy, the call icon
     val WhatsApp = Color(0xFF25D366)
     val Sms = Color(0xFF4A9EE0)
@@ -57,28 +57,28 @@ data class Palette(
 )
 
 val DarkPalette = Palette(
-    background = Color(0xFF191A1E),
-    card = Color(0xFF2B2C31),
-    cardDeep = Color(0xFF141517),
-    strip = Color(0xFF000000),
-    divider = Color(0xFF787880),
-    textPrimary = Color(0xFFFFFFFF),
-    textSecondary = Color(0xFFA6A7AD),
-    textMuted = Color(0xFF8E8F97),
-    chartGrid = Color(0xFF4B4C52),
+    background = Color(0xFF141311),
+    card = Color(0xFF1E1C19),
+    cardDeep = Color(0xFF0F0E0C),
+    strip = Color(0xFF0F0E0C),
+    divider = Color(0xFF3A362F),
+    textPrimary = Color(0xFFF6F1E7),
+    textSecondary = Color(0xFFD9D2C4),
+    textMuted = Color(0xFFA8A094),
+    chartGrid = Color(0xFF3A362F),
     isDark = true,
 )
 
 val LightPalette = Palette(
-    background = Color(0xFFF4F4F6),
+    background = Color(0xFFF7F3EA),
     card = Color(0xFFFFFFFF),
-    cardDeep = Color(0xFFE9E9ED),
-    strip = Color(0xFFE2E2E7),
-    divider = Color(0xFFC9C9CF),
-    textPrimary = Color(0xFF1B1C20),
-    textSecondary = Color(0xFF5F6068),
-    textMuted = Color(0xFF6E6F77),
-    chartGrid = Color(0xFFD5D5DA),
+    cardDeep = Color(0xFFEFE9DB),
+    strip = Color(0xFFE9E2D2),
+    divider = Color(0xFFDDD5C4),
+    textPrimary = Color(0xFF1F1B14),
+    textSecondary = Color(0xFF5A5446),
+    textMuted = Color(0xFF6F6859),
+    chartGrid = Color(0xFFDDD5C4),
     isDark = false,
 )
 
@@ -95,4 +95,5 @@ object Pal {
     val textSecondary: Color @Composable get() = LocalPalette.current.textSecondary
     val textMuted: Color @Composable get() = LocalPalette.current.textMuted
     val chartGrid: Color @Composable get() = LocalPalette.current.chartGrid
+    val isDark: Boolean @Composable get() = LocalPalette.current.isDark
 }

@@ -57,12 +57,12 @@ class QuickActionReceiver : BroadcastReceiver() {
             val wm = c.getSystemService(Context.WINDOW_SERVICE) as WindowManager
 
             val bubble = TextView(c).apply {
-                text = "C"; setTextColor(Color.parseColor("#222328")); textSize = 18f; gravity = Gravity.CENTER
-                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#FDBC00")) }
+                text = "C"; setTextColor(Color.parseColor("#231A00")); textSize = 18f; gravity = Gravity.CENTER
+                background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(Color.parseColor("#FFB938")) }
             }
             val panel = LinearLayout(c).apply {
                 orientation = LinearLayout.VERTICAL; visibility = View.GONE
-                background = GradientDrawable().apply { cornerRadius = dp(c, 14).toFloat(); setColor(Color.parseColor("#2B2C31")) }
+                background = GradientDrawable().apply { cornerRadius = dp(c, 14).toFloat(); setColor(Color.parseColor("#1E1C19")) }
                 setPadding(dp(c, 6), dp(c, 6), dp(c, 6), dp(c, 6))
             }
             fun action(label: String, run: () -> Unit) = TextView(c).apply {

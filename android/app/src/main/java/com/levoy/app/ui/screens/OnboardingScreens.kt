@@ -67,7 +67,7 @@ fun DeskIllustration(modifier: Modifier = Modifier, dim: Boolean = false) {
         for (i in 0..3) drawRoundRect(c(0xFFD9C9BE), Offset(w * 0.08f, h * 0.56f - i * h * 0.035f), Size(w * 0.2f, h * 0.03f), CornerRadius(4f))
         // person
         drawRoundRect(c(0xFF1F4274), Offset(w * 0.4f, h * 0.45f), Size(w * 0.2f, h * 0.5f), CornerRadius(8f))
-        drawRoundRect(c(0xFFFDBC00), Offset(w * 0.37f, h * 0.2f), Size(w * 0.26f, h * 0.32f), CornerRadius(30f))
+        drawRoundRect(c(0xFFFFB938), Offset(w * 0.37f, h * 0.2f), Size(w * 0.26f, h * 0.32f), CornerRadius(30f))
         drawCircle(c(0xFFF0A987), w * 0.075f, Offset(w * 0.5f, h * 0.13f))
         drawRoundRect(c(0xFF6B4A32), Offset(w * 0.43f, h * 0.05f), Size(w * 0.14f, h * 0.06f), CornerRadius(20f))
         drawRoundRect(c(0xFF2A2A30), Offset(w * 0.34f, h * 0.27f), Size(w * 0.05f, h * 0.07f), CornerRadius(6f))

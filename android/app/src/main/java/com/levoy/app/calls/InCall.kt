@@ -27,6 +27,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Call
 import androidx.compose.material.icons.filled.CallEnd
@@ -194,13 +195,19 @@ fun InCallView(ui: InCallUi, a: InCallActions, startWithKeypad: Boolean = false)
     var keypad by remember { mutableStateOf(startWithKeypad) }
     Column(Modifier.fillMaxSize().background(Pal.background).padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(90.dp))
-        Box(Modifier.size(110.dp).clip(CircleShape).background(Pal.card), contentAlignment = Alignment.Center) { Text((ui.name ?: ui.number).take(1).uppercase().ifEmpty { "?" }, style = Txt.Title.copy(fontSize = 44.sp), color = Pal.text) }
-        Spacer(Modifier.height(24.dp))
-        Text(ui.name ?: ui.number.ifBlank { "Unknown" }, style = Txt.Title.copy(fontSize = 30.sp), color = Pal.text, textAlign = TextAlign.Center)
-        if (ui.name != null) Text(ui.number, style = Txt.Body.copy(fontSize = 18.sp), color = Pal.textSecondary)
-        Spacer(Modifier.height(10.dp))
-        Text(ui.status, style = Txt.Body.copy(fontSize = 20.sp), color = if (ui.ringing) CallioColors.Amber else Pal.textSecondary)
-        if (ui.recording) Text("● Recording", style = Txt.Small, color = Color(0xFFD6341C))
+        Box(Modifier.size(128.dp).clip(RoundedCornerShape(44.dp)).background(CallioColors.Amber.copy(alpha = 0.18f)), contentAlignment = Alignment.Center) {
+            Text((ui.name ?: ui.number).take(1).uppercase().ifEmpty { "?" }, style = Txt.Title.copy(fontSize = 54.sp), color = CallioColors.Amber)
+        }
+        Spacer(Modifier.height(26.dp))
+        Text(ui.name ?: ui.number.ifBlank { "Unknown" }, style = Txt.Title.copy(fontSize = 32.sp), color = Pal.text, textAlign = TextAlign.Center)
+        if (ui.name != null) Text(ui.number, style = Txt.Body.copy(fontSize = 16.sp), color = Pal.textMuted)
+        Spacer(Modifier.height(14.dp))
+        Text(ui.status, style = Txt.Section.copy(fontSize = 22.sp), color = if (ui.ringing) CallioColors.Amber else Pal.text)
+        if (ui.recording) {
+            Spacer(Modifier.height(12.dp))
+            Text("● Recording", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = CallioColors.MissedText,
+                modifier = Modifier.clip(RoundedCornerShape(16.dp)).background(CallioColors.Missed.copy(alpha = 0.18f)).padding(horizontal = 14.dp, vertical = 7.dp))
+        }
         Spacer(Modifier.weight(1f))
         if (keypad && ui.hasCall) Keypad(a.onDtmf) else if (!ui.ringing && ui.hasCall) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
@@ -211,15 +218,24 @@ fun InCallView(ui: InCallUi, a: InCallActions, startWithKeypad: Boolean = false)
             }
         }
         Spacer(Modifier.height(40.dp))
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-            if (ui.ringing) {
-                BigButton(Icons.Filled.CallEnd, "Decline", Color(0xFFD6341C), a.onDecline)
-                BigButton(Icons.Filled.Call, "Answer", Color(0xFF0A8A0A), a.onAnswer)
-            } else if (ui.hasCall) {
-                BigButton(Icons.Filled.CallEnd, if (keypad) "Hide keypad" else "End", Color(0xFFD6341C)) { if (keypad) keypad = false else a.onEnd() }
+        if (ui.ringing) {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                BigButton(Icons.Filled.CallEnd, "Decline", CallioColors.Danger, a.onDecline)
+                BigButton(Icons.Filled.Call, "Answer", Color(0xFF2E9E3F), a.onAnswer)
+            }
+        } else if (ui.hasCall) {
+            // one wide pill: easy to hit with a thumb, and clearly different from the other controls
+            Row(
+                Modifier.fillMaxWidth().height(72.dp).clip(RoundedCornerShape(36.dp)).background(CallioColors.Danger)
+                    .clickable { if (keypad) keypad = false else a.onEnd() },
+                horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(Icons.Filled.CallEnd, null, tint = Color.White, modifier = Modifier.size(28.dp))
+                Spacer(Modifier.size(10.dp))
+                Text(if (keypad) "Hide keypad" else "End call", style = Txt.Button.copy(fontSize = 18.sp), color = Color.White)
             }
         }
-        Spacer(Modifier.height(70.dp))
+        Spacer(Modifier.height(48.dp))
     }
 }
 
@@ -239,11 +255,11 @@ private fun Keypad(onDtmf: (Char) -> Unit) {
 @Composable
 private fun RoundButton(icon: ImageVector, label: String, on: Boolean, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
-        Box(Modifier.size(62.dp).clip(CircleShape).background(if (on) CallioColors.Amber else Pal.card), contentAlignment = Alignment.Center) {
+        Box(Modifier.size(72.dp).clip(RoundedCornerShape(26.dp)).background(if (on) CallioColors.Amber else Pal.card), contentAlignment = Alignment.Center) {
             Icon(icon, label, tint = if (on) CallioColors.OnAmber else Pal.text, modifier = Modifier.size(28.dp))
         }
-        Spacer(Modifier.height(6.dp))
-        Text(label, style = Txt.Small, color = Pal.textSecondary)
+        Spacer(Modifier.height(8.dp))
+        Text(label, style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = Pal.textSecondary)
     }
 }
 
