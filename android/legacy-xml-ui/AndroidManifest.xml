@@ -25,20 +25,20 @@
     <uses-permission android:name="android.permission.WRITE_CONTACTS" />
 
     <application
-        android:name=".LevoyApp"
+        android:name=".CallioApp"
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Levoy"
+        android:theme="@style/Theme.Callio"
         android:usesCleartextTraffic="true"
         tools:targetApi="34">
 
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.Levoy">
+            android:theme="@style/Theme.Callio">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -56,7 +56,7 @@
             android:exported="false"
             android:noHistory="true"
             android:taskAffinity=""
-            android:theme="@style/Theme.Levoy.Transparent" />
+            android:theme="@style/Theme.Callio.Transparent" />
 
         <service
             android:name=".service.CallSyncService"

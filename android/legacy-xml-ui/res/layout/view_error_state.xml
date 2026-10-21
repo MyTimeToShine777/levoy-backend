@@ -40,7 +40,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/errorRetry"
-        style="@style/Widget.Levoy.Button"
+        style="@style/Widget.Callio.Button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"

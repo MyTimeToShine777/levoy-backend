@@ -16,7 +16,7 @@
         app:navigationIconTint="@color/text_primary"
         app:titleTextColor="@color/text_primary"
         app:titleTextAppearance="@style/Text.ScreenTitle"
-        app:popupTheme="@style/Theme.Levoy" />
+        app:popupTheme="@style/Theme.Callio" />
 
     <View
         android:layout_width="match_parent"
@@ -42,95 +42,95 @@
 
         <LinearLayout
             android:id="@+id/nav_dashboard"
-            style="@style/Widget.Levoy.NavItem"
+            style="@style/Widget.Callio.NavItem"
             android:contentDescription="@string/cd_nav_dashboard">
 
             <ImageView
                 android:id="@+id/iconNavDashboard"
-                style="@style/Widget.Levoy.NavIcon"
+                style="@style/Widget.Callio.NavIcon"
                 android:src="@drawable/ic_dashboard"
                 android:contentDescription="@string/dashboard"
                 android:tint="@color/nav_icon_tint" />
 
             <TextView
                 android:id="@+id/labelNavDashboard"
-                style="@style/Widget.Levoy.NavLabel"
+                style="@style/Widget.Callio.NavLabel"
                 android:text="@string/dashboard"
                 android:textColor="@color/nav_label_color" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/nav_calls"
-            style="@style/Widget.Levoy.NavItem"
+            style="@style/Widget.Callio.NavItem"
             android:contentDescription="@string/cd_nav_calls">
 
             <ImageView
                 android:id="@+id/iconNavCalls"
-                style="@style/Widget.Levoy.NavIcon"
+                style="@style/Widget.Callio.NavIcon"
                 android:src="@drawable/ic_calls"
                 android:contentDescription="@string/calls"
                 android:tint="@color/nav_icon_tint" />
 
             <TextView
                 android:id="@+id/labelNavCalls"
-                style="@style/Widget.Levoy.NavLabel"
+                style="@style/Widget.Callio.NavLabel"
                 android:text="@string/calls"
                 android:textColor="@color/nav_label_color" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/nav_leads"
-            style="@style/Widget.Levoy.NavItem"
+            style="@style/Widget.Callio.NavItem"
             android:contentDescription="@string/cd_nav_leads">
 
             <ImageView
                 android:id="@+id/iconNavLeads"
-                style="@style/Widget.Levoy.NavIcon"
+                style="@style/Widget.Callio.NavIcon"
                 android:src="@drawable/ic_leads"
                 android:contentDescription="@string/leads"
                 android:tint="@color/nav_icon_tint" />
 
             <TextView
                 android:id="@+id/labelNavLeads"
-                style="@style/Widget.Levoy.NavLabel"
+                style="@style/Widget.Callio.NavLabel"
                 android:text="@string/leads"
                 android:textColor="@color/nav_label_color" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/nav_followups"
-            style="@style/Widget.Levoy.NavItem"
+            style="@style/Widget.Callio.NavItem"
             android:contentDescription="@string/cd_nav_followups">
 
             <ImageView
                 android:id="@+id/iconNavFollowups"
-                style="@style/Widget.Levoy.NavIcon"
+                style="@style/Widget.Callio.NavIcon"
                 android:src="@drawable/ic_followups"
                 android:contentDescription="@string/follow_ups"
                 android:tint="@color/nav_icon_tint" />
 
             <TextView
                 android:id="@+id/labelNavFollowups"
-                style="@style/Widget.Levoy.NavLabel"
+                style="@style/Widget.Callio.NavLabel"
                 android:text="@string/follow_ups"
                 android:textColor="@color/nav_label_color" />
         </LinearLayout>
 
         <LinearLayout
             android:id="@+id/nav_more"
-            style="@style/Widget.Levoy.NavItem"
+            style="@style/Widget.Callio.NavItem"
             android:contentDescription="@string/cd_nav_more">
 
             <ImageView
                 android:id="@+id/iconNavMore"
-                style="@style/Widget.Levoy.NavIcon"
+                style="@style/Widget.Callio.NavIcon"
                 android:src="@drawable/ic_more"
                 android:contentDescription="@string/more"
                 android:tint="@color/nav_icon_tint" />
 
             <TextView
                 android:id="@+id/labelNavMore"
-                style="@style/Widget.Levoy.NavLabel"
+                style="@style/Widget.Callio.NavLabel"
                 android:text="@string/more"
                 android:textColor="@color/nav_label_color" />
         </LinearLayout>

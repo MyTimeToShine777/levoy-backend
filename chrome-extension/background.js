@@ -3,7 +3,7 @@ import { dial } from './shared.js';
 const MENU = 'levoy-call';
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({ id: MENU, title: 'Call "%s" with Levoy', contexts: ['selection', 'link'] });
+  chrome.contextMenus.create({ id: MENU, title: 'Call "%s" with Callio', contexts: ['selection', 'link'] });
 });
 
 async function session() {
@@ -14,7 +14,7 @@ async function session() {
 /** Ask the phone to dial. Resolves to { ok, message } — never throws, so callers can just show the message. */
 export async function placeCall(number, name) {
   const s = await session();
-  if (!s) return { ok: false, message: 'Sign in from the Levoy extension icon first.' };
+  if (!s) return { ok: false, message: 'Sign in from the Callio extension icon first.' };
   try {
     await dial(fetch, s, number, name);
     return { ok: true, message: 'Calling from your phone…' };

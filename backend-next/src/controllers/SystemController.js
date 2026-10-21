@@ -9,12 +9,12 @@ class SystemController {
   // HTML get HTML; API clients still get JSON.
   root = (req, res) => {
     if (!req.accepts('html')) {
-      return res.json({ name: 'Levoy Clone API', version: '1.0.0', status: 'running' });
+      return res.json({ name: 'Callio Clone API', version: '1.0.0', status: 'running' });
     }
     res.type('html').send(`<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Levoy API</title>
+<title>Callio API</title>
 <style>
  body{margin:0;padding:3rem 1.5rem;font:15px/1.6 system-ui,-apple-system,Segoe UI,sans-serif;
       background:#f5f6fa;color:#0b1220;display:flex;justify-content:center}
@@ -27,7 +27,7 @@ class SystemController {
  ul{padding-left:18px} a{color:#4f46e5}
 </style></head><body><div class="w">
 <span class="pill">API is running</span>
-<h1>Levoy Clone API</h1>
+<h1>Callio Clone API</h1>
 <p>The JSON service behind the dashboard. The dashboard itself is the web app on port&nbsp;3000.</p>
 <pre>GET  /health          liveness probe</pre>
 <p>Everything under <code>/api</code> requires a bearer token:</p>
@@ -41,7 +41,7 @@ Authorization: Bearer &lt;token&gt;</pre>
   // Hitting /api bare used to 404 with Express's HTML error page.
   api = (req, res) =>
     res.json({
-      name: 'Levoy Clone API',
+      name: 'Callio Clone API',
       version: '1.0.0',
       hint: 'Sign in with POST /api/auth/send-otp then /api/auth/verify-otp, then send "Authorization: Bearer <token>".',
       docs: '/api-doc (on the dashboard host)',

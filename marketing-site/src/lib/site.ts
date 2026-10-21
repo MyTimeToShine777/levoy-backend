@@ -7,7 +7,7 @@
  */
 
 export const site = {
-  name: "Levoy",
+  name: "Callio",
   wordmark: "levoy®",
   tagline: "Telecalling analytics, built on the SIM.",
   appUrl: "https://web.levoy.co/signup",
@@ -45,7 +45,7 @@ type NavLink = { label: string; href: string; external?: boolean };
 export const navLinks: readonly NavLink[] = [
   { label: "Home", href: "#top" },
   { label: "Features", href: "#features" },
-  { label: "Why Levoy", href: "#why-levoy" },
+  { label: "Why Callio", href: "#why-levoy" },
   { label: "How It Works", href: "#how-it-works" },
   { label: "Contact Us", href: "#contact" },
   { label: "Career", href: site.careersUrl, external: true },
@@ -63,7 +63,7 @@ export const footerColumns: readonly {
     title: "Product",
     links: [
       { label: "Features", href: "#features" },
-      { label: "Why Levoy", href: "#why-levoy" },
+      { label: "Why Callio", href: "#why-levoy" },
       { label: "How It Works", href: "#how-it-works" },
       { label: "Partner Login", href: site.partnerLoginUrl, external: true },
     ],

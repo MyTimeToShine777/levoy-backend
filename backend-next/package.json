@@ -1,7 +1,7 @@
 {
   "name": "levoy-backend",
   "version": "1.0.0",
-  "description": "Levoy API — Express + PostgreSQL (Prisma schema/migrations)",
+  "description": "Callio API — Express + PostgreSQL (Prisma schema/migrations)",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

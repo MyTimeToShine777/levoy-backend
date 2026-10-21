@@ -10,7 +10,7 @@ import androidx.compose.ui.graphics.Color
  * only; every dark value here was read off a pixel. The light palette is an extra for the "Theme"
  * setting and keeps the same roles.
  */
-object LevoyColors {
+object CallioColors {
     // brand
     val Amber = Color(0xFFFDBC00)            // primary buttons, selection, FAB, active accents
     val AmberOrange = Color(0xFFFEA500)      // outgoing in charts and the Premium ribbons

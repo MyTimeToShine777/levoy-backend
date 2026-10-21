@@ -45,7 +45,7 @@
 
     <ImageView
         android:id="@+id/ivPickCallCheck"
-        style="@style/Widget.Levoy.RadioCheck"
+        style="@style/Widget.Callio.RadioCheck"
         android:visibility="gone" />
 
 </LinearLayout>

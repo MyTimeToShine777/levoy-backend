@@ -85,7 +85,16 @@ class Api(private val session: Session) {
     suspend fun updateLead(id: Int, body: Map<String, Any?>) { raw("PUT", "/leads/$id", body, nulls = true) }
 
     // ── calls ──
-    suspend fun history(params: Map<String, Any?>): HistoryResponse = call("GET", "/call-history?${query(params)}")
+    // A call to a lead who is not saved in the phone has no contact name. Use the assigned lead's name for it, so it is never shown as "Unknown".
+    private fun nameOrLead(contactName: String?, number: String?): String? = contactName?.takeIf { it.isNotBlank() } ?: session.leadNameFor(number)
+
+    suspend fun history(params: Map<String, Any?>): HistoryResponse {
+        val h: HistoryResponse = call("GET", "/call-history?${query(params)}")
+        return h.copy(
+            rows = h.rows.map { r -> if (r.lead == null) r.copy(contact_name = nameOrLead(r.contact_name, r.phone_number)) else r },
+            groups = h.groups?.map { g -> g.copy(contact_name = nameOrLead(g.contact_name, g.phone_number)) },
+        )
+    }
     suspend fun uploadCalls(events: List<Map<String, Any?>>) { raw("POST", "/calls/batch", mapOf("events" to events)) }
     /** Attach a finished call recording (m4a) to a call the server already holds. */
     suspend fun uploadRecording(callId: Int, file: java.io.File, durationSeconds: Int) = withContext(Dispatchers.IO) {
@@ -110,8 +119,14 @@ class Api(private val session: Session) {
     suspend fun analysis(params: Map<String, Any?>): Analysis = call("GET", "/call-analytics/analysis?${query(params)}")
 
     // ── contacts ──
-    suspend fun contacts(params: Map<String, Any?>): ContactsResponse = call("GET", "/contacts?${query(params)}")
-    suspend fun contact(phoneKey: String, params: Map<String, Any?>): ContactDetail = call("GET", "/contacts/$phoneKey?${query(params)}")
+    suspend fun contacts(params: Map<String, Any?>): ContactsResponse {
+        val c: ContactsResponse = call("GET", "/contacts?${query(params)}")
+        return c.copy(rows = c.rows.map { it.copy(contact_name = nameOrLead(it.contact_name, it.phone_number)) })
+    }
+    suspend fun contact(phoneKey: String, params: Map<String, Any?>): ContactDetail {
+        val d: ContactDetail = call("GET", "/contacts/$phoneKey?${query(params)}")
+        return d.copy(contact = d.contact.copy(contact_name = nameOrLead(d.contact.contact_name, d.contact.phone_number)))
+    }
     suspend fun compare(phones: List<String>, params: Map<String, Any?>): List<CompareRow> =
         call("GET", "/contacts/compare?${query(params + mapOf("phones" to phones.joinToString(",")))}")
     suspend fun groups(): List<GroupRef> = call("GET", "/contact-groups")

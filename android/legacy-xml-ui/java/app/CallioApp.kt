@@ -6,7 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 
-class LevoyApp : Application() {
+class CallioApp : Application() {
 
     companion object {
         const val CHANNEL_SYNC = "call_sync_channel"

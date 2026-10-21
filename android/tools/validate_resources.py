@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Validation 3 for the Levoy Android app.
+Validation 3 for the Callio Android app.
 
 Resolves every `R.<type>.<name>` referenced from Kotlin against the real
 definitions in res/, and checks the error classes a compiler-less environment

@@ -2,15 +2,15 @@ import { Icon } from "@/components/ui/icons";
 import { IconTile, Section, SectionHeading } from "@/components/ui/primitives";
 import { trustPoints } from "@/lib/content";
 
-/** "Why businesses trust Levoy" — four benefit rows on a dark band. */
+/** "Why businesses trust Callio" — four benefit rows on a dark band. */
 export function TrustSection() {
   return (
     <Section id="why-levoy" tone="dark">
       <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-brand-500/60 to-transparent" />
 
       <SectionHeading
-        eyebrow="Why Levoy"
-        title="Why Businesses Trust Levoy?"
+        eyebrow="Why Callio"
+        title="Why Businesses Trust Callio?"
         lede="Because the numbers arrive on their own, and because a manager can act on them the same day instead of at the end of the month."
         invert
       />

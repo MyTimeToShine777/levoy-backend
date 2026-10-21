@@ -1,4 +1,4 @@
-# Levoy — Marketing Site
+# Callio — Marketing Site
 
 A self-contained, single-page marketing site for a SIM-based telecalling
 analytics product. Built as its own Next.js App Router application, independent
@@ -20,7 +20,7 @@ One route, `/`, composed of nine sections in `src/app/page.tsx`:
 | Section | Component | Reference content it mirrors |
 | --- | --- | --- |
 | Sticky header + mobile drawer | `layout/site-header.tsx` | Nav, Partner Login, Sign Up Now |
-| Hero | `sections/hero.tsx` | "Unleash Telecalling Success Secrets with Levoy" |
+| Hero | `sections/hero.tsx` | "Unleash Telecalling Success Secrets with Callio" |
 | Client logo wall | `sections/logo-wall.tsx` | The client carousel |
 | Three feature cards | `sections/feature-cards.tsx` | "Everything You Need to Boost Telecalling Productivity" |
 | Why businesses trust it | `sections/trust-section.tsx` | The four benefits |

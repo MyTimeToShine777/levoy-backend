@@ -60,7 +60,7 @@
 
             <com.google.android.material.switchmaterial.SwitchMaterial
                 android:id="@+id/rowSwitch"
-                style="@style/Widget.Levoy.Switch"
+                style="@style/Widget.Callio.Switch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:clickable="false"
@@ -69,7 +69,7 @@
 
             <ImageView
                 android:id="@+id/rowCheck"
-                style="@style/Widget.Levoy.RadioCheck"
+                style="@style/Widget.Callio.RadioCheck"
                 android:contentDescription="@string/cd_selected" />
 
             <ImageView

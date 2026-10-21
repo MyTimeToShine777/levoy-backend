@@ -78,12 +78,12 @@ object Push {
     }
 }
 
-class LevoyMessagingService : FirebaseMessagingService() {
+class CallioMessagingService : FirebaseMessagingService() {
     override fun onNewToken(token: String) { Push.send(applicationContext, token) }
 
     // Only called while the app is open; when it is closed the system shows the message itself (on the channel above).
     override fun onMessageReceived(message: RemoteMessage) {
-        val title = message.notification?.title ?: message.data["title"] ?: "Levoy"
+        val title = message.notification?.title ?: message.data["title"] ?: "Callio"
         val body = message.notification?.body ?: message.data["body"] ?: return
         Push.show(applicationContext, title, body)
     }

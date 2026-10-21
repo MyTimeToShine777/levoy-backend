@@ -2,7 +2,7 @@
 # Rapid crash-loops back off instead of hot-spinning the CPU.
 StartLimitIntervalSec=60
 StartLimitBurst=5
-Description=Levoy API backend (Express, port 3001)
+Description=Callio API backend (Express, port 3001)
 Documentation=file:///root/callyzer-clone/README.md
 After=network.target postgresql.service
 Requires=postgresql.service

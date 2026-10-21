@@ -14,7 +14,7 @@ const JWT_EXPIRE = '24h';
 const BOOTSTRAP_ADMIN_EMAIL = process.env.BOOTSTRAP_ADMIN_EMAIL || null;
 
 // Sign-in codes are generated, emailed and checked by medivoy.api (the same
-// service the pharmacy and vendor web apps use). Levoy only decides WHO may ask
+// service the pharmacy and vendor web apps use). Callio only decides WHO may ask
 // for a code, then issues its own session once medivoy confirms the code.
 const MEDIVOY_API_BASE_URL = String(process.env.MEDIVOY_API_BASE_URL || '').replace(/\/+$/, '');
 const MEDIVOY_API_TIMEOUT_MS = parseInt(process.env.MEDIVOY_API_TIMEOUT_MS) || 15000;

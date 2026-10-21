@@ -11,7 +11,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 enum class ThemeMode { System, Light, Dark }
 
 @Composable
-fun LevoyTheme(mode: ThemeMode = ThemeMode.Dark, content: @Composable () -> Unit) {
+fun CallioTheme(mode: ThemeMode = ThemeMode.Dark, content: @Composable () -> Unit) {
     val dark = when (mode) {
         ThemeMode.Dark -> true
         ThemeMode.Light -> false
@@ -19,9 +19,9 @@ fun LevoyTheme(mode: ThemeMode = ThemeMode.Dark, content: @Composable () -> Unit
     }
     val pal = if (dark) DarkPalette else LightPalette
     val scheme = if (dark) {
-        darkColorScheme(primary = LevoyColors.Amber, onPrimary = LevoyColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
+        darkColorScheme(primary = CallioColors.Amber, onPrimary = CallioColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
     } else {
-        lightColorScheme(primary = LevoyColors.Amber, onPrimary = LevoyColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
+        lightColorScheme(primary = CallioColors.Amber, onPrimary = CallioColors.OnAmber, background = pal.background, surface = pal.card, onSurface = pal.textPrimary, onBackground = pal.textPrimary)
     }
     // A phone set to "Largest" text used to blow past the fixed-height buttons and cards. Allow some enlargement, not unlimited.
     val density = androidx.compose.ui.platform.LocalDensity.current
@@ -29,6 +29,6 @@ fun LevoyTheme(mode: ThemeMode = ThemeMode.Dark, content: @Composable () -> Unit
         LocalPalette provides pal,
         androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, density.fontScale.coerceAtMost(1.15f)),
     ) {
-        MaterialTheme(colorScheme = scheme, typography = LevoyTypography, content = content)
+        MaterialTheme(colorScheme = scheme, typography = CallioTypography, content = content)
     }
 }

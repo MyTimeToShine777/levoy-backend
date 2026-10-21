@@ -2,7 +2,7 @@
 
 // Removes call records that are not calls to a lead assigned to the person who uploaded them.
 //
-// Levoy only tracks calls to the leads assigned to a telecaller. Older versions of the phone app uploaded the
+// Callio only tracks calls to the leads assigned to a telecaller. Older versions of the phone app uploaded the
 // whole call log, so those personal calls are still on the server. This deletes them (and their tags/recordings,
 // which cascade). It keeps every call whose number matches (last 10 digits) a lead assigned to that same person.
 //

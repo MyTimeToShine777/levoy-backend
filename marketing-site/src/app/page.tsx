@@ -12,7 +12,7 @@ import { Testimonial } from "@/components/sections/testimonial";
 import { ClosingCta } from "@/components/sections/closing-cta";
 
 export const metadata: Metadata = {
-  title: "Levoy — SIM-based Telecalling Analytics & Call Monitoring",
+  title: "Callio — SIM-based Telecalling Analytics & Call Monitoring",
   description:
     "Monitor all telesales and marketing calls, improve caller productivity and track lead status from one real-time dashboard. 1,000+ clients, 12,000+ tracking numbers.",
   alternates: { canonical: "/" },

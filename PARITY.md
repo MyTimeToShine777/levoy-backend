@@ -1,6 +1,6 @@
 # Competitor parity — what is built, what is not
 
-Reference: the 50 screenshots in `reference-screenshots/` (`IMG-20261002-WA0009` … `WA0058`) of the Levoy Android app.
+Reference: the 50 screenshots in `reference-screenshots/` (`IMG-20261002-WA0009` … `WA0058`) of the Callio Android app.
 All 50 were read. This file replaces the old `ANDROID_GAP.md`.
 
 How it is checked, so the statuses are not just claims:
@@ -35,7 +35,7 @@ How it is checked, so the statuses are not just claims:
 | 0019, 0043, 0045, 0033 | Contact detail: Summary, Analysis, Call History (note icon opens the note editor; ⋮ has Call / WhatsApp / Message / Copy / Compare) | BUILT |
 | 0018, 0020, 0023, 0039 | History Filter incl. the tag picker and Premium Plus lock text | BUILT |
 | 0021 | Write a reminder after a missed call | **DIFFERENT** — a notification with an inline reply box (needs no overlay permission) instead of the floating overlay; also a Reminders screen. Untested on device. |
-| 0022, 0050 | "Set default phone app" | BUILT, untested on device — runs after the privacy screen; *Yes, I agree* asks Android for the dialler role. When held, Levoy's call screen handles incoming and outgoing calls (answer, decline, end, mute, speaker, hold, keypad). **Experimental.** |
+| 0022, 0050 | "Set default phone app" | BUILT, untested on device — runs after the privacy screen; *Yes, I agree* asks Android for the dialler role. When held, Callio's call screen handles incoming and outgoing calls (answer, decline, end, mute, speaker, hold, keypad). **Experimental.** |
 | 0024 | Compare | BUILT |
 | 0026 | Privacy | BUILT |
 | 0028, 0030, 0037, 0042, 0044, 0047, 0049, 0052, 0053 | Call History tabs, dial pad, Export Calls Report | BUILT |
@@ -60,7 +60,7 @@ How it is checked, so the statuses are not just claims:
 | Contact report in Excel | Premium Plus | BUILT |
 | Contact groups, filter / export by group | Premium Plus | BUILT |
 | Working hours, ideal time, timeline sheet | Premium Plus | BUILT |
-| Per-telecaller analytics, leaderboard | Levoy Biz | BUILT |
+| Per-telecaller analytics, leaderboard | Callio Biz | BUILT |
 
 ## Still not done
 

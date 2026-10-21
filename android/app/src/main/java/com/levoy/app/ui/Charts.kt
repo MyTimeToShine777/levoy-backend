@@ -30,7 +30,7 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.levoy.app.data.Bucket
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import java.time.LocalDate
@@ -43,10 +43,10 @@ import kotlin.math.sin
 
 data class Slice(val label: String, val value: Int, val color: Color)
 
-val IncomingColor = LevoyColors.Incoming
-val OutgoingColor = LevoyColors.Outgoing
-val MissedColor = LevoyColors.Missed
-val RejectedColor = LevoyColors.Rejected
+val IncomingColor = CallioColors.Incoming
+val OutgoingColor = CallioColors.Outgoing
+val MissedColor = CallioColors.Missed
+val RejectedColor = CallioColors.Rejected
 
 /** Legend row: coloured dot + label, spaced like "● Incoming  ● Outgoing  ● Missed". */
 @Composable

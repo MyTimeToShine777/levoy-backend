@@ -14,7 +14,7 @@ import com.android.resources.Density
 import com.levoy.app.data.*
 import com.levoy.app.ui.*
 import com.levoy.app.ui.screens.*
-import com.levoy.app.ui.theme.LevoyTheme
+import com.levoy.app.ui.theme.CallioTheme
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Layers
 import com.levoy.app.util.Lang
@@ -32,7 +32,7 @@ class ScreenshotTest {
         showSystemUi = false,
     )
 
-    private fun snap(name: String, content: @Composable () -> Unit) = paparazzi.snapshot(name) { LevoyTheme { content() } }
+    private fun snap(name: String, content: @Composable () -> Unit) = paparazzi.snapshot(name) { CallioTheme { content() } }
 
     private fun ago(hours: Long) = Instant.now().minus(hours, ChronoUnit.HOURS).toString()
     private val rows = listOf(
@@ -130,7 +130,7 @@ class ScreenshotTest {
         catalog = listOf(
             PlanEntry("premium", "Premium", 75.0, features = listOf(PlanFeature("ad_free", "Ad-Free Experience.", "premium"), PlanFeature("b", "Backup and restore of call history", "premium"), PlanFeature("c", "You can now receive quick technical support through Whatsapp.", "premium"))),
             PlanEntry("premium_plus", "Premium Plus", 125.0, features = listOf(PlanFeature("n", "Add a Note and Tags after each call.", "premium_plus"), PlanFeature("x", "Export the contact report in Excel format.", "premium_plus"))),
-            PlanEntry("biz", "Levoy Biz", null, features = listOf(PlanFeature("t", "Per-telecaller call analytics and leaderboard", "biz"))),
+            PlanEntry("biz", "Callio Biz", null, features = listOf(PlanFeature("t", "Per-telecaller call analytics and leaderboard", "biz"))),
         ),
     )
 
@@ -157,12 +157,12 @@ class ScreenshotTest {
         ToggleInfoScreen("Quick Action", { androidx.compose.material3.Icon(Icons.Filled.Layers, null, tint = com.levoy.app.ui.theme.Pal.text) }, "Quick Action", false, {}, null, "Quick Action Feature :", QUICK_ACTION_BULLETS, {})
     }
     @Test fun whatsapp() = snap("whatsapp") {
-        ToggleInfoScreen("WhatsApp Call", { WhatsAppGlyph(Modifier.fillMaxSize(), com.levoy.app.ui.theme.Pal.text) }, "WhatsApp Call", false, {}, "Levoy will be able to read all notifications, including personal information such as contact names and the text of messages you receive.", "Whatsapp Call Log Limitations :", WHATSAPP_BULLETS, {})
+        ToggleInfoScreen("WhatsApp Call", { WhatsAppGlyph(Modifier.fillMaxSize(), com.levoy.app.ui.theme.Pal.text) }, "WhatsApp Call", false, {}, "Callio will be able to read all notifications, including personal information such as contact names and the text of messages you receive.", "Whatsapp Call Log Limitations :", WHATSAPP_BULLETS, {})
     }
     @Test fun privacy() = snap("privacy") { PrivacyScreen({}, {}) }
     @Test fun defaultPhone() = snap("default_phone") { DefaultPhoneScreen({}, {}, {}) }
     @Test fun callLogPrimer() = snap("calllog_primer") {
-        PermissionPrimerScreen("ACCESS TO YOUR DEVICE'S CALL LOG", "Your default dialer only shows your call history. Levoy helps you understand it.", "All data is processed locally and remains securely stored on your device.", CALL_LOG_USES, "Allow Access", {}, {})
+        PermissionPrimerScreen("ACCESS TO YOUR DEVICE'S CALL LOG", "Your default dialer only shows your call history. Callio helps you understand it.", "All data is processed locally and remains securely stored on your device.", CALL_LOG_USES, "Allow Access", {}, {})
     }
     @Test fun login() = snap("login") { LoginScreen("", "", false, 0, false, null, {}, {}, {}, {}, {}, {}) }
     @Test fun loginCode() = snap("login_code") { LoginScreen("asha@company.com", "48", true, 42, false, null, {}, {}, {}, {}, {}, {}) }

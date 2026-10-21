@@ -1,10 +1,10 @@
-# Levoy Clone
+# Callio Clone
 
 A full-stack clone of [levoy.co](https://levoy.co) — a SIM-based telecalling analytics and CRM platform.
 
 ## What this is
 
-Levoy monitors telesales calls across a team, tracks leads, and surfaces productivity analytics. This repo contains four working pieces:
+Callio monitors telesales calls across a team, tracks leads, and surfaces productivity analytics. This repo contains four working pieces:
 
 | Path | What it is | Stack |
 |------|-----------|-------|
@@ -56,7 +56,7 @@ Listens on **http://0.0.0.0:3001**.
 
 The first admin is created on first start from `BOOTSTRAP_ADMIN_EMAIL` (only when the database has no active admin). Registration is invitation-only: admins add or invite people.
 
-**Sign-in is by emailed code (OTP), with no passwords.** The person enters their email, receives a 6-digit code (valid 10 minutes) and enters it. The code is generated, emailed and checked by `medivoy.api` (the same service the pharmacy and vendor web apps use), reached at `MEDIVOY_API_BASE_URL`. Levoy only lets *its own active users* ask for a code, so strangers' addresses never reach Medivoy, then issues its own session once Medivoy confirms the code. Codes can be re-requested after `OTP_RESEND_SECONDS` (60). For automated tests, `backend-next/scripts/fake-medivoy.js` stands in for Medivoy (code `123456`).
+**Sign-in is by emailed code (OTP), with no passwords.** The person enters their email, receives a 6-digit code (valid 10 minutes) and enters it. The code is generated, emailed and checked by `medivoy.api` (the same service the pharmacy and vendor web apps use), reached at `MEDIVOY_API_BASE_URL`. Callio only lets *its own active users* ask for a code, so strangers' addresses never reach Medivoy, then issues its own session once Medivoy confirms the code. Codes can be re-requested after `OTP_RESEND_SECONDS` (60). For automated tests, `backend-next/scripts/fake-medivoy.js` stands in for Medivoy (code `123456`).
 
 Database connection is read from environment variables (a single `DATABASE_URL` wins), falling back to local defaults:
 
@@ -115,13 +115,13 @@ Credentials live in `backend-next/.env.integrations` (git-ignored; copied from t
 
 Check the live services with `node scripts/verify-integrations.js` (R2 round-trip under `levoy/_selftest/`, FCM dry run, Stripe session create + expire).
 
-**Trigger.dev:** there is only one Trigger account, owned by the medivoy.api repo. Levoy's jobs run as two dedicated proxy schedules in medivoy.api, `levoy-hourly-batch-jobs` (every hour) and `levoy-daily-batch-jobs` (03:30 IST), declared in `src/trigger/levoyScheduledBatch.job.js` there (same shape as the pharmacy proxy). They only call this API's `POST /api/internal/jobs/hourly|daily` endpoint. Set `LEVOY_API_URL` and `LEVOY_JOBS_SECRET` (= `INTERNAL_JOBS_SECRET`, as loaded from `backend-next/.env.integrations`) in the Trigger project's environment variables and redeploy medivoy's tasks; until both are set the jobs are skipped and report success. The Levoy API must be reachable from the internet for this, and `ENABLE_SCHEDULER` must stay off so nothing runs twice. The systemd unit in `deploy/` sets no `INTERNAL_JOBS_SECRET`, so on the server it has to come from `.env.integrations` or the unit, otherwise the endpoint answers 503.
+**Trigger.dev:** there is only one Trigger account, owned by the medivoy.api repo. Callio's jobs run as two dedicated proxy schedules in medivoy.api, `levoy-hourly-batch-jobs` (every hour) and `levoy-daily-batch-jobs` (03:30 IST), declared in `src/trigger/levoyScheduledBatch.job.js` there (same shape as the pharmacy proxy). They only call this API's `POST /api/internal/jobs/hourly|daily` endpoint. Set `LEVOY_API_URL` and `LEVOY_JOBS_SECRET` (= `INTERNAL_JOBS_SECRET`, as loaded from `backend-next/.env.integrations`) in the Trigger project's environment variables and redeploy medivoy's tasks; until both are set the jobs are skipped and report success. The Callio API must be reachable from the internet for this, and `ENABLE_SCHEDULER` must stay off so nothing runs twice. The systemd unit in `deploy/` sets no `INTERNAL_JOBS_SECRET`, so on the server it has to come from `.env.integrations` or the unit, otherwise the endpoint answers 503.
 
 **Stripe webhook:** add an endpoint `<public API url>/api/plan/stripe/webhook` (event `checkout.session.completed`) in the Stripe dashboard and put *its* signing secret in `STRIPE_WEBHOOK_SECRET` (the value copied from medivoy belongs to medivoy's endpoint). Without it, payments still activate when the buyer is sent back to the pay page.
 
 ## Customers, plans and subscriptions (the platform console)
 
-Levoy is sold as a tool: **each customer company gets its own separate system** — its own team, agents, leads, calls and settings — and its own subscription. You (the platform owner) manage the customers.
+Callio is sold as a tool: **each customer company gets its own separate system** — its own team, agents, leads, calls and settings — and its own subscription. You (the platform owner) manage the customers.
 
 - **Data isolation is one Postgres schema per customer.** Every customer has a full copy of the tables in its own schema (`levoy_c<id>`; the original workspace keeps its schema as customer #1), so customers cannot see each other's data even if a query forgets a filter. A request carries its customer (`tid` in the login token); `src/config/db.js` resolves `q()`, `tx()` and `pool` to that customer's pool and **throws if there is no customer context** — it never falls back to "some" schema.
 - **The platform schema (`levoy_platform`)** holds `customers`, `workspace_users` (the sign-in directory: one email belongs to exactly one customer), `platform_admins`, `plans` (the editable catalog), `subscriptions` and `subscription_events` (the history). Plain SQL migrations live in `backend-next/src/platform/migrations/`.
@@ -216,14 +216,14 @@ Base URL `http://localhost:3001/api`. All routes except `auth/send-otp`, `auth/v
 **RBAC** (admin)
 - `GET /rbac/registry` (any user) · `GET /rbac/matrix` · `PUT/DELETE /rbac/roles/:role` · `POST/PUT/DELETE /rbac/custom-roles[/:id]` · `GET/PUT/DELETE /rbac/users/:id` · `PUT /rbac/users/:id/custom-role`
 
-**Call history, analytics, contacts, plans** (the Levoy-app features; see [`PARITY.md`](PARITY.md))
+**Call history, analytics, contacts, plans** (the Callio-app features; see [`PARITY.md`](PARITY.md))
 - `GET /call-history` (`tab=all|incoming|outgoing|missed|rejected|never_attended|not_pickup`, `date_from`, `date_to`, `search`, `sim=<slot>|whatsapp`, `contact_type=saved|unsaved`, `user_id`, `tz` = minutes east of UTC; Premium Plus: `notes`, `tag_id`, `group_id`) · `GET /call-history/tags` · `GET /call-history/people` · `PUT /call-history/:id/annotate` (note + tags, Premium Plus)
 - `POST /calls` and `/calls/batch` also take `source` (`sim|whatsapp`), `sim_slot` (1–4), `sim_label`
 - `GET /call-analytics/summary` (tiles, graph series, working hours, billing, leaderboard) · `GET /call-analytics/analysis`
 - `GET /contacts` · `GET /contacts/:phone` (summary, analysis, history) · `GET /contacts/compare?phones=a,b,…` (max 5) · `GET/POST /contact-groups` · `PUT/DELETE /contact-groups/:id` · `POST /contact-groups/:id/members` · `DELETE /contact-groups/:id/members/:phone`
 - `GET/POST/PUT/DELETE /call-reminders` — a due reminder becomes a `call_reminder` notification
 - `POST /call-exports/report` (Excel; `exclude_contacts` is Premium Plus) · `POST /call-exports/contacts` · `POST /call-exports/working-hours` · `GET /call-exports/backup` · `POST /call-exports/restore` · `GET /call-exports/:id/file`
-- `GET /plan` · `POST /plan/trial` (once per workspace, 7 days) · `POST /plan/activate` (admin, no payment) · `POST /plan/checkout` (admin; Stripe Checkout for 1/3/6/12 months) · `POST /plan/confirm` · `GET /plan/payments` · `POST /plan/stripe/webhook` · `GET /pay/success`, `/pay/cancel` — plans: Free, Premium ₹75, Premium Plus ₹125, Levoy Biz (custom). A feature outside the plan answers **402** with `required_plan` and `upgrade_url`.
+- `GET /plan` · `POST /plan/trial` (once per workspace, 7 days) · `POST /plan/activate` (admin, no payment) · `POST /plan/checkout` (admin; Stripe Checkout for 1/3/6/12 months) · `POST /plan/confirm` · `GET /plan/payments` · `POST /plan/stripe/webhook` · `GET /pay/success`, `/pay/cancel` — plans: Free, Premium ₹75, Premium Plus ₹125, Callio Biz (custom). A feature outside the plan answers **402** with `required_plan` and `upgrade_url`.
 - `GET/PUT /workspace-settings` (idle gap minutes, billing cycle) · `GET/PUT/DELETE /sims[/:slot]` · `POST /device/status` · `GET /devices`
 - `POST /quick-call/dial` (Premium; browser → the person's phone) · `GET/POST/DELETE /quick-call/devices` · `GET /quick-call/pending` (the phone long-polls) — see [`chrome-extension/`](chrome-extension/README.md)
 - `POST /calls/backfill` (fill in names / SIM on calls already uploaded; never overwrites)

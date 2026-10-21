@@ -1,4 +1,4 @@
-// Call history / analytics / contacts / plans (the Levoy-app parity work): how a call is classified,
+// Call history / analytics / contacts / plans (the Callio-app parity work): how a call is classified,
 // who sees whose calls, what each plan unlocks (402 with upgrade info), SIM + WhatsApp attribution,
 // reminders, device health and the Excel export. Skipped by --only-legacy.
 

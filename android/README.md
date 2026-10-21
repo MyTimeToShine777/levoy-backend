@@ -1,6 +1,6 @@
-# Levoy — Android client
+# Callio — Android client
 
-Jetpack Compose app that reads the phone's call log, syncs it to the Levoy API and shows it the way the
+Jetpack Compose app that reads the phone's call log, syncs it to the Callio API and shows it the way the
 reference app does (call history, analytics, contacts, premium plans). Dark UI matched to the 50 reference
 screenshots — see [`../PARITY.md`](../PARITY.md) for exactly what is built and what is not.
 
@@ -14,7 +14,7 @@ screenshots — see [`../PARITY.md`](../PARITY.md) for exactly what is built and
 app/src/main/java/com/levoy/app/
   MainActivity.kt, Os.kt          activity + the Android calls the UI needs (dial, share, permissions…)
   AppModel.kt                     one ViewModel: state, navigation stack, all API calls
-  LevoyApp.kt                  schedules sync, watches the call log
+  CallioApp.kt                  schedules sync, watches the call log
   data/    Api.kt Models.kt Session.kt        OkHttp client, API shapes, stored settings
   sync/    CallLogReader.kt SyncWorker.kt AutoBackup.kt     read calls + SIM slot, upload only what is new (WorkManager, every 15 min and on change); daily backup file for Android Auto Backup
   calls/   InCall.kt (default-phone-app call screen) QuickCallService.kt (browser → phone) QuickActionReceiver.kt PostCallPrompts.kt WhatsAppCallListener.kt
@@ -60,7 +60,7 @@ The server address can also be typed on the sign-in screen ("Server address"). T
 | Microphone (`RECORD_AUDIO`) | Call Recording: assigned-lead calls only, default phone app only | Settings → Call Recording |
 | Phone (`CALL_PHONE`) | place calls for Quick Call / as the default phone app | Linked Quick Call Extension |
 | `PROCESS_OUTGOING_CALLS` | number of outgoing calls for the bubble and post-call prompts | Quick Action / Note Popup / Missed Call Reminder |
-| Default phone app role | Levoy handles calls itself (**experimental**) | first run, or Settings |
+| Default phone app role | Callio handles calls itself (**experimental**) | first run, or Settings |
 
 How the sync stays correct: it uploads calls newer than the last one it sent; on a fresh install it first asks the server for
 the newest call it already holds, so signing out and in again does not upload everything twice.

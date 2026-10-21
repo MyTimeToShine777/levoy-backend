@@ -67,7 +67,7 @@ import com.levoy.app.ui.MenuCard
 import com.levoy.app.ui.SettingsRow
 import com.levoy.app.ui.TopBar
 import com.levoy.app.ui.WhatsAppGlyph
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Lang
@@ -120,7 +120,7 @@ fun SettingsScreen(showPremiumRow: Boolean, a: SettingsActions, onBack: () -> Un
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
             TopBar(T("more_settings"), onBack)
             Spacer(Modifier.height(6.dp))
-            if (showPremiumRow) SettingsRow({ Ic(Icons.Filled.Diamond, LevoyColors.Amber) }, T("premium_settings"), a.premium)
+            if (showPremiumRow) SettingsRow({ Ic(Icons.Filled.Diamond, CallioColors.Amber) }, T("premium_settings"), a.premium)
             SettingsRow({ WhatsAppGlyph(Modifier.size(30.dp), Pal.text) }, T("whatsapp_call"), a.whatsapp)
             SettingsRow({ Ic(Icons.Filled.Smartphone) }, T("quick_action"), a.quickAction)
             SettingsRow({ Ic(Icons.Filled.Mic) }, T("call_recording"), a.callRecording)
@@ -154,10 +154,10 @@ fun SideMenu(a: MoreActions, userName: String, userEmail: String, badge: String?
     Column(Modifier.fillMaxSize().background(Pal.background).verticalScroll(rememberScrollState())) {
         Spacer(Modifier.height(28.dp))
         Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-            LevoyLogo(Modifier.size(56.dp))
+            CallioLogo(Modifier.size(56.dp))
             Spacer(Modifier.width(14.dp))
             Column(Modifier.weight(1f)) {
-                Text(userName.ifBlank { "Levoy" }, style = Txt.Section.copy(fontSize = 19.sp), color = Pal.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(userName.ifBlank { "Callio" }, style = Txt.Section.copy(fontSize = 19.sp), color = Pal.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 if (userEmail.isNotBlank()) Text(userEmail, style = Txt.Small, color = Pal.textSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
@@ -171,11 +171,11 @@ fun SideMenu(a: MoreActions, userName: String, userEmail: String, badge: String?
         val m = Modifier.size(28.dp)
         fun go(f: () -> Unit): () -> Unit = { close(); f() }
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            MenuCard({ Icon(Icons.Filled.Diamond, null, tint = LevoyColors.Amber, modifier = m) }, if (badge != null) "My plan" else T("nav_premium"), go(a.premium))
+            MenuCard({ Icon(Icons.Filled.Diamond, null, tint = CallioColors.Amber, modifier = m) }, if (badge != null) "My plan" else T("nav_premium"), go(a.premium))
             MenuCard({ Icon(Icons.Filled.IosShare, null, tint = Pal.text, modifier = m) }, T("export_report"), go(a.export))
             MenuCard({ Icon(Icons.Filled.MenuBook, null, tint = Pal.text, modifier = m) }, T("blogs"), go(a.blogs))
             MenuCard({ Icon(Icons.Filled.Computer, null, tint = Pal.text, modifier = m) }, T("quick_call_ext"), go(a.quickCall))
-            MenuCard({ Icon(Icons.Filled.NotificationsActive, null, tint = LevoyColors.Missed, modifier = m) }, T("missed_reminder"), go(a.reminder))
+            MenuCard({ Icon(Icons.Filled.NotificationsActive, null, tint = CallioColors.Missed, modifier = m) }, T("missed_reminder"), go(a.reminder))
             MenuCard({ Icon(Icons.Filled.Warning, null, tint = Pal.text, modifier = m) }, T("troubleshooting"), go(a.troubleshooting))
             MenuCard({ Icon(Icons.Filled.SwapHoriz, null, tint = Pal.text, modifier = m) }, T("compare"), go(a.compare))
             MenuCard({ Icon(Icons.Filled.Settings, null, tint = Pal.text, modifier = m) }, T("more_settings"), go(a.settings))
@@ -192,7 +192,7 @@ fun SideMenu(a: MoreActions, userName: String, userEmail: String, badge: String?
 
 /** The app mark: an open ring (amber → green, red at the foot) around a handset, with rising bars. */
 @Composable
-fun LevoyLogo(modifier: Modifier = Modifier) {
+fun CallioLogo(modifier: Modifier = Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize()) {
             val w = size.width * 0.13f

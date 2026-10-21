@@ -1,4 +1,4 @@
-# Levoy clone — remaining-work register
+# Callio clone — remaining-work register
 
 Single source of truth for "what is still open", so a gap does not get lost
 between sessions or get re-asked as "did you finish everything?".
@@ -52,7 +52,7 @@ Last verified end-to-end: `tsc --noEmit` 0 errors, `next build` 19 routes, Playw
 | 18 | ESLint `react-hooks/set-state-in-effect` in the new web pages | **OPEN** | 10 errors, same rule the older pages trip. |
 | 16 | Gradle wrapper jar | **OPEN** | not checked in; use Gradle 8.5+ |
 | 17 | HTTPS | **OPEN** | the app allows plain HTTP for development |
-| 20 | Call recording | **BUILT, untested on a device** | Opt-in (Settings → Call Recording), lead calls only, only while Levoy is the default phone app. Records the microphone (`VOICE_COMMUNICATION`, falling back to `MIC`) in a foreground service with a visible notification, saves `<start>_<phoneKey>_<seconds>.m4a`, and `CallSync` attaches it to the synced call via `POST /api/calls/:id/recordings`. Admin/manager list them at `GET /api/recordings` (now with `lead` and a `lead_id` filter). **Open:** Android 10+ gives non-system apps the mic only, so the far end is heard on speaker only; verify on real phones. Play review: declare the mic / foreground-service use and the default-dialer role; the Accessibility-API route (what Truecaller used) is banned for call recording since May 2022. India: the other party must be told the call is recorded. The web dashboard is not in this repo, so the admin player UI still needs to call `/api/recordings`. |
+| 20 | Call recording | **BUILT, untested on a device** | Opt-in (Settings → Call Recording), lead calls only, only while Callio is the default phone app. Records the microphone (`VOICE_COMMUNICATION`, falling back to `MIC`) in a foreground service with a visible notification, saves `<start>_<phoneKey>_<seconds>.m4a`, and `CallSync` attaches it to the synced call via `POST /api/calls/:id/recordings`. Admin/manager list them at `GET /api/recordings` (now with `lead` and a `lead_id` filter). **Open:** Android 10+ gives non-system apps the mic only, so the far end is heard on speaker only; verify on real phones. Play review: declare the mic / foreground-service use and the default-dialer role; the Accessibility-API route (what Truecaller used) is banned for call recording since May 2022. India: the other party must be told the call is recorded. The web dashboard is not in this repo, so the admin player UI still needs to call `/api/recordings`. |
 
 ## Web dashboard
 

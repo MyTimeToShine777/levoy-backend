@@ -216,7 +216,7 @@ export function Icon({
 /* Brand + social glyphs (filled, not stroked)                                */
 /* -------------------------------------------------------------------------- */
 
-export function LevoyMark({ className }: { className?: string }) {
+export function CallioMark({ className }: { className?: string }) {
   return (
     <svg
       viewBox="0 0 40 40"
@@ -250,7 +250,7 @@ export function LevoyMark({ className }: { className?: string }) {
 }
 
 /** Wordmark: rounded mark plus lowercase logotype, matching the reference. */
-export function LevoyLogo({
+export function CallioLogo({
   className,
   markClassName,
 }: {
@@ -259,7 +259,7 @@ export function LevoyLogo({
 }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
-      <LevoyMark className={markClassName ?? "h-9 w-9"} />
+      <CallioMark className={markClassName ?? "h-9 w-9"} />
       <span className="text-[1.35rem] font-extrabold tracking-tight text-ink-900">
         levoy
         <sup className="ml-0.5 align-super text-[0.5em] font-bold text-brand-500">

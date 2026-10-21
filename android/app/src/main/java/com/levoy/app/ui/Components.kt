@@ -73,7 +73,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 
@@ -102,14 +102,14 @@ val LocalChrome = androidx.compose.runtime.compositionLocalOf { Chrome() }
 @Composable
 fun PlanBadge(name: String, modifier: Modifier = Modifier, compact: Boolean = false) {
     Row(
-        modifier.clip(RoundedCornerShape(12.dp)).background(LevoyColors.Amber.copy(alpha = 0.16f)).border(1.dp, LevoyColors.Amber, RoundedCornerShape(12.dp))
+        modifier.clip(RoundedCornerShape(12.dp)).background(CallioColors.Amber.copy(alpha = 0.16f)).border(1.dp, CallioColors.Amber, RoundedCornerShape(12.dp))
             .padding(horizontal = if (compact) 6.dp else 10.dp, vertical = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(Icons.Filled.Diamond, name, tint = LevoyColors.Amber, modifier = Modifier.size(if (compact) 18.dp else 14.dp))
+        Icon(Icons.Filled.Diamond, name, tint = CallioColors.Amber, modifier = Modifier.size(if (compact) 18.dp else 14.dp))
         if (!compact) {
             Spacer(Modifier.width(5.dp))
-            Text(name, style = Txt.Small.copy(fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = LevoyColors.Amber, maxLines = 1)
+            Text(name, style = Txt.Small.copy(fontSize = 12.sp, fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold), color = CallioColors.Amber, maxLines = 1)
         }
     }
 }
@@ -185,7 +185,7 @@ fun AmberButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
     // text on yellow (disabled is only slightly softer), and the text stays on one line whatever the phone's font size.
     val source = remember { MutableInteractionSource() }
     val scale = rememberPressScale(source)
-    val fill by animateColorAsState(if (enabled) LevoyColors.Amber else LevoyColors.Amber.copy(alpha = 0.8f), tween(160), label = "fill")
+    val fill by animateColorAsState(if (enabled) CallioColors.Amber else CallioColors.Amber.copy(alpha = 0.8f), tween(160), label = "fill")
     Box(
         modifier.scaleTo(scale).height(height).clip(RoundedCornerShape(corner)).background(fill)
             .clickable(interactionSource = source, indication = LocalIndication.current, enabled = enabled, onClick = onClick).padding(horizontal = 12.dp),
@@ -216,7 +216,7 @@ fun DangerButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifie
     val source = remember { MutableInteractionSource() }
     val scale = rememberPressScale(source)
     Box(
-        modifier.scaleTo(scale).height(48.dp).clip(RoundedCornerShape(6.dp)).background(LevoyColors.Danger)
+        modifier.scaleTo(scale).height(48.dp).clip(RoundedCornerShape(6.dp)).background(CallioColors.Danger)
             .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick).padding(horizontal = 20.dp),
         contentAlignment = Alignment.Center,
     ) { Text(text, style = Txt.Button.copy(fontSize = 17.sp), color = Color.White) }
@@ -266,8 +266,8 @@ fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
         Row(Modifier.fillMaxWidth().height(72.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(label, style = Txt.Row, color = Pal.text, modifier = Modifier.weight(1f))
             if (selected) {
-                Box(Modifier.size(38.dp).clip(CircleShape).background(LevoyColors.Amber), contentAlignment = Alignment.Center) {
-                    Icon(Icons.Filled.Check, null, tint = LevoyColors.OnAmber, modifier = Modifier.size(22.dp))
+                Box(Modifier.size(38.dp).clip(CircleShape).background(CallioColors.Amber), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Filled.Check, null, tint = CallioColors.OnAmber, modifier = Modifier.size(22.dp))
                 }
             }
         }
@@ -278,14 +278,14 @@ fun ChoiceRow(label: String, selected: Boolean, onClick: () -> Unit) {
 @Composable
 fun SwitchPill(on: Boolean, onChange: (Boolean) -> Unit) {
     // the track and the knob ease between their on and off colours instead of snapping
-    val track by animateColorAsState(if (on) LevoyColors.Amber.copy(alpha = 0.25f) else Pal.cardDeep.copy(alpha = 0.6f), tween(180), label = "track")
-    val knob by animateColorAsState(if (on) LevoyColors.Amber else Color.White, tween(180), label = "knob")
+    val track by animateColorAsState(if (on) CallioColors.Amber.copy(alpha = 0.25f) else Pal.cardDeep.copy(alpha = 0.6f), tween(180), label = "track")
+    val knob by animateColorAsState(if (on) CallioColors.Amber else Color.White, tween(180), label = "knob")
     Row(
         Modifier.height(44.dp).clip(RoundedCornerShape(22.dp)).background(track)
             .clickable { onChange(!on) }.padding(horizontal = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        if (on) { Text("ON", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = LevoyColors.Amber, modifier = Modifier.padding(horizontal = 10.dp)) }
+        if (on) { Text("ON", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = CallioColors.Amber, modifier = Modifier.padding(horizontal = 10.dp)) }
         Box(Modifier.size(32.dp).clip(CircleShape).background(knob))
         if (!on) { Text("OFF", style = Txt.Small.copy(fontWeight = androidx.compose.ui.text.font.FontWeight.Bold), color = Pal.text, modifier = Modifier.padding(horizontal = 10.dp)) }
     }
@@ -295,7 +295,7 @@ fun SwitchPill(on: Boolean, onChange: (Boolean) -> Unit) {
 @Composable
 fun PermissionBanner(onFix: () -> Unit, modifier: Modifier = Modifier) {
     Row(
-        modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(LevoyColors.Peach).border(1.dp, LevoyColors.PeachBorder, RoundedCornerShape(10.dp)).padding(14.dp),
+        modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).background(CallioColors.Peach).border(1.dp, CallioColors.PeachBorder, RoundedCornerShape(10.dp)).padding(14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.size(44.dp).clip(CircleShape).background(Color(0xFFFFD08A)), contentAlignment = Alignment.Center) {
@@ -305,11 +305,11 @@ fun PermissionBanner(onFix: () -> Unit, modifier: Modifier = Modifier) {
         Text(
             androidx.compose.ui.text.buildAnnotatedString {
                 append("Some required permissions are missing. Please fix this for smooth functionality. ")
-                pushStyle(androidx.compose.ui.text.SpanStyle(color = LevoyColors.Link, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = CallioColors.Link, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold, textDecoration = androidx.compose.ui.text.style.TextDecoration.Underline))
                 append("FIX NOW")
                 pop()
             },
-            style = Txt.Body.copy(fontSize = 16.sp), color = LevoyColors.OnPeach, modifier = Modifier.clickable(onClick = onFix),
+            style = Txt.Body.copy(fontSize = 16.sp), color = CallioColors.OnPeach, modifier = Modifier.clickable(onClick = onFix),
         )
     }
 }
@@ -321,7 +321,7 @@ fun SearchField(value: String, onChange: (String) -> Unit, hint: String, modifie
         Spacer(Modifier.width(14.dp))
         Box(Modifier.weight(1f)) {
             if (value.isEmpty()) Text(hint, style = Txt.Body.copy(fontSize = 19.sp), color = Pal.textSecondary)
-            BasicTextField(value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(LevoyColors.Amber), modifier = Modifier.fillMaxWidth())
+            BasicTextField(value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(CallioColors.Amber), modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -371,10 +371,10 @@ fun ScrollTabs(tabs: List<TabDef>, selected: String, onSelect: (String) -> Unit,
 @Composable
 fun KindCircle(kind: com.levoy.app.data.CallKind, size: Dp = 52.dp) {
     val (bg, icon) = when (kind) {
-        com.levoy.app.data.CallKind.incoming -> LevoyColors.IncomingIcon to Icons.Filled.PhoneCallback
-        com.levoy.app.data.CallKind.outgoing -> LevoyColors.OutgoingIcon to Icons.Filled.PhoneForwarded
-        com.levoy.app.data.CallKind.missed -> LevoyColors.MissedIcon to Icons.Filled.PhoneMissed
-        com.levoy.app.data.CallKind.rejected -> LevoyColors.MissedIcon to Icons.Filled.PhoneDisabled
+        com.levoy.app.data.CallKind.incoming -> CallioColors.IncomingIcon to Icons.Filled.PhoneCallback
+        com.levoy.app.data.CallKind.outgoing -> CallioColors.OutgoingIcon to Icons.Filled.PhoneForwarded
+        com.levoy.app.data.CallKind.missed -> CallioColors.MissedIcon to Icons.Filled.PhoneMissed
+        com.levoy.app.data.CallKind.rejected -> CallioColors.MissedIcon to Icons.Filled.PhoneDisabled
     }
     Box(Modifier.size(size).clip(CircleShape).background(bg), contentAlignment = Alignment.Center) {
         Icon(icon, null, tint = Color(0xFF222328), modifier = Modifier.size(size * 0.52f))
@@ -386,14 +386,14 @@ fun KindCircle(kind: com.levoy.app.data.CallKind, size: Dp = 52.dp) {
 fun ActionIcons(phone: String, onCopy: () -> Unit, onSms: () -> Unit, onWhatsApp: () -> Unit, onCall: () -> Unit, modifier: Modifier = Modifier, iconSize: Dp = 34.dp) {
     Row(modifier, horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
         Icon(Icons.Filled.ContentCopy, "Copy", tint = Pal.textSecondary, modifier = Modifier.size(iconSize).clickable(onClick = onCopy).padding(4.dp))
-        Icon(Icons.Filled.Message, "Message", tint = LevoyColors.Sms, modifier = Modifier.size(iconSize).clickable(onClick = onSms).padding(4.dp))
+        Icon(Icons.Filled.Message, "Message", tint = CallioColors.Sms, modifier = Modifier.size(iconSize).clickable(onClick = onSms).padding(4.dp))
         WhatsAppGlyph(Modifier.size(iconSize).clickable(onClick = onWhatsApp))
-        Icon(Icons.Filled.Call, "Call", tint = LevoyColors.Link, modifier = Modifier.size(iconSize).clickable(onClick = onCall).padding(4.dp))
+        Icon(Icons.Filled.Call, "Call", tint = CallioColors.Link, modifier = Modifier.size(iconSize).clickable(onClick = onCall).padding(4.dp))
     }
 }
 
 @Composable
-fun WhatsAppGlyph(modifier: Modifier = Modifier, tint: Color = LevoyColors.WhatsApp) {
+fun WhatsAppGlyph(modifier: Modifier = Modifier, tint: Color = CallioColors.WhatsApp) {
     Box(modifier, contentAlignment = Alignment.Center) {
         Canvas(Modifier.fillMaxSize().padding(2.dp)) {
             drawCircle(tint, radius = size.minDimension / 2 - 2f, style = Stroke(width = 3.5f))

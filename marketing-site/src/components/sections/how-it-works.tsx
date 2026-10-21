@@ -7,9 +7,9 @@ export function HowItWorks() {
   return (
     <Section id="how-it-works" tone="white">
       <SectionHeading
-        eyebrow="How Levoy works"
+        eyebrow="How Callio works"
         title="Three Steps. No Hardware, No Dialer Integration."
-        lede="Your team keeps using the phones they already carry. Levoy reads the SIM and does the rest."
+        lede="Your team keeps using the phones they already carry. Callio reads the SIM and does the rest."
       />
 
       <ol className="relative mt-14 grid gap-8 lg:mt-18 lg:grid-cols-3 lg:gap-10">

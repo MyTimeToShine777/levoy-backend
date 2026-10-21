@@ -39,7 +39,7 @@ jq_() { python3 -c 'import sys,json
 d=json.load(sys.stdin)
 print(eval(sys.argv[1]))' "$1" 2>/dev/null; }
 
-echo "Levoy — 27-column lead engine acceptance" | tee -a "$LOG"
+echo "Callio — 27-column lead engine acceptance" | tee -a "$LOG"
 echo "run at $(date -u +%FT%TZ)" | tee -a "$LOG"
 
 hr "0. AUTH"

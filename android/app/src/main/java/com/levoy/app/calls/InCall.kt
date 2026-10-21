@@ -55,16 +55,16 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.NotificationCompat
 import com.levoy.app.sync.CallLogReader
-import com.levoy.app.ui.theme.LevoyColors
-import com.levoy.app.ui.theme.LevoyTheme
+import com.levoy.app.ui.theme.CallioColors
+import com.levoy.app.ui.theme.CallioTheme
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import kotlinx.coroutines.delay
 
 /**
- * The phone side of "default phone app": Android hands calls to this service when Levoy holds the dialler role.
+ * The phone side of "default phone app": Android hands calls to this service when Callio holds the dialler role.
  * It owns the call list the in-call screen shows. (A call that is not the person's own business — e.g. while
- * Levoy is NOT the default app — never reaches this code.)
+ * Callio is NOT the default app — never reaches this code.)
  */
 object CallStore {
     val calls = mutableListOf<Call>()
@@ -78,13 +78,13 @@ object CallStore {
     fun numberOf(c: Call): String = c.details?.handle?.schemeSpecificPart.orEmpty()
 }
 
-class LevoyInCallService : InCallService() {
+class CallioInCallService : InCallService() {
     private val callback = object : Call.Callback() {
         override fun onStateChanged(call: Call, state: Int) {
             CallStore.changed(); if (state != Call.STATE_RINGING) cancelIncoming()
             // Record from the moment the line is answered until it ends; CallRecorder itself refuses anything that is not a lead call.
-            if (state == Call.STATE_ACTIVE) CallRecorder.start(this@LevoyInCallService, CallStore.numberOf(call))
-            else if (state == Call.STATE_DISCONNECTED) CallRecorder.stop(this@LevoyInCallService)
+            if (state == Call.STATE_ACTIVE) CallRecorder.start(this@CallioInCallService, CallStore.numberOf(call))
+            else if (state == Call.STATE_DISCONNECTED) CallRecorder.stop(this@CallioInCallService)
         }
         override fun onDetailsChanged(call: Call, details: Call.Details) = CallStore.changed()
     }
@@ -129,8 +129,8 @@ class CallActionReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val call = CallStore.calls.firstOrNull { it.state == Call.STATE_RINGING } ?: return
         when (intent.action) {
-            LevoyInCallService.ACTION_ANSWER -> { call.answer(VideoProfile.STATE_AUDIO_ONLY); context.startActivity(Intent(context, InCallActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
-            LevoyInCallService.ACTION_DECLINE -> call.reject(false, null)
+            CallioInCallService.ACTION_ANSWER -> { call.answer(VideoProfile.STATE_AUDIO_ONLY); context.startActivity(Intent(context, InCallActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            CallioInCallService.ACTION_DECLINE -> call.reject(false, null)
         }
     }
 }
@@ -139,7 +139,7 @@ class InCallActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setShowWhenLocked(true); setTurnScreenOn(true)
-        setContent { LevoyTheme { InCallScreen(onGone = { finish() }) } }
+        setContent { CallioTheme { InCallScreen(onGone = { finish() }) } }
     }
 }
 
@@ -163,14 +163,18 @@ private fun InCallScreen(onGone: () -> Unit) {
         LaunchedEffect(Unit) { delay(900); if (CallStore.calls.none { it.state != Call.STATE_DISCONNECTED }) onGone() }
     }
     val ctx = androidx.compose.ui.platform.LocalContext.current
-    val number = call?.let(CallStore::numberOf).orEmpty()
+    // When the call ends Telecom removes it from the list. Keep showing the last number meanwhile, instead of flashing "Unknown".
+    var lastNumber by remember { mutableStateOf("") }
+    val number = call?.let(CallStore::numberOf).orEmpty().ifBlank { lastNumber }
+    LaunchedEffect(number) { if (number.isNotBlank()) lastNumber = number }
     // The phone's saved contact name wins; otherwise the name of the assigned lead, so a lead is never shown as a bare number.
     val name = remember(number) { CallLogReader.nameFor(ctx, number) ?: com.levoy.app.data.Session(ctx).leadNameFor(number) }
     var seconds by remember { mutableIntStateOf(0) }
     LaunchedEffect(call?.state) { while (true) { seconds = call?.details?.connectTimeMillis?.takeIf { it > 0 }?.let { ((System.currentTimeMillis() - it) / 1000).toInt() } ?: 0; delay(1000) } }
     val status = when (call?.state) {
         Call.STATE_RINGING -> "Incoming call"; Call.STATE_DIALING, Call.STATE_CONNECTING -> "Calling…"; Call.STATE_HOLDING -> "On hold"
-        Call.STATE_ACTIVE -> "%d:%02d".format(seconds / 60, seconds % 60); Call.STATE_DISCONNECTED -> "Call ended"; else -> ""
+        Call.STATE_ACTIVE -> "%d:%02d".format(seconds / 60, seconds % 60); Call.STATE_DISCONNECTED -> "Call ended"
+        else -> if (lastNumber.isNotBlank()) "Call ended" else ""
     }
     val svc = CallStore.service
     InCallView(
@@ -195,7 +199,7 @@ fun InCallView(ui: InCallUi, a: InCallActions, startWithKeypad: Boolean = false)
         Text(ui.name ?: ui.number.ifBlank { "Unknown" }, style = Txt.Title.copy(fontSize = 30.sp), color = Pal.text, textAlign = TextAlign.Center)
         if (ui.name != null) Text(ui.number, style = Txt.Body.copy(fontSize = 18.sp), color = Pal.textSecondary)
         Spacer(Modifier.height(10.dp))
-        Text(ui.status, style = Txt.Body.copy(fontSize = 20.sp), color = if (ui.ringing) LevoyColors.Amber else Pal.textSecondary)
+        Text(ui.status, style = Txt.Body.copy(fontSize = 20.sp), color = if (ui.ringing) CallioColors.Amber else Pal.textSecondary)
         if (ui.recording) Text("● Recording", style = Txt.Small, color = Color(0xFFD6341C))
         Spacer(Modifier.weight(1f))
         if (keypad && ui.hasCall) Keypad(a.onDtmf) else if (!ui.ringing && ui.hasCall) {
@@ -235,8 +239,8 @@ private fun Keypad(onDtmf: (Char) -> Unit) {
 @Composable
 private fun RoundButton(icon: ImageVector, label: String, on: Boolean, onClick: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.clickable(onClick = onClick)) {
-        Box(Modifier.size(62.dp).clip(CircleShape).background(if (on) LevoyColors.Amber else Pal.card), contentAlignment = Alignment.Center) {
-            Icon(icon, label, tint = if (on) LevoyColors.OnAmber else Pal.text, modifier = Modifier.size(28.dp))
+        Box(Modifier.size(62.dp).clip(CircleShape).background(if (on) CallioColors.Amber else Pal.card), contentAlignment = Alignment.Center) {
+            Icon(icon, label, tint = if (on) CallioColors.OnAmber else Pal.text, modifier = Modifier.size(28.dp))
         }
         Spacer(Modifier.height(6.dp))
         Text(label, style = Txt.Small, color = Pal.textSecondary)

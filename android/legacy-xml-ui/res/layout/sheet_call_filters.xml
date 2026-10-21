@@ -89,7 +89,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDateFrom"
-                    style="@style/Widget.Levoy.Button.Outlined"
+                    style="@style/Widget.Callio.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -98,7 +98,7 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnDateTo"
-                    style="@style/Widget.Levoy.Button.Outlined"
+                    style="@style/Widget.Callio.Button.Outlined"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
@@ -261,7 +261,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnResetFilters"
-            style="@style/Widget.Levoy.Button.Outlined"
+            style="@style/Widget.Callio.Button.Outlined"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
@@ -269,7 +269,7 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnApplyFilters"
-            style="@style/Widget.Levoy.Button"
+            style="@style/Widget.Callio.Button"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"

@@ -65,7 +65,7 @@ import com.levoy.app.ui.SettingsRow
 import com.levoy.app.ui.SwitchPill
 import com.levoy.app.ui.TopBar
 import com.levoy.app.ui.WhatsAppGlyph
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.T
@@ -123,14 +123,14 @@ fun SimNumberScreen(ui: SimUi, onVerify: (Int) -> Unit, onBack: () -> Unit) {
                         }
                         if (saved?.verified == true) {
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(Icons.Filled.CheckCircle, null, tint = LevoyColors.Success, modifier = Modifier.size(36.dp))
+                                Icon(Icons.Filled.CheckCircle, null, tint = CallioColors.Success, modifier = Modifier.size(36.dp))
                                 Text("Verified", style = Txt.Body.copy(fontSize = 19.sp), color = Pal.text)
                             }
-                        } else Text("Verify", style = Txt.Button.copy(fontSize = 17.sp), color = LevoyColors.Amber)
+                        } else Text("Verify", style = Txt.Button.copy(fontSize = 17.sp), color = CallioColors.Amber)
                     }
                 }
             }
-            if (ui.message != null) Text(ui.message, style = Txt.Body.copy(fontSize = 15.sp), color = LevoyColors.Amber, modifier = Modifier.padding(16.dp))
+            if (ui.message != null) Text(ui.message, style = Txt.Body.copy(fontSize = 15.sp), color = CallioColors.Amber, modifier = Modifier.padding(16.dp))
         }
     }
 }
@@ -165,7 +165,7 @@ fun Field(value: String, onChange: (String) -> Unit, hint: String, modifier: Mod
     Box(modifier.fillMaxWidth().height(66.dp).clip(RoundedCornerShape(22.dp)).background(Pal.card).border(1.dp, Pal.divider.copy(alpha = 0.5f), RoundedCornerShape(22.dp)).padding(horizontal = 20.dp), contentAlignment = Alignment.CenterStart) {
         if (value.isEmpty()) Text(hint, style = Txt.Body.copy(fontSize = 19.sp), color = Pal.textSecondary)
         BasicTextField(
-            value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(LevoyColors.Amber),
+            value, onChange, singleLine = true, textStyle = Txt.Body.copy(fontSize = 19.sp, color = Pal.text), cursorBrush = SolidColor(CallioColors.Amber),
             keyboardOptions = KeyboardOptions(keyboardType = keyboard), visualTransformation = if (password) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -237,7 +237,7 @@ fun TroubleshootingMenuScreen(onItem: (String) -> Unit, onBack: () -> Unit) {
             Spacer(Modifier.height(6.dp))
             SettingsRow({ Icon(Icons.Filled.Call, null, tint = Pal.text, modifier = Modifier.size(30.dp)) }, "Call Sync", onClick = { onItem("sync") })
             SettingsRow({ Icon(Icons.Filled.Description, null, tint = Pal.text, modifier = Modifier.size(30.dp)) }, "Note Popup", onClick = { onItem("note") })
-            SettingsRow({ Icon(Icons.Filled.NotificationsActive, null, tint = LevoyColors.Missed, modifier = Modifier.size(30.dp)) }, "Missed Call Reminder", onClick = { onItem("reminder") })
+            SettingsRow({ Icon(Icons.Filled.NotificationsActive, null, tint = CallioColors.Missed, modifier = Modifier.size(30.dp)) }, "Missed Call Reminder", onClick = { onItem("reminder") })
             SettingsRow({ Icon(Icons.Filled.Computer, null, tint = Pal.text, modifier = Modifier.size(30.dp)) }, "Quick Action", onClick = { onItem("quick") })
             SettingsRow({ WhatsAppGlyph(Modifier.size(32.dp), Pal.text) }, "WhatsApp Call", onClick = { onItem("whatsapp") })
         }
@@ -255,7 +255,7 @@ fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermiss
             Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(30.dp)) {
                 StatusItem(h.permissionsOk, if (h.permissionsOk) "Permissions Granted" else "Permissions Missing", Icons.Filled.CheckCircle,
                     if (h.permissionsOk) "Access to your call logs and contacts has been confirmed. The app can now automatically track calls and provide accurate reports."
-                    else "Levoy needs access to your call log and contacts to track calls. Please grant the missing permissions.",
+                    else "Callio needs access to your call log and contacts to track calls. Please grant the missing permissions.",
                     if (h.permissionsOk) null else "Grant Permissions" to onFixPermissions)
                 StatusItem(h.batteryUnrestricted, if (h.batteryUnrestricted) "Battery Optimization Disabled" else "Battery Optimization Disabled", Icons.Filled.Battery0Bar,
                     if (h.batteryUnrestricted) "Battery optimization is off for the app, so background syncing is uninterrupted."
@@ -283,7 +283,7 @@ private fun StatusItem(ok: Boolean, title: String, icon: ImageVector, body: Stri
             Text(body, style = Txt.BodyRoboto.copy(fontSize = 18.sp, lineHeight = 26.sp), color = if (ok) Color(0xFF8A94A8) else Color(0xFFD63A1E))
             if (action != null) {
                 Spacer(Modifier.height(14.dp))
-                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(LevoyColors.Danger).clickable(onClick = action.second).padding(horizontal = 26.dp, vertical = 14.dp)) {
+                Box(Modifier.clip(RoundedCornerShape(6.dp)).background(CallioColors.Danger).clickable(onClick = action.second).padding(horizontal = 26.dp, vertical = 14.dp)) {
                     Text(action.first, style = Txt.Title.copy(fontSize = 19.sp), color = Color.White)
                 }
             }
@@ -316,24 +316,24 @@ fun ToggleInfoScreen(title: String, rowIcon: @Composable () -> Unit, rowLabel: S
 }
 
 val CALL_RECORDING_BULLETS = listOf(
-    "Recording works only while Levoy is your default phone app, so calls placed and answered in Levoy's own call screen are the ones recorded.",
+    "Recording works only while Callio is your default phone app, so calls placed and answered in Callio's own call screen are the ones recorded.",
     "Only calls to leads assigned to you are recorded. Other calls are never recorded.",
     "Android lets apps record through the microphone only, so the other person is clearly heard when the call is on speaker. Earpiece calls may capture only your voice.",
-    "A \"Recording\" notification stays on screen for the whole call. Recordings upload to your team's Levoy workspace when you are online.",
+    "A \"Recording\" notification stays on screen for the whole call. Recordings upload to your team's Callio workspace when you are online.",
     "Always tell the person you are calling that the call is being recorded.",
 )
 
 val QUICK_ACTION_BULLETS = listOf(
-    "Levoy's quick action is designed to give you instant access to essential call actions and insights — right when you need them most.",
+    "Callio's quick action is designed to give you instant access to essential call actions and insights — right when you need them most.",
     "Once a call begins, the quick action appears on your screen. Tapping it opens up two smart options:",
     "Save Contact – If the number isn't saved on your device, you can add it to your contacts with a single tap.",
-    "View Details – Instantly access Levoy's in-depth call history and analytics for the on-going call.",
+    "View Details – Instantly access Callio's in-depth call history and analytics for the on-going call.",
 )
 
 val NOTE_POPUP_BULLETS = listOf(
-    "When a call you spoke on ends, Levoy shows a notification with a box to write what was discussed.",
+    "When a call you spoke on ends, Callio shows a notification with a box to write what was discussed.",
     "Type the note and send — it is saved on that call and appears under it in Call History. Saving notes is part of the Premium Plus plan.",
-    "If nothing appears: allow Notifications for Levoy, and make sure the Phone permission is on (More → Troubleshooting → Call Sync).",
+    "If nothing appears: allow Notifications for Callio, and make sure the Phone permission is on (More → Troubleshooting → Call Sync).",
 )
 
 val WHATSAPP_BULLETS = listOf(
@@ -378,8 +378,8 @@ fun RemindersScreen(items: List<Reminder>, askAfterMissed: Boolean, onAsk: (Bool
                             Text(r.note, style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary)
                             r.remind_at?.let { Text(com.levoy.app.util.Fmt.parse(it)?.let { z -> "${com.levoy.app.util.Fmt.dateMed(z)} ${com.levoy.app.util.Fmt.time(z)}" } ?: "", style = Txt.Small, color = Pal.textMuted) }
                         }
-                        Icon(Icons.Filled.Call, "Call", tint = LevoyColors.Link, modifier = Modifier.size(40.dp).clickable { onCall(r.phone_number) }.padding(6.dp))
-                        Icon(Icons.Filled.Check, "Done", tint = LevoyColors.Success, modifier = Modifier.size(40.dp).clickable { onDone(r) }.padding(6.dp))
+                        Icon(Icons.Filled.Call, "Call", tint = CallioColors.Link, modifier = Modifier.size(40.dp).clickable { onCall(r.phone_number) }.padding(6.dp))
+                        Icon(Icons.Filled.Check, "Done", tint = CallioColors.Success, modifier = Modifier.size(40.dp).clickable { onDone(r) }.padding(6.dp))
                     }
                 }
             }
@@ -417,9 +417,9 @@ fun DeleteAccountScreen(email: String, error: String?, busy: Boolean, onEmail: (
                 Text("You cannot delete the only admin, or an account that still owns leads — reassign them first.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.textSecondary)
                 Spacer(Modifier.height(28.dp))
                 Field(email, onEmail, "Type your email to confirm", keyboard = androidx.compose.ui.text.input.KeyboardType.Email)
-                if (error != null) Text(error, style = Txt.Body.copy(fontSize = 15.sp), color = LevoyColors.DangerText, modifier = Modifier.padding(top = 12.dp))
+                if (error != null) Text(error, style = Txt.Body.copy(fontSize = 15.sp), color = CallioColors.DangerText, modifier = Modifier.padding(top = 12.dp))
             }
-            Box(Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp).height(66.dp).clip(RoundedCornerShape(20.dp)).background(LevoyColors.Danger).clickable(enabled = !busy && email.isNotBlank(), onClick = onDelete), contentAlignment = Alignment.Center) {
+            Box(Modifier.fillMaxWidth().padding(16.dp).padding(bottom = 16.dp).height(66.dp).clip(RoundedCornerShape(20.dp)).background(CallioColors.Danger).clickable(enabled = !busy && email.isNotBlank(), onClick = onDelete), contentAlignment = Alignment.Center) {
                 Text(if (busy) "Deleting…" else "Delete my account", style = Txt.Button, color = Color.White)
             }
         }

@@ -1,4 +1,4 @@
-// Talks to the Levoy API. No chrome.* calls in here so it can be unit-tested with node.
+// Talks to the Callio API. No chrome.* calls in here so it can be unit-tested with node.
 
 /** "192.168.1.10:3001" / "https://crm.example.com/api/" → "https://crm.example.com/api" */
 export function normalizeServer(input) {

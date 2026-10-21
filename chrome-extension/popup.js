@@ -11,7 +11,7 @@ async function refreshPhones(session) {
     const list = await devices(fetch, session);
     $('phones').innerHTML = list.length
       ? list.map(d => `<div><span class="dot ${d.online ? 'on' : ''}"></span>${escapeHtml(d.device_name)} — ${d.online ? 'online' : 'offline'}</div>`).join('')
-      : 'No phone linked yet. On the phone open Levoy → More → Linked Quick Call Extension.';
+      : 'No phone linked yet. On the phone open Callio → More → Linked Quick Call Extension.';
   } catch (e) { $('phones').textContent = ''; }
 }
 
@@ -36,7 +36,7 @@ function setCodeStep(on) {
   $('signin-btn').textContent = on ? 'Sign in' : 'Send code';
   $('signin-sub').textContent = on
     ? `Enter the 6-digit code sent to ${$('email').value.trim()}.`
-    : 'Sign in with your Levoy account. Your phone dials; this only sends the number.';
+    : 'Sign in with your Callio account. Your phone dials; this only sends the number.';
   if (on) $('code').focus();
 }
 

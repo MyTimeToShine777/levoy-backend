@@ -66,7 +66,7 @@ const check = async (name, fn) => {
     const stripe = StripeService.client();
     const s = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [{ quantity: 1, price_data: { currency: 'inr', unit_amount: 7500, product_data: { name: 'Levoy self-test' } } }],
+      line_items: [{ quantity: 1, price_data: { currency: 'inr', unit_amount: 7500, product_data: { name: 'Callio self-test' } } }],
       success_url: 'https://example.com/ok?session_id={CHECKOUT_SESSION_ID}', cancel_url: 'https://example.com/no',
       metadata: { app: 'levoy', selftest: '1' },
     });

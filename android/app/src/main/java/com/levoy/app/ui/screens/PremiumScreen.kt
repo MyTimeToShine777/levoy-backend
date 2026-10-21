@@ -38,7 +38,7 @@ import androidx.compose.ui.unit.sp
 import com.levoy.app.data.PlanState
 import com.levoy.app.ui.AmberButton
 import com.levoy.app.ui.FullScreen
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.T
@@ -73,7 +73,7 @@ fun PremiumScreen(ui: PremiumUi, a: PremiumActions) {
                 tabs.forEach { t ->
                     val on = t.key == tabKey
                     Column(Modifier.weight(1f).clickable { a.onTab(t.key) }, horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(t.icon, null, tint = if (on) LevoyColors.Amber else Pal.textSecondary, modifier = Modifier.size(40.dp))
+                        Icon(t.icon, null, tint = if (on) CallioColors.Amber else Pal.textSecondary, modifier = Modifier.size(40.dp))
                         Spacer(Modifier.height(6.dp))
                         Text(t.label, style = if (on) Txt.TabActive.copy(fontSize = 17.sp) else Txt.Tab.copy(fontSize = 17.sp), color = if (on) Pal.text else Pal.textSecondary)
                         Spacer(Modifier.height(6.dp))
@@ -129,13 +129,13 @@ private fun PremiumBody(p: PlanState, tabKey: String?, ui: PremiumUi, a: Premium
     )
     if (ui.message != null) {
         Spacer(Modifier.height(14.dp))
-        Text(ui.message, style = Txt.Body.copy(fontSize = 16.sp), color = LevoyColors.Amber, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        Text(ui.message, style = Txt.Body.copy(fontSize = 16.sp), color = CallioColors.Amber, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
     }
     Spacer(Modifier.height(34.dp))
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).border(1.dp, Pal.divider, RoundedCornerShape(16.dp)).padding(16.dp), verticalAlignment = Alignment.Top) {
         Icon(Icons.Filled.Info, null, tint = Pal.text, modifier = Modifier.size(28.dp))
         Spacer(Modifier.width(12.dp))
-        Text(if (p.payments_connected) "You pay securely on Stripe’s page in your browser, then come back here. Only a workspace admin can buy a plan; the free trial can be used once." else "Online payment is not available yet. Plans are switched on by the Levoy team — contact support. The free trial can be used once.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.text)
+        Text(if (p.payments_connected) "You pay securely on Stripe’s page in your browser, then come back here. Only a workspace admin can buy a plan; the free trial can be used once." else "Online payment is not available yet. Plans are switched on by the Callio team — contact support. The free trial can be used once.", style = Txt.Body.copy(fontSize = 16.sp), color = Pal.text)
     }
 }
 

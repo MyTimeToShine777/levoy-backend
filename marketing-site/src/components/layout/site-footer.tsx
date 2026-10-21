@@ -1,5 +1,5 @@
 import { ButtonLink } from "@/components/ui/primitives";
-import { LevoyLogo, Icon, SocialIcon } from "@/components/ui/icons";
+import { CallioLogo, Icon, SocialIcon } from "@/components/ui/icons";
 import { footerColumns, site, socialLinks } from "@/lib/site";
 
 /** Site footer: brand block, contact details, link columns and legal line. */
@@ -12,7 +12,7 @@ export function SiteFooter() {
         <div className="grid gap-10 lg:grid-cols-[1.4fr_2fr]">
           {/* Brand + contact */}
           <div>
-            <LevoyLogo
+            <CallioLogo
               markClassName="h-10 w-10"
               className="[&_span]:text-white"
             />

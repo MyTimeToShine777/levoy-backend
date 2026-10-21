@@ -15,7 +15,7 @@ async function post(path, body) {
   try {
     res = await fetch(`${MEDIVOY_API_BASE_URL}${path}`, {
       method: 'POST',
-      // x-app-type tells medivoy.api this is a Levoy login: check the code only,
+      // x-app-type tells medivoy.api this is a Callio login: check the code only,
       // never create a Medivoy patient account for the person.
       headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'x-app-type': 'levoy' },
       body: JSON.stringify(body),

@@ -63,7 +63,7 @@ class StripeService {
     const qs = back ? `&r=${encodeURIComponent(back)}` : '';
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
-      line_items: [{ quantity: 1, price_data: { currency, unit_amount: amount, product_data: { name: `Levoy ${P.name} — ${months} month${months === 1 ? '' : 's'}` } } }],
+      line_items: [{ quantity: 1, price_data: { currency, unit_amount: amount, product_data: { name: `Callio ${P.name} — ${months} month${months === 1 ? '' : 's'}` } } }],
       success_url: `${base}/pay/success?session_id={CHECKOUT_SESSION_ID}&c=${currentTenant().id}${qs}`,
       cancel_url: `${base}/pay/cancel?x=1${qs}`,
       client_reference_id: `levoy:${ctx.userId}`,

@@ -55,7 +55,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.levoy.app.ui.theme.LevoyColors
+import com.levoy.app.ui.theme.CallioColors
 import com.levoy.app.ui.theme.Pal
 import com.levoy.app.ui.theme.Txt
 import com.levoy.app.util.Preset
@@ -76,7 +76,7 @@ fun BottomBar(current: Tab, showPremium: Boolean, onSelect: (Tab) -> Unit) {
             Item(Tab.History, T("nav_history"), Icons.Filled.Call, null),
             Item(Tab.Leads, "Leads", Icons.Filled.Groups, null),
             Item(Tab.Analytics, T("nav_analytics"), Icons.Filled.BarChart, null),
-            Item(Tab.Premium, T("nav_premium"), Icons.Filled.Diamond, LevoyColors.Amber),
+            Item(Tab.Premium, T("nav_premium"), Icons.Filled.Diamond, CallioColors.Amber),
             Item(Tab.Contacts, T("nav_contacts"), Icons.Filled.ContactPage, null),
         ).filter { showPremium || it.tab != Tab.Premium }.forEach { it ->
             BottomBarItem(Modifier.weight(1f), it.label, it.icon, it.tint, it.tab == current) { onSelect(it.tab) }
@@ -118,7 +118,7 @@ fun DialFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
     val source = remember { MutableInteractionSource() }
     val scale = rememberPressScale(source, pressedScale = 0.92f)
     Box(
-        modifier.scaleTo(scale).size(66.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(LevoyColors.Amber)
+        modifier.scaleTo(scale).size(66.dp).shadow(8.dp, CircleShape).clip(CircleShape).background(CallioColors.Amber)
             .clickable(interactionSource = source, indication = LocalIndication.current, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -157,7 +157,7 @@ fun PresetSheetContent(selected: Preset, onPick: (Preset) -> Unit) {
         Preset.entries.forEach { p ->
             Row(Modifier.fillMaxWidth().height(48.dp).clickable { onPick(p) }.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                 Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                    if (p == selected) Icon(Icons.Filled.Check, null, tint = LevoyColors.Amber, modifier = Modifier.size(22.dp))
+                    if (p == selected) Icon(Icons.Filled.Check, null, tint = CallioColors.Amber, modifier = Modifier.size(22.dp))
                 }
                 Spacer(Modifier.size(16.dp))
                 Text(presetLabel(p), style = Txt.Row.copy(fontSize = 19.sp), color = Pal.text)

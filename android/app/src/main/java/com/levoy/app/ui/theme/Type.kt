@@ -44,7 +44,7 @@ object Txt {
     val Tile = TextStyle(fontFamily = Montserrat, fontWeight = FontWeight.Normal, fontSize = 15.sp, lineHeight = 20.sp)
 }
 
-val LevoyTypography = Typography(
+val CallioTypography = Typography(
     bodyLarge = Txt.Body,
     bodyMedium = Txt.Body,
     bodySmall = Txt.Small,

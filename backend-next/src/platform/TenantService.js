@@ -47,7 +47,7 @@ class TenantService {
     const schema = DEFAULT_TENANT_SCHEMA();
     await pq(
       `INSERT INTO customers (name, slug, schema_name, owner_email) VALUES ($1,'default',$2,$3)`,
-      [process.env.DEFAULT_CUSTOMER_NAME || 'Levoy', schema, BOOTSTRAP_ADMIN_EMAIL ? norm(BOOTSTRAP_ADMIN_EMAIL) : null]);
+      [process.env.DEFAULT_CUSTOMER_NAME || 'Callio', schema, BOOTSTRAP_ADMIN_EMAIL ? norm(BOOTSTRAP_ADMIN_EMAIL) : null]);
     Registry.invalidate();
     console.log(`Registered the existing workspace (schema "${schema}") as customer #1`);
   }

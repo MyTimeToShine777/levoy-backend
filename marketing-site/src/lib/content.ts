@@ -13,7 +13,7 @@ import { site } from "@/lib/site";
 
 export const hero = {
   eyebrow: "SIM-based telecalling intelligence",
-  title: "Unleash Telecalling Success Secrets with Levoy",
+  title: "Unleash Telecalling Success Secrets with Callio",
   subtitle:
     "Monitor all telesales and marketing calls and discover real-time insights to improve caller productivity and track lead status from a central dashboard.",
   primaryCta: { label: "Sign Up Now", href: "https://web.levoy.co/signup" },
@@ -99,7 +99,7 @@ export const featureCards: readonly FeatureCard[] = [
 ];
 
 /* -------------------------------------------------------------------------- */
-/* Why businesses trust Levoy                                              */
+/* Why businesses trust Callio                                              */
 /* -------------------------------------------------------------------------- */
 
 export const trustPoints: readonly {
@@ -149,13 +149,13 @@ export const playBadges = [
   {
     id: "business",
     audience: "For businesses",
-    app: "Levoy Biz",
+    app: "Callio Biz",
     package: "com.websoptimization.levoybiz",
   },
   {
     id: "personal",
     audience: "For individuals",
-    app: "Levoy",
+    app: "Callio",
     package: "in.levoy.individual",
   },
 ] as const;
@@ -249,7 +249,7 @@ export const productFeatures: readonly ProductFeature[] = [
     id: "recording-sync",
     icon: "mic",
     title: "Call Recording Synchronisation",
-    body: "Sync your existing call recorder to Levoy and line every recording up with the call log. Listen, coach and share the exact moment that won or lost the deal.",
+    body: "Sync your existing call recorder to Callio and line every recording up with the call log. Listen, coach and share the exact moment that won or lost the deal.",
     bullets: [
       "Sync recordings with the call log",
       "Listen inline beside the metadata",
@@ -302,8 +302,8 @@ export const productFeatures: readonly ProductFeature[] = [
 export const steps: readonly { title: string; body: string; icon: IconName }[] =
   [
     {
-      title: "Install the Levoy Biz app",
-      body: "Download the Levoy Biz app from the Play Store on each employee's smartphone. It takes a couple of minutes and no IT support.",
+      title: "Install the Callio Biz app",
+      body: "Download the Callio Biz app from the Play Store on each employee's smartphone. It takes a couple of minutes and no IT support.",
       icon: "phone",
     },
     {
@@ -324,7 +324,7 @@ export const steps: readonly { title: string; body: string; icon: IconName }[] =
 
 export const testimonial = {
   quote:
-    "Our entire tele-sales team now works from home, and that used to be a blind spot. Levoy gives us the call volume, talk time and lead movement of every person on the floor — verified, not claimed — so appraisals are based on evidence and coaching happens the same day instead of next month.",
+    "Our entire tele-sales team now works from home, and that used to be a blind spot. Callio gives us the call volume, talk time and lead movement of every person on the floor — verified, not claimed — so appraisals are based on evidence and coaching happens the same day instead of next month.",
   name: "Vineet Verma",
   role: "AGM – Growth",
   company: "Pristyn Care",

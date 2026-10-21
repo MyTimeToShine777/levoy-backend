@@ -80,7 +80,7 @@ class Session(context: Context) {
         get() = p.getBoolean("wa_calls", false)
         set(v) = p.edit().putBoolean("wa_calls", v).apply()
 
-    /** Call Recording switch: off until the person turns it on (and Levoy is the default phone app). */
+    /** Call Recording switch: off until the person turns it on (and Callio is the default phone app). */
     var callRecording: Boolean
         get() = p.getBoolean("call_recording", false)
         set(v) = p.edit().putBoolean("call_recording", v).apply()

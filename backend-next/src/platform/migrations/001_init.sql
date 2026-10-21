@@ -44,7 +44,7 @@ CREATE TABLE plans (
   updated_at    TIMESTAMP    NOT NULL DEFAULT (NOW() AT TIME ZONE 'UTC')
 );
 
--- One subscription per customer. Dates are UTC wall-clock, like everywhere else in Levoy.
+-- One subscription per customer. Dates are UTC wall-clock, like everywhere else in Callio.
 CREATE TABLE subscriptions (
   customer_id          INTEGER PRIMARY KEY REFERENCES customers (id) ON DELETE CASCADE,
   plan_key             VARCHAR(30) NOT NULL DEFAULT 'free' REFERENCES plans (key) ON UPDATE CASCADE,

@@ -9,7 +9,7 @@ import com.levoy.app.data.Session
 import com.levoy.app.sync.CallLogReader
 import com.levoy.app.sync.CallSync
 
-class LevoyApp : Application() {
+class CallioApp : Application() {
     override fun onCreate() {
         super.onCreate()
         com.levoy.app.push.Push.ensureChannel(this)
@@ -18,7 +18,7 @@ class LevoyApp : Application() {
             CallSync.schedulePeriodic(this)
             // a new call changes the log: sync shortly after, once, even if several calls land together
             contentResolver.registerContentObserver(CallLog.Calls.CONTENT_URI, true, object : ContentObserver(Handler(Looper.getMainLooper())) {
-                override fun onChange(selfChange: Boolean) { if (Session(this@LevoyApp).token != null) CallSync.syncSoon(this@LevoyApp) }
+                override fun onChange(selfChange: Boolean) { if (Session(this@CallioApp).token != null) CallSync.syncSoon(this@CallioApp) }
             })
         }
     }

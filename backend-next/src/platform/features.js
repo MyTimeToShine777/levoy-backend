@@ -33,7 +33,7 @@ const DEFAULT_PLANS = [
     tagline: 'Backup, support and the browser dialler' },
   { key: 'premium_plus', name: 'Premium Plus', price_monthly: 125, currency: 'INR', sort_order: 2, features: PLUS,
     tagline: 'Notes, tags, groups, billing and working hours' },
-  { key: 'biz', name: 'Levoy Biz', price_monthly: null, currency: 'INR', sort_order: 3, features: BIZ,
+  { key: 'biz', name: 'Callio Biz', price_monthly: null, currency: 'INR', sort_order: 3, features: BIZ,
     tagline: 'For teams: everything in Premium Plus, plus per-telecaller analytics' },
 ];
 

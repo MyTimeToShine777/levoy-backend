@@ -68,7 +68,7 @@ class PushService {
       const flat = {};
       for (const [k, v] of Object.entries(data || {})) if (v !== null && v !== undefined) flat[k] = typeof v === 'string' ? v : JSON.stringify(v);
       const res = await this.messaging().sendEachForMulticast({
-        tokens, notification: { title: String(title || 'Levoy').slice(0, 120), body: String(body || '').slice(0, 300) }, data: flat,
+        tokens, notification: { title: String(title || 'Callio').slice(0, 120), body: String(body || '').slice(0, 300) }, data: flat,
         android: { priority: 'high', notification: { channelId: 'levoy_alerts' } },
       });
       const dead = [];
