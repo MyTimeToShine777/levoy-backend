@@ -91,7 +91,11 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var is24 by mutableStateOf(session.is24Hour)
     var defaultScreen by mutableStateOf(session.defaultScreen)
 
-    init { Strings.lang = lang; Fmt.hour24 = is24 }
+    init {
+        Strings.lang = lang; Fmt.hour24 = is24
+        // A call uploaded by the background sync while this screen is open must show up without the person reopening the app.
+        viewModelScope.launch { CallSync.uploads.collect { if (stage == Stage.Main) refreshAll() } }
+    }
 
     private fun initialStage(): Stage = when {
         !session.privacyAccepted -> Stage.Privacy
@@ -165,7 +169,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                 val r = api.verifyOtp(email.trim(), code)
                 // a platform owner manages Callio from the web console: their login is not a workspace session
                 if (r.platform) throw ApiException("This account manages Callio on the web. Sign in with it in a browser at the platform console, not in this app.", 403)
-                session.token = r.access_token; session.user = r.user
+                session.token = r.access_token; session.refreshToken = r.refresh_token; session.user = r.user
                 runCatching { api.acceptConsent() }
                 codeSent = false; resendIn = 0
                 stage = Stage.Main
@@ -183,6 +187,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     private fun onSignedIn() {
         refreshPermissions()
         CallSync.schedulePeriodic(getApplication())
+        CallSync.watchCallLog(getApplication())
         syncNow()
         loadSims(); loadPlan(); loadWorkspace()
         com.levoy.app.push.Push.register(getApplication())
@@ -199,6 +204,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         defaultDialer = os.isDefaultDialer()
         if (stage != Stage.Main) return
         refreshPermissions()
+        if (CallLogReader.canReadLog(getApplication())) CallSync.watchCallLog(getApplication())     // covers a permission granted after sign-in
         syncNow()
         // already signed in from an earlier run: nothing has loaded yet (sign-in is the only other place that does it)
         if (history == null && !histLoading) refreshAll()
@@ -223,6 +229,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     fun signOut(notice: String? = null) {
         CallSync.cancel(getApplication())
         com.levoy.app.push.Push.unregister(getApplication(), session.token)   // while the token is still ours
+        session.refreshToken?.let { key -> viewModelScope.launch { runCatching { api.endSession(key) } } }
         session.signOut()
         com.levoy.app.calls.QuickCallService.stop(getApplication())
         AutoBackup.cancel(getApplication())
@@ -238,8 +245,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch {
             val r = CallSync.run(getApplication(), session, api)
             when (r) {
-                is CallSync.Result.Done -> { lastSync = java.time.ZonedDateTime.now(Fmt.zone).let { "${Fmt.dateMed(it)} ${Fmt.time(it)}" }; syncStatus = if (r.uploaded > 0) "Uploaded ${r.uploaded} calls" else "Up to date"; if (r.uploaded > 0) refreshAll() }
-                is CallSync.Result.Failed -> syncStatus = r.message
+                is CallSync.Result.Done -> { lastSync = java.time.ZonedDateTime.now(Fmt.zone).let { "${Fmt.dateMed(it)} ${Fmt.time(it)}" }; syncStatus = if (r.uploaded > 0) "Uploaded ${r.uploaded} calls" else "Up to date" }
+                is CallSync.Result.Failed -> if (r.endedSession != null) signOut(r.endedSession.endNotice) else syncStatus = r.message
                 CallSync.Result.NotReady -> {}
             }
             then()

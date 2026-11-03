@@ -13,6 +13,11 @@ class Session(context: Context) {
         get() = p.getString("token", null)
         set(v) = p.edit().putString("token", v).apply()
 
+    /** The long-lived key that buys a new sign-in token when the short one runs out. Cleared on sign-out. */
+    var refreshToken: String?
+        get() = p.getString("refresh_token", null)
+        set(v) = p.edit().putString("refresh_token", v).apply()
+
     var user: User?
         get() = p.getString("user", null)?.let { runCatching { gson.fromJson(it, User::class.java) }.getOrNull() }
         set(v) = p.edit().putString("user", v?.let(gson::toJson)).apply()
@@ -98,6 +103,11 @@ class Session(context: Context) {
         get() = p.getStringSet("lead_keys", emptySet()) ?: emptySet()
         set(v) = p.edit().putStringSet("lead_keys", v.toSet()).apply()
 
+    /** Lead numbers whose earlier calls were already looked for in the call log. A number not in here yet just became a lead. */
+    var scannedLeadKeys: Set<String>
+        get() = p.getStringSet("scanned_lead_keys", emptySet()) ?: emptySet()
+        set(v) = p.edit().putStringSet("scanned_lead_keys", v.toSet()).apply()
+
     /** Each assigned lead's name by phone key, refreshed on every sync, so a call to a lead who is not in the phone's contacts still shows a name. */
     var leadNames: Map<String, String>
         get() = (p.getStringSet("lead_names", emptySet()) ?: emptySet()).mapNotNull { e ->
@@ -120,6 +130,6 @@ class Session(context: Context) {
 
     fun signOut() {
         // settings (theme, language, clock) deliberately survive a sign-out
-        p.edit().remove("token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("lead_names").remove("call_recording").apply()
+        p.edit().remove("token").remove("refresh_token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("scanned_lead_keys").remove("lead_names").remove("call_recording").apply()
     }
 }

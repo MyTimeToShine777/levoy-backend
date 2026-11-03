@@ -13,7 +13,10 @@ data class User(
     val role: String = "agent",
 )
 
-data class AuthResponse(val access_token: String = "", val user: User = User(), val platform: Boolean = false)
+data class AuthResponse(val access_token: String = "", val user: User = User(), val platform: Boolean = false, val refresh_token: String? = null)
+
+/** The answer to a refresh: a new pair of keys. */
+data class Refreshed(val access_token: String = "", val refresh_token: String = "")
 /** Reply to asking for a sign-in code: how many seconds until another may be requested. */
 data class OtpSent(val message: String = "", val resend_in: Int = 60)
 
