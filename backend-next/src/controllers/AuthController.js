@@ -13,6 +13,10 @@ class AuthController {
 
   verifyOtp = async (req, res) => res.json(await AuthService.verifyOtp(ctxOf(req), req.body, isValid(req)));
 
+  refresh = async (req, res) => res.json(await AuthService.refresh(ctxOf(req), req.body));
+
+  logout = async (req, res) => res.json(await AuthService.logout(req.body));
+
   acceptInvite = async (req, res) => {
     const out = await AuthService.acceptInvite(ctxOf(req), req.body, isValid(req));
     res.status(201).json(out);

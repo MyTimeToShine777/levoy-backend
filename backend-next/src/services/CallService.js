@@ -44,8 +44,9 @@ async function assignedLeadKeys(userId) {
 
 // Calls this user already has around the given moments, so a call uploaded twice (a retry, or the same call from both the
 // live recorder and the call-log sync) is stored once.
-async function storedCallsBetween(userId, fromMs, toMs) {
-  const r = await q(
+// `run` is the query function to use: pass the open transaction's own connection so a busy pool cannot starve itself.
+async function storedCallsBetween(userId, fromMs, toMs, run = q) {
+  const r = await run(
     // The column is a plain timestamp that holds UTC clock time; hand it back as an explicit UTC string so the comparison
     // does not depend on the time zone the server happens to run in.
     `SELECT id, phone_key, direction, duration_seconds,
@@ -90,6 +91,9 @@ async function touchLeads(userId, events) {
   }
 }
 
+// Names the "one call upload per person at a time" lock (first number of pg_advisory_xact_lock's pair).
+const CALL_UPLOAD_LOCK = 7001;
+
 class CallService {
   async create(ctx, body) {
     if (!body.phone_number) throw new ValidationError('phone_number required');
@@ -130,17 +134,20 @@ class CallService {
       ({ kept: events, ignored } = splitByLeadNumbers(events, await assignedLeadKeys(ctx.userId)));
       if (events.length === 0) return { received: 0, ignored, ids: [] };      // nothing here is a call to one of their leads
     }
-    // Drop calls this user already has (or that repeat inside this upload) before inserting.
-    const times = events.map(e => (e.timestamp ? new Date(e.timestamp).getTime() : Date.now())).filter(Number.isFinite);
-    const stored = times.length ? await storedCallsBetween(ctx.userId, Math.min(...times), Math.max(...times)) : [];
-    const deduped = dropDuplicates(events, stored);
-    events = deduped.kept;
-    const duplicates = deduped.duplicates;
-    if (events.length === 0) return { received: 0, ignored, duplicates, ids: [] };
     const countryCode = await WorkspaceSettingsService.countryCode();
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      // The phone can start two syncs at once (call-log watcher, timer, opening the app). Without this wait both would pass the
+      // duplicate check below before either had saved anything, and the same call would be stored twice. One person's uploads queue up here.
+      await client.query('SELECT pg_advisory_xact_lock($1, $2)', [CALL_UPLOAD_LOCK, parseInt(ctx.userId)]);
+      // Drop calls this user already has (or that repeat inside this upload) before inserting.
+      const times = events.map(e => (e.timestamp ? new Date(e.timestamp).getTime() : Date.now())).filter(Number.isFinite);
+      const stored = times.length ? await storedCallsBetween(ctx.userId, Math.min(...times), Math.max(...times), (sql, p) => client.query(sql, p)) : [];
+      const deduped = dropDuplicates(events, stored);
+      events = deduped.kept;
+      const duplicates = deduped.duplicates;
+      if (events.length === 0) { await client.query('COMMIT'); return { received: 0, ignored, duplicates, ids: [] }; }
       const params = [];
       const values = [];
       const now = new Date().toISOString();

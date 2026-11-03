@@ -37,6 +37,12 @@ const verifyEmailLimit = rateLimit({
   message: 'Too many incorrect codes for this email address. Try again later.',
 });
 
+// A phone refreshes about once an hour, so this is generous; it only stops a host from guessing keys.
+const refreshIpLimit = rateLimit({
+  windowMs: 15 * 60 * 1000, max: 120 * SCALE, keyFn: req => ipKey('refresh', req),
+  message: 'Too many sign-in refreshes from this network. Try again later.',
+});
+
 const emailRule = body('email').trim().isEmail();
 
 router.get('/api/auth/registration-status', asyncHandler(AuthController.registrationStatus));
@@ -46,6 +52,10 @@ router.post('/api/auth/send-otp', [emailRule, sendIpLimit, sendEmailLimit], asyn
 router.post('/api/auth/verify-otp', [
   emailRule, body('otp').isString().matches(/^\d{6}$/), verifyIpLimit, verifyEmailLimit,
 ], asyncHandler(AuthController.verifyOtp));
+
+// Swap a refresh key for a new access token + a new refresh key. Public: the key itself is the proof.
+router.post('/api/auth/refresh', [refreshIpLimit], asyncHandler(AuthController.refresh));
+router.post('/api/auth/logout', [refreshIpLimit], asyncHandler(AuthController.logout));
 
 // Invite acceptance creates the account only; the person then signs in with a code.
 router.post('/api/auth/accept-invite', [

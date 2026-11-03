@@ -2,10 +2,12 @@
 
 const jwt = require('jsonwebtoken');
 const { pool, q, pq, runInTenant, currentTenant } = require('../config/db');
-const { JWT_SECRET, JWT_EXPIRE, OTP_RESEND_SECONDS } = require('../config/env');
-const { AppError, ValidationError, NotFoundError, ForbiddenError, ConflictError } = require('../exceptions');
+const { JWT_SECRET, JWT_EXPIRE, ACCESS_JWT_EXPIRE, OTP_RESEND_SECONDS } = require('../config/env');
+const { AppError, ValidationError, NotFoundError, ForbiddenError, ConflictError, AuthenticationError } = require('../exceptions');
 const { audit } = require('../utils/audit');
 const RbacService = require('./RbacService');
+const RefreshTokenService = require('./RefreshTokenService');
+const { customerIdOfRefreshToken } = require('../utils/refreshToken');
 const { OTP_ONLY_HASH } = require('../utils/passwords');
 const MedivoyOtpClient = require('./MedivoyOtpClient');
 const Registry = require('../platform/CustomerRegistry');
@@ -26,7 +28,9 @@ const publicUser = u => ({
 });
 
 // A workspace session carries the customer (`tid`); the auth middleware uses it to pick the schema.
-const signToken = (u, customerId) => jwt.sign({ sub: String(u.id), role: u.role, tid: customerId }, JWT_SECRET, { expiresIn: JWT_EXPIRE });
+const signToken = (u, customerId, expiresIn = JWT_EXPIRE) => jwt.sign({ sub: String(u.id), role: u.role, tid: customerId }, JWT_SECRET, { expiresIn });
+// How many seconds a short access token (ACCESS_JWT_EXPIRE, e.g. '1h') lasts; the app is told so it knows when to refresh.
+const ACCESS_SECONDS = (() => { const t = jwt.decode(jwt.sign({}, JWT_SECRET, { expiresIn: ACCESS_JWT_EXPIRE })); return t.exp - t.iat; })();
 // A platform session has no customer: it may only use /api/platform/*.
 const signPlatformToken = a => jwt.sign({ sub: String(a.id), plat: true }, JWT_SECRET, { expiresIn: PLATFORM_TOKEN_TTL });
 
@@ -144,13 +148,42 @@ class AuthService {
     return runInTenant(toTenant(customer), async () => {
       await q('UPDATE users SET last_login_at = NOW() WHERE id = $1', [u.id]);
       await audit(null, ctx, 'user.login', 'user', u.id, { method: 'email_otp' });
+      // Apps that say they can refresh their own sign-in (`refresh: true`) get a short access token plus a refresh key.
+      // Older apps do not, so they keep the 24-hour token they have always had.
+      const refreshing = body.refresh === true;
       return {
-        access_token: signToken(u, customer.id), token_type: 'bearer',
+        access_token: signToken(u, customer.id, refreshing ? ACCESS_JWT_EXPIRE : JWT_EXPIRE), token_type: 'bearer',
+        ...(refreshing ? { refresh_token: await RefreshTokenService.issue(u.id, customer.id), expires_in: ACCESS_SECONDS } : {}),
         user: publicUser(u),
         workspace: { id: customer.id, name: customer.name },
         ...(await this.rbacPayload(u)),
       };
     });
+  }
+
+  // Swap a refresh key for a new access token and a new refresh key. The old key stops working.
+  async refresh(ctx, body) {
+    const customerId = customerIdOfRefreshToken(body.refresh_token);
+    const customer = customerId ? await Registry.byId(customerId) : null;
+    if (!customer || customer.status !== 'active') throw new AuthenticationError('Your sign-in ended. Sign in again.');
+    return runInTenant(toTenant(customer), async () => {
+      const { userId, token } = await RefreshTokenService.rotate(body.refresh_token, customer.id);
+      const r = await q('SELECT id,email,name,phone,role,is_active,created_at FROM users WHERE id = $1', [userId]);
+      const u = r.rows[0];
+      if (!u || !u.is_active) {                       // switched off since they signed in: end this sign-in for good
+        await RefreshTokenService.revokeFamilyOf(token);
+        throw new AuthenticationError('Your sign-in ended. Sign in again.');
+      }
+      return { access_token: signToken(u, customer.id, ACCESS_JWT_EXPIRE), token_type: 'bearer', refresh_token: token, expires_in: ACCESS_SECONDS, user: publicUser(u) };
+    });
+  }
+
+  // Signing out: cancel this sign-in's refresh key. Always answers "ok", so it cannot be used to test whether a key is real.
+  async logout(body) {
+    const customerId = customerIdOfRefreshToken(body && body.refresh_token);
+    const customer = customerId ? await Registry.byId(customerId) : null;
+    if (customer) await runInTenant(toTenant(customer), () => RefreshTokenService.revokeFamilyOf(body.refresh_token)).catch(() => {});
+    return { ok: true };
   }
 
   // Accept an admin invitation. PUBLIC by design — the invite token proves the

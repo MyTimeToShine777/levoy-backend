@@ -6,6 +6,10 @@
 
 const JWT_SECRET = process.env.JWT_SECRET || 'levoy-secret-key-2024';
 const JWT_EXPIRE = '24h';
+// Apps that can refresh their own sign-in get a short access token (the refresh key does the long-term work).
+const ACCESS_JWT_EXPIRE = process.env.ACCESS_TOKEN_TTL || '1h';
+// How long a refresh key stays good without being used. Using it hands out a new one, so an active person never hits this.
+const REFRESH_TOKEN_DAYS = parseInt(process.env.REFRESH_TOKEN_DAYS) || 30;
 
 // First-admin bootstrap. Only ever applied by initDB() when the users table
 // contains no active admin, so restarting the server cannot resurrect or
@@ -25,7 +29,7 @@ const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || '0.0.0.0';
 
 module.exports = {
-  JWT_SECRET, JWT_EXPIRE, BOOTSTRAP_ADMIN_EMAIL,
+  JWT_SECRET, JWT_EXPIRE, ACCESS_JWT_EXPIRE, REFRESH_TOKEN_DAYS, BOOTSTRAP_ADMIN_EMAIL,
   MEDIVOY_API_BASE_URL, MEDIVOY_API_TIMEOUT_MS, OTP_RESEND_SECONDS,
   PORT, HOST,
 };
