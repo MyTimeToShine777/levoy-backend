@@ -90,6 +90,11 @@ class Session(context: Context) {
         get() = p.getBoolean("call_recording", false)
         set(v) = p.edit().putBoolean("call_recording", v).apply()
 
+    /** The folder the person pointed Callio at for their phone's call recordings (an Android folder address), or null = look in the audio library. */
+    var recordingFolder: String?
+        get() = p.getString("recording_folder", null)
+        set(v) = p.edit().putString("recording_folder", v).apply()
+
     /** Audio-library ids and call ids already copied from the phone's own recorder, so a recording is queued only once. */
     var importedRecordingIds: Set<Long>
         get() = (p.getStringSet("imported_rec_ids", emptySet()) ?: emptySet()).mapNotNull { it.toLongOrNull() }.toSet()
@@ -130,6 +135,6 @@ class Session(context: Context) {
 
     fun signOut() {
         // settings (theme, language, clock) deliberately survive a sign-out
-        p.edit().remove("token").remove("refresh_token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("scanned_lead_keys").remove("lead_names").remove("call_recording").apply()
+        p.edit().remove("token").remove("refresh_token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("scanned_lead_keys").remove("lead_names").remove("call_recording").remove("recording_folder").apply()
     }
 }

@@ -633,6 +633,17 @@ class AppModel(app: Application) : AndroidViewModel(app) {
     var missedPrompt by mutableStateOf(session.missedReminderPrompt)
     fun changeMissedPrompt(v: Boolean) { session.missedReminderPrompt = v; missedPrompt = v }
     var callRecording by mutableStateOf(session.callRecording)
+    /** The folder shown on the Call Recording screen (just its name, like "Recordings/Call"), or null when none is chosen. */
+    var recordingFolderName by mutableStateOf(folderLabel(session.recordingFolder))
+    fun setRecordingFolder(uri: String?) {
+        session.recordingFolder = uri
+        recordingFolderName = folderLabel(uri)
+        if (uri != null) { setCallRecording(true); syncNow() }          // look in the new folder straight away
+    }
+    private fun folderLabel(uri: String?): String? = uri?.let {
+        // content://…/tree/primary%3AMusic%2FCall  ->  "Music/Call"
+        runCatching { android.net.Uri.decode(android.net.Uri.parse(it).lastPathSegment.orEmpty()).substringAfter(':') }.getOrNull()?.ifBlank { "Selected folder" } ?: "Selected folder"
+    }
     @JvmName("applyCallRecording")
     fun setCallRecording(v: Boolean) { session.callRecording = v; callRecording = v }
     var whatsappCalls by mutableStateOf(session.whatsappCalls)

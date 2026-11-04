@@ -294,7 +294,7 @@ private fun StatusItem(ok: Boolean, title: String, icon: ImageVector, body: Stri
 /* ───────────────────────────── feature info screens ───────────────────────────── */
 
 @Composable
-fun ToggleInfoScreen(title: String, rowIcon: @Composable () -> Unit, rowLabel: String, on: Boolean, onToggle: (Boolean) -> Unit, warning: String?, heading: String, bullets: List<String>, onBack: () -> Unit) {
+fun ToggleInfoScreen(title: String, rowIcon: @Composable () -> Unit, rowLabel: String, on: Boolean, onToggle: (Boolean) -> Unit, warning: String?, heading: String, bullets: List<String>, onBack: () -> Unit, extra: (@Composable () -> Unit)? = null) {
     FullScreen {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             TopBar(title, onBack)
@@ -306,6 +306,7 @@ fun ToggleInfoScreen(title: String, rowIcon: @Composable () -> Unit, rowLabel: S
                 Text(rowLabel, style = Txt.Section.copy(fontSize = 22.sp), color = Pal.text, modifier = Modifier.weight(1f))
                 SwitchPill(on, onToggle)
             }
+            if (extra != null) { Spacer(Modifier.height(14.dp)); extra() }
             Spacer(Modifier.height(28.dp))
             Text(heading, style = Txt.Section.copy(fontSize = 22.sp), color = Pal.text, modifier = Modifier.padding(horizontal = 16.dp))
             Spacer(Modifier.height(10.dp))
@@ -315,10 +316,37 @@ fun ToggleInfoScreen(title: String, rowIcon: @Composable () -> Unit, rowLabel: S
     }
 }
 
+/**
+ * Where Callio looks for the phone's own call recordings. With no folder chosen it searches the phone's audio library by itself;
+ * choosing the folder the phone's recorder saves into makes it find recordings that library search misses.
+ */
+@Composable
+fun RecordingFolderCard(folderName: String?, onChoose: () -> Unit, onClear: () -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp).clip(RoundedCornerShape(18.dp)).background(Pal.card).padding(16.dp)) {
+        Text("Recording folder", style = Txt.Section.copy(fontSize = 20.sp), color = Pal.text)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            if (folderName == null) "Not chosen. Callio looks for call recordings in your phone's audio library by itself."
+            else "Callio looks here for new call recordings and uploads them to your dashboard:",
+            style = Txt.Tab.copy(fontSize = 15.sp), color = Pal.textSecondary,
+        )
+        if (folderName != null) {
+            Spacer(Modifier.height(8.dp))
+            Text(folderName, style = Txt.Section.copy(fontSize = 17.sp), color = Pal.text)
+        }
+        Spacer(Modifier.height(14.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PrimaryButton(if (folderName == null) "Choose folder" else "Change folder", onChoose, Modifier.weight(1f), height = 52.dp, corner = 14.dp)
+            if (folderName != null) OutlineButton("Use automatic", onClear, Modifier.weight(1f), height = 52.dp, corner = 14.dp)
+        }
+    }
+}
+
 val CALL_RECORDING_BULLETS = listOf(
     "To hear both voices, turn on call recording in your phone's own Phone app. Callio finds that recording after the call and uploads it to your team's workspace.",
     "That needs Callio's permission to read audio files, and works only while your phone's own Phone app (not Callio) is the default phone app.",
     "If Callio is your default phone app, it records through the microphone instead. Android lets apps record the microphone only, so the other person is heard only when the call is on speaker.",
+    "If your phone saves recordings somewhere Callio does not look, choose that folder above (on most phones it is called Recordings, Call or Call_rec). Callio then uploads each new recording to the matching call automatically.",
     "Only calls to leads assigned to you are recorded or uploaded. Other calls never are.",
     "Always tell the person you are calling that the call is being recorded.",
 )

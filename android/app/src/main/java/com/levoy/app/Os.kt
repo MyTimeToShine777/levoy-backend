@@ -41,6 +41,8 @@ interface Os {
     fun requestNotifications()
 
     fun shareFile(bytes: ByteArray, name: String, mime: String)
+    /** Opens Android's folder chooser; `then` gets the chosen folder's address (already kept readable across restarts). */
+    fun pickRecordingFolder(then: (String) -> Unit)
     fun pickBackupFile(then: (String) -> Unit)
     fun openUrl(url: String)
     fun shareText(text: String)

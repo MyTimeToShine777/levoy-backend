@@ -19,6 +19,7 @@ import com.levoy.app.data.Api
 import com.levoy.app.data.ApiException
 import com.levoy.app.data.Session
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.concurrent.TimeUnit
 
@@ -34,7 +35,12 @@ object CallSync {
     val uploads = kotlinx.coroutines.flow.MutableSharedFlow<Int>(extraBufferCapacity = 1)
 
     // Off the main thread: reading a big call log (and looking up every name) took long enough to freeze the app ("not responding").
-    suspend fun run(context: Context, session: Session, api: Api): Result = withContext(Dispatchers.IO) { runSync(context, session, api) }
+    // Syncs are triggered from several places at once (opening the app, choosing a folder, the call-log watcher, the timer).
+    // Two running together would both pick up the same recording file and upload it twice, so they take turns.
+    private val oneAtATime = kotlinx.coroutines.sync.Mutex()
+
+    suspend fun run(context: Context, session: Session, api: Api): Result =
+        oneAtATime.withLock { withContext(Dispatchers.IO) { runSync(context, session, api) } }
 
     private suspend fun runSync(context: Context, session: Session, api: Api): Result {
         if (session.token == null) return Result.NotReady
