@@ -1,99 +1,61 @@
 'use strict';
 
 const { q } = require('../config/db');
+const { KIND_SQL, CONNECTED_SQL } = require('../utils/callKinds');
+const { tzMinutes, startOfLocalDay, DAY } = require('../utils/dayBounds');
+
+// One row of numbers per day, worked out by the database for a window of calls. Every call is classified with the same
+// rules as Call Analytics and Call History (callKinds), so the reports always agree with those pages.
+const COUNTS_SQL = `COUNT(*)::int AS total_calls,
+       COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'incoming')::int AS incoming,
+       COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'outgoing')::int AS outgoing,
+       COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'missed')::int AS missed,
+       COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'rejected')::int AS rejected,
+       COALESCE(SUM(c.duration_seconds), 0)::int AS total_duration,
+       COUNT(DISTINCT COALESCE(c.phone_key, c.phone_number))::int AS unique_contacts,
+       COUNT(*) FILTER (WHERE ${CONNECTED_SQL})::int AS connected`;
 
 // Daily call reports. Agents see their own calls; managers and admins the team's.
 class ReportService {
-  baseFor(ctx, dayStart, dayEnd) {
-    const isAgent = ctx.role === 'agent';
-    return {
-      params: isAgent ? [ctx.userId, dayStart, dayEnd] : [dayStart, dayEnd],
-      base: isAgent
-        ? 'FROM call_events WHERE user_id = $1 AND timestamp >= $2 AND timestamp < $3'
-        : 'FROM call_events WHERE timestamp >= $1 AND timestamp < $2',
-    };
-  }
-
+  // Days follow the viewer's calendar (?tz= minutes east of UTC), not the server's clock.
   async daily(ctx, query) {
     const days = Math.min(Math.max(parseInt(query.days) || 30, 1), 365);
-    const today = new Date();
-    const reports = [];
+    const tz = tzMinutes(query);
+    const lastDayStart = startOfLocalDay(Date.now(), tz);
+    const from = new Date(lastDayStart - (days - 1) * DAY).toISOString();
+    const to = new Date(lastDayStart + DAY).toISOString();
 
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const ds = d.toISOString().split('T')[0];
-      const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
-      const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
+    const params = [tz, from, to];
+    let mine = '';
+    if (ctx.role === 'agent') { params.push(parseInt(ctx.userId)); mine = 'AND c.user_id = $4'; }
 
-      try {
-        const { params: rp, base } = this.baseFor(ctx, dayStart, dayEnd);
-        const totalR = await q(`SELECT COUNT(*) ${base}`, rp);
-        if (parseInt(totalR.rows[0].count) === 0) continue;
-
-        const data = await Promise.all([
-          q(`SELECT COUNT(*) ${base}`, rp),
-          q(`SELECT COUNT(*) ${base} AND direction = 'incoming'`, rp),
-          q(`SELECT COUNT(*) ${base} AND direction = 'outgoing'`, rp),
-          q(`SELECT COUNT(*) ${base} AND status = 'missed'`, rp),
-          q(`SELECT COUNT(*) ${base} AND status = 'rejected'`, rp),
-          q(`SELECT COALESCE(SUM(duration_seconds),0) ${base}`, rp),
-          q(`SELECT COUNT(DISTINCT phone_number) ${base}`, rp),
-          // "Connected" means someone spoke: the same rule the call analytics use (CONNECTED_SQL).
-          q(`SELECT COUNT(*) ${base} AND COALESCE(duration_seconds, 0) > 0`, rp),
-        ]);
-
-        reports.push({
-          date: ds,
-          total_calls: parseInt(data[0].rows[0].count),
-          incoming: parseInt(data[1].rows[0].count),
-          outgoing: parseInt(data[2].rows[0].count),
-          missed: parseInt(data[3].rows[0].count),
-          rejected: parseInt(data[4].rows[0].count),
-          total_duration: parseInt(data[5].rows[0].coalesce),
-          unique_contacts: parseInt(data[6].rows[0].count),
-          connected: parseInt(data[7].rows[0].count),
-        });
-      } catch (e) { console.error(`Report day ${ds}:`, e.message); }
-    }
-    return reports;
+    // One query for the whole period. Days with no calls are left out, as before.
+    const r = await q(
+      `SELECT to_char(c.timestamp + make_interval(mins => $1), 'YYYY-MM-DD') AS date, ${COUNTS_SQL}
+         FROM call_events c
+        WHERE c.timestamp >= $2::timestamp AND c.timestamp < $3::timestamp ${mine}
+        GROUP BY 1 ORDER BY 1`, params);
+    return r.rows;
   }
 
   // Build today's report text and save a snapshot row (daily_reports).
-  async generateEmail(ctx) {
-    const today = new Date();
-    const ds = today.toISOString().split('T')[0];
-    const ts = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-    const te = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
-    const { params: rp, base } = this.baseFor(ctx, ts, te);
+  async generateEmail(ctx, query = {}) {
+    const tz = tzMinutes(query);
+    const dayStart = startOfLocalDay(Date.now(), tz);
+    const ds = new Date(dayStart + tz * 60000).toISOString().slice(0, 10);
+    const params = [new Date(dayStart).toISOString(), new Date(dayStart + DAY).toISOString()];
+    let mine = '';
+    if (ctx.role === 'agent') { params.push(parseInt(ctx.userId)); mine = 'AND c.user_id = $3'; }
 
-    const totalR = await q(`SELECT COUNT(*) ${base}`, rp);
-    const total = parseInt(totalR.rows[0].count) || 0;
-
-    const data = await Promise.all([
-      q(`SELECT COUNT(*) ${base} AND direction = 'incoming'`, rp),
-      q(`SELECT COUNT(*) ${base} AND direction = 'outgoing'`, rp),
-      q(`SELECT COUNT(*) ${base} AND status = 'missed'`, rp),
-      q(`SELECT COUNT(*) ${base} AND status = 'rejected'`, rp),
-      q(`SELECT COUNT(*) ${base} AND COALESCE(duration_seconds, 0) > 0`, rp),
-      q(`SELECT COALESCE(SUM(duration_seconds),0) ${base}`, rp),
-      q(`SELECT COUNT(DISTINCT phone_number) ${base}`, rp),
-    ]);
-
-    const incoming = parseInt(data[0].rows[0].count) || 0;
-    const outgoing = parseInt(data[1].rows[0].count) || 0;
-    const missed = parseInt(data[2].rows[0].count) || 0;
-    const rejected = parseInt(data[3].rows[0].count) || 0;
-    const connected = parseInt(data[4].rows[0].count) || 0;
-    const dur = parseInt(data[5].rows[0].coalesce) || 0;
-    const uniq = parseInt(data[6].rows[0].count) || 0;
+    const t = (await q(
+      `SELECT ${COUNTS_SQL} FROM call_events c WHERE c.timestamp >= $1::timestamp AND c.timestamp < $2::timestamp ${mine}`, params)).rows[0];
 
     await q(
       `INSERT INTO daily_reports (user_id,date,total_calls,incoming,outgoing,missed,rejected,total_duration,unique_contacts,sent_at)
        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,NOW())`,
-      [ctx.userId, ds, total, incoming, outgoing, missed, rejected, dur, uniq]);
+      [ctx.userId, ds, t.total_calls, t.incoming, t.outgoing, t.missed, t.rejected, t.total_duration, t.unique_contacts]);
 
-    const txt = `Daily Call Report - ${ds}\n${ctx.role === 'admin' ? 'Admin' : 'Agent'}\nTotal: ${total}  In: ${incoming}  Out: ${outgoing}  Missed: ${missed}  Rejected: ${rejected}  Connected: ${connected}  Duration: ${dur}s (${Math.floor(dur / 60)}m)  Unique: ${uniq}`;
+    const txt = `Daily Call Report - ${ds}\n${ctx.role === 'admin' ? 'Admin' : 'Agent'}\nTotal: ${t.total_calls}  In: ${t.incoming}  Out: ${t.outgoing}  Missed: ${t.missed}  Rejected: ${t.rejected}  Connected: ${t.connected}  Duration: ${t.total_duration}s (${Math.floor(t.total_duration / 60)}m)  Unique: ${t.unique_contacts}`;
     return { report: txt, saved: true };
   }
 }

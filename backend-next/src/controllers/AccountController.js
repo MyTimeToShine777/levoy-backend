@@ -43,7 +43,7 @@ class AccountController {
   // ── reports ──
   dailyReport = async (req, res) => res.json(await ReportService.daily(ctxOf(req), req.query));
 
-  generateEmailReport = async (req, res) => res.json(await ReportService.generateEmail(ctxOf(req)));
+  generateEmailReport = async (req, res) => res.json(await ReportService.generateEmail(ctxOf(req), req.query));
 
   // ── exports ──
   createExport = async (req, res) => res.json(await ExportService.create(ctxOf(req), req.body));
