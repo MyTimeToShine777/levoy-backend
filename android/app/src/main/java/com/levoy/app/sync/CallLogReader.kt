@@ -27,6 +27,9 @@ data class DeviceCall(
     )
 }
 
+/** A call-log row exactly as the phone stores it, for the "Check last 7 days" report. */
+data class RawCall(val date: Long, val number: String, val seconds: Int, val type: Int, val features: Int)
+
 data class DeviceSim(val slot: Int, val label: String, val subscriptionId: Int, val iccId: String?, val number: String?)
 
 object CallLogReader {
@@ -83,6 +86,30 @@ object CallLogReader {
                 val sim = sims.firstOrNull { acc != null && (acc == it.subscriptionId.toString() || acc == it.iccId) } ?: if (sims.size == 1) sims[0] else null
                 val name = (if (iName >= 0) c.getString(iName) else null)?.takeIf { it.isNotBlank() } ?: (if (names.containsKey(number)) names[number] else nameFor(context, number).also { names[number] = it })
                 out.add(DeviceCall(c.getLong(iDate), number, name, direction, status, seconds, sim?.slot, sim?.label))
+            }
+        }
+        return out
+    }
+
+    /** Every call-log row newer than `afterMillis` to one of the `only` numbers, with its raw call type and features (bit 8 = Wi-Fi call). */
+    fun readRaw(context: Context, afterMillis: Long, only: Set<String>): List<RawCall> {
+        if (!canReadLog(context)) return emptyList()
+        val out = ArrayList<RawCall>()
+        val cols = arrayOf(CallLog.Calls.NUMBER, CallLog.Calls.DATE, CallLog.Calls.DURATION, CallLog.Calls.TYPE, CallLog.Calls.FEATURES)
+        val cursor = try {
+            context.contentResolver.query(CallLog.Calls.CONTENT_URI, cols, "${CallLog.Calls.DATE} > ?", arrayOf(afterMillis.toString()), "${CallLog.Calls.DATE} ASC")
+        } catch (e: Exception) {
+            // some phones have no FEATURES column: ask again without it
+            runCatching { context.contentResolver.query(CallLog.Calls.CONTENT_URI, cols.copyOf(4), "${CallLog.Calls.DATE} > ?", arrayOf(afterMillis.toString()), "${CallLog.Calls.DATE} ASC") }.getOrNull()
+        }
+        cursor?.use { c ->
+            val iNumber = c.getColumnIndex(CallLog.Calls.NUMBER); val iDate = c.getColumnIndex(CallLog.Calls.DATE)
+            val iDur = c.getColumnIndex(CallLog.Calls.DURATION); val iType = c.getColumnIndex(CallLog.Calls.TYPE); val iFeat = c.getColumnIndex(CallLog.Calls.FEATURES)
+            if (iNumber < 0 || iDate < 0 || iType < 0) return emptyList()
+            while (c.moveToNext()) {
+                val number = c.getString(iNumber)?.replace(Regex("[^\\d+]"), "")?.take(20).orEmpty()
+                if (number.isEmpty() || com.levoy.app.data.phoneKeyOf(number) !in only) continue
+                out.add(RawCall(c.getLong(iDate), number, if (iDur >= 0) c.getInt(iDur) else 0, c.getInt(iType), if (iFeat >= 0) c.getInt(iFeat) else 0))
             }
         }
         return out

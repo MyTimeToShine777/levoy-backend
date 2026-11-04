@@ -132,10 +132,12 @@ class Api(private val session: Session) {
             groups = h.groups?.map { g -> g.copy(contact_name = nameOrLead(g.contact_name, g.phone_number)) },
         )
     }
-    /** Returns how many of these calls the server stored as new (it skips ones it already has). */
-    suspend fun uploadCalls(events: List<Map<String, Any?>>): Int {
+    /** `received` = stored as new; `duplicates` = the server already had them; `ignored` = not calls to this person's leads. */
+    data class UploadResult(val received: Int, val duplicates: Int, val ignored: Int)
+    suspend fun uploadCalls(events: List<Map<String, Any?>>): UploadResult {
         val reply = gson.fromJson(raw("POST", "/calls/batch", mapOf("events" to events)), Map::class.java)
-        return (reply?.get("received") as? Double)?.toInt() ?: 0
+        fun n(k: String) = (reply?.get(k) as? Double)?.toInt() ?: 0
+        return UploadResult(n("received"), n("duplicates"), n("ignored"))
     }
     /** Attach a finished call recording (m4a) to a call the server already holds. */
     private fun audioType(f: java.io.File) = when (f.extension.lowercase()) {

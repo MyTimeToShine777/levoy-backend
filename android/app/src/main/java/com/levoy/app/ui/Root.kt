@@ -312,6 +312,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
             HealthUi(!m.permissionsMissing, m.sims.isNotEmpty() && m.sims.all { it.verified }, os.batteryUnrestricted(), m.lastSync ?: m.syncStatus),
             onDisableBattery = os::openBatterySettings, onFixPermissions = { os.requestAllPermissions { if (!os.hasCallLogPermission()) os.openAppSettings() } },
             onSyncNow = { m.syncNow { os.toast(m.syncStatus ?: "Done") } }, onBack = back,
+            onRecheck = m::recheckCalls, recheckBusy = m.recheckBusy, recheckText = m.recheckText,
         )
         Screen.QuickAction -> ToggleInfoScreen("Quick Action", { Icon(Icons.Filled.Layers, null, tint = Pal.text) }, "Quick Action", m.quickAction,
             { v -> if (!v) m.changeQuickAction(false) else if (!os.canDrawOverlays()) { m.session.pendingToggle = "quick_action"; os.openOverlaySettings() } else os.requestOutgoingCalls { m.changeQuickAction(true) } }, null, "Quick Action Feature :", QUICK_ACTION_BULLETS, back)

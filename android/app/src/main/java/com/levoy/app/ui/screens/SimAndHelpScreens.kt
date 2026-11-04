@@ -247,7 +247,8 @@ fun TroubleshootingMenuScreen(onItem: (String) -> Unit, onBack: () -> Unit) {
 data class HealthUi(val permissionsOk: Boolean, val simVerified: Boolean, val batteryUnrestricted: Boolean, val lastSync: String? = null)
 
 @Composable
-fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermissions: () -> Unit, onSyncNow: () -> Unit, onBack: () -> Unit) {
+fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermissions: () -> Unit, onSyncNow: () -> Unit, onBack: () -> Unit,
+    onRecheck: () -> Unit = {}, recheckBusy: Boolean = false, recheckText: String? = null) {
     FullScreen {
         Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             TopBar("Troubleshooting", onBack)
@@ -263,6 +264,10 @@ fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermiss
                     if (h.batteryUnrestricted) null else "Disable Battery Optimization" to onDisableBattery)
                 h.lastSync?.let { Text("Last sync: $it", style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary) }
                 OutlineButton("Sync now", onSyncNow, Modifier.fillMaxWidth(), height = 56.dp)
+                Text("Missing a call on the dashboard? This looks through the last 7 days of calls on this phone, uploads any that are missing, and tells you why if one cannot be uploaded.",
+                    style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary)
+                OutlineButton(if (recheckBusy) "Checking…" else "Check last 7 days", { if (!recheckBusy) onRecheck() }, Modifier.fillMaxWidth(), height = 56.dp)
+                if (recheckText != null) Text(recheckText, style = Txt.Body.copy(fontSize = 15.sp, lineHeight = 22.sp), color = Pal.text)
             }
             Spacer(Modifier.height(40.dp))
         }

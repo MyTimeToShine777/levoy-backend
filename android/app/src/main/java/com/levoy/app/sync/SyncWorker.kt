@@ -42,6 +42,43 @@ object CallSync {
     suspend fun run(context: Context, session: Session, api: Api): Result =
         oneAtATime.withLock { withContext(Dispatchers.IO) { runSync(context, session, api) } }
 
+    /**
+     * "Check last 7 days": re-reads the phone's call log for the last [days] days, uploads every call to this person's leads that the
+     * server does not have yet (the server skips the ones it has), and lists the calls this app cannot understand, with the reason.
+     * It does not touch the normal sync position, so it is safe to run any time.
+     */
+    suspend fun recheck(context: Context, session: Session, api: Api, days: Int = 7): String = oneAtATime.withLock {
+        withContext(Dispatchers.IO) {
+            if (session.token == null) return@withContext "Sign in first."
+            if (!CallLogReader.canReadLog(context)) return@withContext "Callio cannot read your call log. Allow the Call log permission first."
+            val leads = api.myLeadNumbers()
+            session.leadKeys = leads
+            if (leads.isEmpty()) return@withContext "You have no assigned leads yet, so there is nothing to check."
+            val since = System.currentTimeMillis() - days * 86_400_000L
+            val phoneRows = CallLogReader.readRaw(context, since, leads)
+            var added = 0
+            var alreadyThere = 0
+            for (chunk in CallLogReader.read(context, since, only = leads).chunked(400)) {
+                val r = api.uploadCalls(chunk.map { it.toEvent() })
+                added += r.received; alreadyThere += r.duplicates
+            }
+            if (added > 0) uploads.tryEmit(added)
+            // type 4 is a voicemail: skipped on purpose. Anything else we cannot classify is a call the phone wrote in its own way.
+            val unreadable = phoneRows.filter { CallLogReader.classify(it.type) == null && it.type != 4 }
+            val clock = java.text.SimpleDateFormat("dd MMM HH:mm", java.util.Locale.getDefault())
+            buildString {
+                append("Last $days days: ${phoneRows.size} calls to your leads are in this phone's call log.\n")
+                append("• $alreadyThere were already on the dashboard\n")
+                append("• $added were missing and are uploaded now\n")
+                append("• ${unreadable.size} could not be read by Callio")
+                unreadable.take(15).forEach { u ->
+                    append("\n    ${clock.format(java.util.Date(u.date))} · ${u.number} · ${u.seconds}s · call type ${u.type}${if (u.features and 8 != 0) " · Wi-Fi call" else ""}")
+                }
+                if (unreadable.size > 15) append("\n    … and ${unreadable.size - 15} more")
+            }
+        }
+    }
+
     private suspend fun runSync(context: Context, session: Session, api: Api): Result {
         if (session.token == null) return Result.NotReady
         if (!CallLogReader.canReadLog(context)) return Result.NotReady
@@ -69,7 +106,7 @@ object CallSync {
             val calls = earlierCalls + newCalls
             var uploaded = 0
             for (chunk in calls.chunked(400)) {
-                uploaded += api.uploadCalls(chunk.map { it.toEvent() })
+                uploaded += api.uploadCalls(chunk.map { it.toEvent() }).received
                 session.lastSyncedAt = maxOf(session.lastSyncedAt, chunk.last().date)
             }
             if (calls.isEmpty() && after > session.lastSyncedAt) session.lastSyncedAt = after

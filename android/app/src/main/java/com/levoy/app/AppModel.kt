@@ -253,6 +253,22 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    /** "Check last 7 days" on the Call Sync screen. */
+    var recheckText by mutableStateOf<String?>(null)
+    var recheckBusy by mutableStateOf(false)
+    fun recheckCalls() {
+        if (recheckBusy) return
+        recheckBusy = true; recheckText = null
+        viewModelScope.launch {
+            recheckText = try { CallSync.recheck(getApplication(), session, api) }
+            catch (e: ApiException) { if (e.sessionEnded) { signOut(e.endNotice); null } else e.message }
+            catch (e: kotlin.coroutines.cancellation.CancellationException) { throw e }
+            catch (e: Exception) { "Something went wrong: ${e.message}" }
+            finally { recheckBusy = false }
+            refreshAll()
+        }
+    }
+
     fun refreshAll() { loadHistory(); loadAnalytics(); loadContacts() }
 
     private fun tz() = java.time.ZonedDateTime.now(Fmt.zone).offset.totalSeconds / 60
