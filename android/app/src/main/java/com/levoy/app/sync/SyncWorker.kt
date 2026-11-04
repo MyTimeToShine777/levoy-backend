@@ -43,11 +43,11 @@ object CallSync {
         oneAtATime.withLock { withContext(Dispatchers.IO) { runSync(context, session, api) } }
 
     /**
-     * "Check last 7 days": re-reads the phone's call log for the last [days] days, uploads every call to this person's leads that the
+     * "Check last 30 days": re-reads the phone's call log for the last [days] days, uploads every call to this person's leads that the
      * server does not have yet (the server skips the ones it has), and lists the calls this app cannot understand, with the reason.
      * It does not touch the normal sync position, so it is safe to run any time.
      */
-    suspend fun recheck(context: Context, session: Session, api: Api, days: Int = 7): String = oneAtATime.withLock {
+    suspend fun recheck(context: Context, session: Session, api: Api, days: Int = 30): String = oneAtATime.withLock {
         withContext(Dispatchers.IO) {
             if (session.token == null) return@withContext "Sign in first."
             if (!CallLogReader.canReadLog(context)) return@withContext "Callio cannot read your call log. Allow the Call log permission first."
@@ -71,6 +71,7 @@ object CallSync {
                 append("• $alreadyThere were already on the dashboard\n")
                 append("• $added were missing and are uploaded now\n")
                 append("• ${unreadable.size} could not be read by Callio")
+                if (unreadable.isNotEmpty()) append(" (" + unreadable.groupingBy { it.type }.eachCount().entries.joinToString { "type ${it.key}: ${it.value}" } + ")")
                 unreadable.take(15).forEach { u ->
                     append("\n    ${clock.format(java.util.Date(u.date))} · ${u.number} · ${u.seconds}s · call type ${u.type}${if (u.features and 8 != 0) " · Wi-Fi call" else ""}")
                 }

@@ -27,7 +27,7 @@ data class DeviceCall(
     )
 }
 
-/** A call-log row exactly as the phone stores it, for the "Check last 7 days" report. */
+/** A call-log row exactly as the phone stores it, for the "Check last 30 days" report. */
 data class RawCall(val date: Long, val number: String, val seconds: Int, val type: Int, val features: Int)
 
 data class DeviceSim(val slot: Int, val label: String, val subscriptionId: Int, val iccId: String?, val number: String?)
@@ -49,12 +49,19 @@ object CallLogReader {
         }.getOrDefault(emptyList())
     }
 
+    const val WIFI_OUTGOING_TYPE = 100
+    const val WIFI_INCOMING_TYPE = 101
+
     /** Android's own call-type codes → our (direction, status). Voicemail and unknown types are skipped (null). */
     fun classify(type: Int): Pair<String, String>? = when (type) {
         CallLog.Calls.INCOMING_TYPE, CallLog.Calls.ANSWERED_EXTERNALLY_TYPE -> "incoming" to "connected"
         CallLog.Calls.OUTGOING_TYPE -> "outgoing" to "connected"
         CallLog.Calls.MISSED_TYPE -> "incoming" to "missed"
         CallLog.Calls.REJECTED_TYPE, CallLog.Calls.BLOCKED_TYPE -> "incoming" to "rejected"
+        // OPPO / Realme / OnePlus write a Wi-Fi call (VoWiFi) with their own numbers instead of 1 and 2. Without these, every Wi-Fi
+        // call was skipped and never reached the dashboard. (A 0-second one still becomes unanswered / missed below.)
+        WIFI_OUTGOING_TYPE -> "outgoing" to "connected"
+        WIFI_INCOMING_TYPE -> "incoming" to "connected"
         else -> null
     }
 

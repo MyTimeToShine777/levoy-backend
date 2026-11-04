@@ -253,7 +253,7 @@ class AppModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** "Check last 7 days" on the Call Sync screen. */
+    /** "Check last 30 days" on the Call Sync screen. */
     var recheckText by mutableStateOf<String?>(null)
     var recheckBusy by mutableStateOf(false)
     fun recheckCalls() {

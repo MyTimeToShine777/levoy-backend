@@ -264,9 +264,9 @@ fun CallSyncStatusScreen(h: HealthUi, onDisableBattery: () -> Unit, onFixPermiss
                     if (h.batteryUnrestricted) null else "Disable Battery Optimization" to onDisableBattery)
                 h.lastSync?.let { Text("Last sync: $it", style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary) }
                 OutlineButton("Sync now", onSyncNow, Modifier.fillMaxWidth(), height = 56.dp)
-                Text("Missing a call on the dashboard? This looks through the last 7 days of calls on this phone, uploads any that are missing, and tells you why if one cannot be uploaded.",
+                Text("Missing a call on the dashboard? This looks through the last 30 days of calls on this phone, uploads any that are missing, and tells you why if one cannot be uploaded.",
                     style = Txt.Body.copy(fontSize = 15.sp), color = Pal.textSecondary)
-                OutlineButton(if (recheckBusy) "Checking…" else "Check last 7 days", { if (!recheckBusy) onRecheck() }, Modifier.fillMaxWidth(), height = 56.dp)
+                OutlineButton(if (recheckBusy) "Checking…" else "Check last 30 days", { if (!recheckBusy) onRecheck() }, Modifier.fillMaxWidth(), height = 56.dp)
                 if (recheckText != null) Text(recheckText, style = Txt.Body.copy(fontSize = 15.sp, lineHeight = 22.sp), color = Pal.text)
             }
             Spacer(Modifier.height(40.dp))
