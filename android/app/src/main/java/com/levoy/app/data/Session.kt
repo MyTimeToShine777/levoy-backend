@@ -134,7 +134,17 @@ class Session(context: Context) {
         set(v) = p.edit().putBoolean("notifications_asked", v).apply()
 
     fun signOut() {
-        // settings (theme, language, clock) deliberately survive a sign-out
-        p.edit().remove("token").remove("refresh_token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("scanned_lead_keys").remove("lead_names").remove("call_recording").remove("recording_folder").apply()
+        // settings (theme, language, clock) deliberately survive a sign-out. So do the Call Recording switch and the chosen recording
+        // folder: the app also signs out by itself when a sign-in ends, and losing the folder then silently stopped recordings uploading.
+        // They are only dropped if a DIFFERENT person signs in next (see forgetRecordingSettingsOfAnotherPerson).
+        p.edit().putInt("recording_owner", user?.id ?: p.getInt("recording_owner", 0))
+            .remove("token").remove("refresh_token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("scanned_lead_keys").remove("lead_names").apply()
+    }
+
+    /** Call after a sign-in: if this is not the person who set the recording switch and folder, those settings are cleared. */
+    fun forgetRecordingSettingsOfAnotherPerson(newUserId: Int) {
+        val owner = p.getInt("recording_owner", 0)
+        if (owner != 0 && owner != newUserId) p.edit().remove("call_recording").remove("recording_folder").remove("imported_rec_ids").remove("imported_rec_calls").apply()
+        p.edit().putInt("recording_owner", newUserId).apply()
     }
 }

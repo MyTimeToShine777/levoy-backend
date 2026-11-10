@@ -170,6 +170,8 @@ class AppModel(app: Application) : AndroidViewModel(app) {
                 // a platform owner manages Callio from the web console: their login is not a workspace session
                 if (r.platform) throw ApiException("This account manages Callio on the web. Sign in with it in a browser at the platform console, not in this app.", 403)
                 session.token = r.access_token; session.refreshToken = r.refresh_token; session.user = r.user
+                session.forgetRecordingSettingsOfAnotherPerson(r.user.id)
+                callRecording = session.callRecording; recordingFolderName = folderLabel(session.recordingFolder)       // show what was kept
                 runCatching { api.acceptConsent() }
                 codeSent = false; resendIn = 0
                 stage = Stage.Main
