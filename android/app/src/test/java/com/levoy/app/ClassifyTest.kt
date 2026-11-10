@@ -16,4 +16,9 @@ class ClassifyTest {
         assertNull(CallLogReader.classify(4))                               // voicemail is not a call
         assertNull(CallLogReader.classify(99))
     }
+
+    @Test fun wifiCallTypesOfOppoRealmeAndOnePlusAreNotLost() {
+        assertEquals("outgoing" to "connected", CallLogReader.classify(100))   // Wi-Fi call we placed
+        assertEquals("incoming" to "connected", CallLogReader.classify(101))   // Wi-Fi call that came in
+    }
 }

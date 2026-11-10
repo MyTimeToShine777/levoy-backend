@@ -39,6 +39,16 @@ class MainActivity : ComponentActivity(), Os {
         afterPick = null
     }
 
+    private var afterFolder: ((String) -> Unit)? = null
+    private val folderLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        if (uri != null) {
+            // keep the permission after the app restarts, otherwise the background sync could not read the folder
+            runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            afterFolder?.invoke(uri.toString())
+        }
+        afterFolder = null
+    }
+
     private var afterRole: ((Boolean) -> Unit)? = null
     private val roleLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
         afterRole?.invoke(isDefaultDialer()); afterRole = null
@@ -153,6 +163,7 @@ class MainActivity : ComponentActivity(), Os {
         }, name))
     }
 
+    override fun pickRecordingFolder(then: (String) -> Unit) { afterFolder = then; folderLauncher.launch(null) }
     override fun pickBackupFile(then: (String) -> Unit) { afterPick = then; pickLauncher.launch(arrayOf("application/json", "text/plain", "*/*")) }
     override fun openUrl(url: String) = start(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
     override fun shareText(text: String) = start(Intent.createChooser(Intent(Intent.ACTION_SEND).apply { type = "text/plain"; putExtra(Intent.EXTRA_TEXT, text) }, "Share"))

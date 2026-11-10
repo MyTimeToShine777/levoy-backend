@@ -16,6 +16,7 @@ class CallioApp : Application() {
         val session = Session(this)
         if (session.token != null && CallLogReader.canReadLog(this)) {
             CallSync.schedulePeriodic(this)
+            CallSync.watchCallLog(this)
             // a new call changes the log: sync shortly after, once, even if several calls land together
             contentResolver.registerContentObserver(CallLog.Calls.CONTENT_URI, true, object : ContentObserver(Handler(Looper.getMainLooper())) {
                 override fun onChange(selfChange: Boolean) { if (Session(this@CallioApp).token != null) CallSync.syncSoon(this@CallioApp) }

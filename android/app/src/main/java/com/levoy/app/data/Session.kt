@@ -13,6 +13,11 @@ class Session(context: Context) {
         get() = p.getString("token", null)
         set(v) = p.edit().putString("token", v).apply()
 
+    /** The long-lived key that buys a new sign-in token when the short one runs out. Cleared on sign-out. */
+    var refreshToken: String?
+        get() = p.getString("refresh_token", null)
+        set(v) = p.edit().putString("refresh_token", v).apply()
+
     var user: User?
         get() = p.getString("user", null)?.let { runCatching { gson.fromJson(it, User::class.java) }.getOrNull() }
         set(v) = p.edit().putString("user", v?.let(gson::toJson)).apply()
@@ -85,6 +90,11 @@ class Session(context: Context) {
         get() = p.getBoolean("call_recording", false)
         set(v) = p.edit().putBoolean("call_recording", v).apply()
 
+    /** The folder the person pointed Callio at for their phone's call recordings (an Android folder address), or null = look in the audio library. */
+    var recordingFolder: String?
+        get() = p.getString("recording_folder", null)
+        set(v) = p.edit().putString("recording_folder", v).apply()
+
     /** Audio-library ids and call ids already copied from the phone's own recorder, so a recording is queued only once. */
     var importedRecordingIds: Set<Long>
         get() = (p.getStringSet("imported_rec_ids", emptySet()) ?: emptySet()).mapNotNull { it.toLongOrNull() }.toSet()
@@ -97,6 +107,11 @@ class Session(context: Context) {
     var leadKeys: Set<String>
         get() = p.getStringSet("lead_keys", emptySet()) ?: emptySet()
         set(v) = p.edit().putStringSet("lead_keys", v.toSet()).apply()
+
+    /** Lead numbers whose earlier calls were already looked for in the call log. A number not in here yet just became a lead. */
+    var scannedLeadKeys: Set<String>
+        get() = p.getStringSet("scanned_lead_keys", emptySet()) ?: emptySet()
+        set(v) = p.edit().putStringSet("scanned_lead_keys", v.toSet()).apply()
 
     /** Each assigned lead's name by phone key, refreshed on every sync, so a call to a lead who is not in the phone's contacts still shows a name. */
     var leadNames: Map<String, String>
@@ -119,7 +134,17 @@ class Session(context: Context) {
         set(v) = p.edit().putBoolean("notifications_asked", v).apply()
 
     fun signOut() {
-        // settings (theme, language, clock) deliberately survive a sign-out
-        p.edit().remove("token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("lead_names").remove("call_recording").apply()
+        // settings (theme, language, clock) deliberately survive a sign-out. So do the Call Recording switch and the chosen recording
+        // folder: the app also signs out by itself when a sign-in ends, and losing the folder then silently stopped recordings uploading.
+        // They are only dropped if a DIFFERENT person signs in next (see forgetRecordingSettingsOfAnotherPerson).
+        p.edit().putInt("recording_owner", user?.id ?: p.getInt("recording_owner", 0))
+            .remove("token").remove("refresh_token").remove("user").remove("last_synced").remove("quick_call").remove("pending_sim").remove("lead_keys").remove("scanned_lead_keys").remove("lead_names").apply()
+    }
+
+    /** Call after a sign-in: if this is not the person who set the recording switch and folder, those settings are cleared. */
+    fun forgetRecordingSettingsOfAnotherPerson(newUserId: Int) {
+        val owner = p.getInt("recording_owner", 0)
+        if (owner != 0 && owner != newUserId) p.edit().remove("call_recording").remove("recording_folder").remove("imported_rec_ids").remove("imported_rec_calls").apply()
+        p.edit().putInt("recording_owner", newUserId).apply()
     }
 }

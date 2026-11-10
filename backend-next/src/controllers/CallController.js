@@ -13,7 +13,7 @@ class CallController {
 
   list = async (req, res) => res.json(await CallService.list(ctxOf(req), req.query));
 
-  stats = async (req, res) => res.json(await CallService.stats(ctxOf(req)));
+  stats = async (req, res) => res.json(await CallService.stats(ctxOf(req), req.query));
 
   pin = async (req, res) => res.json(await CallService.setPin(ctxOf(req), req.params.callId, req.body, req.query));
 

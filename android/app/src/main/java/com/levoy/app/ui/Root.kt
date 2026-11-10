@@ -312,6 +312,7 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
             HealthUi(!m.permissionsMissing, m.sims.isNotEmpty() && m.sims.all { it.verified }, os.batteryUnrestricted(), m.lastSync ?: m.syncStatus),
             onDisableBattery = os::openBatterySettings, onFixPermissions = { os.requestAllPermissions { if (!os.hasCallLogPermission()) os.openAppSettings() } },
             onSyncNow = { m.syncNow { os.toast(m.syncStatus ?: "Done") } }, onBack = back,
+            onRecheck = m::recheckCalls, recheckBusy = m.recheckBusy, recheckText = m.recheckText,
         )
         Screen.QuickAction -> ToggleInfoScreen("Quick Action", { Icon(Icons.Filled.Layers, null, tint = Pal.text) }, "Quick Action", m.quickAction,
             { v -> if (!v) m.changeQuickAction(false) else if (!os.canDrawOverlays()) { m.session.pendingToggle = "quick_action"; os.openOverlaySettings() } else os.requestOutgoingCalls { m.changeQuickAction(true) } }, null, "Quick Action Feature :", QUICK_ACTION_BULLETS, back)
@@ -331,7 +332,14 @@ private fun ScreenFor(s: Screen, m: AppModel, os: Os) {
                 }
             },
             "Only calls to your assigned leads are recorded, and your admin and managers can listen to them. Tell the person you are calling that the call is recorded.",
-            "Call Recording Limitations :", CALL_RECORDING_BULLETS, back)
+            "Call Recording Limitations :", CALL_RECORDING_BULLETS, back,
+            extra = {
+                RecordingFolderCard(
+                    folderName = m.recordingFolderName,
+                    onChoose = { os.pickRecordingFolder { uri -> m.setRecordingFolder(uri); os.toast("Folder saved. Callio will upload recordings from it") } },
+                    onClear = { m.setRecordingFolder(null) },
+                )
+            })
         Screen.WhatsAppCall -> ToggleInfoScreen("WhatsApp Call", { WhatsAppGlyph(Modifier.fillMaxSize(), Pal.text) }, "WhatsApp Call", m.whatsappCalls,
             { v -> if (v && !os.notificationAccessGranted()) { m.session.pendingToggle = "whatsapp"; os.openNotificationAccess() } else m.setWhatsapp(v) },
             "Callio will be able to read all notifications, including personal information such as contact names and the text of messages you receive.", "Whatsapp Call Log Limitations :", WHATSAPP_BULLETS, back)

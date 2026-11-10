@@ -8,6 +8,8 @@ const { phoneKey, splitByLeadNumbers } = require('../utils/phoneKey');
 const WorkspaceSettingsService = require('./WorkspaceSettingsService');
 const { toE164 } = require('../utils/phoneFormat');
 const LeadScoringService = require('./LeadScoringService');
+const { KIND_SQL, CONNECTED_SQL } = require('../utils/callKinds');
+const { tzMinutes, startOfLocalDay, DAY } = require('../utils/dayBounds');
 const { normalizeCallStatus, dropDuplicates, leadsTouchedBy, durationOf, directionOf, DUPLICATE_WINDOW_MS } = require('../utils/callIngest');
 
 const callJson = c => ({
@@ -44,8 +46,9 @@ async function assignedLeadKeys(userId) {
 
 // Calls this user already has around the given moments, so a call uploaded twice (a retry, or the same call from both the
 // live recorder and the call-log sync) is stored once.
-async function storedCallsBetween(userId, fromMs, toMs) {
-  const r = await q(
+// `run` is the query function to use: pass the open transaction's own connection so a busy pool cannot starve itself.
+async function storedCallsBetween(userId, fromMs, toMs, run = q) {
+  const r = await run(
     // The column is a plain timestamp that holds UTC clock time; hand it back as an explicit UTC string so the comparison
     // does not depend on the time zone the server happens to run in.
     `SELECT id, phone_key, direction, duration_seconds,
@@ -90,6 +93,9 @@ async function touchLeads(userId, events) {
   }
 }
 
+// Names the "one call upload per person at a time" lock (first number of pg_advisory_xact_lock's pair).
+const CALL_UPLOAD_LOCK = 7001;
+
 class CallService {
   async create(ctx, body) {
     if (!body.phone_number) throw new ValidationError('phone_number required');
@@ -130,17 +136,20 @@ class CallService {
       ({ kept: events, ignored } = splitByLeadNumbers(events, await assignedLeadKeys(ctx.userId)));
       if (events.length === 0) return { received: 0, ignored, ids: [] };      // nothing here is a call to one of their leads
     }
-    // Drop calls this user already has (or that repeat inside this upload) before inserting.
-    const times = events.map(e => (e.timestamp ? new Date(e.timestamp).getTime() : Date.now())).filter(Number.isFinite);
-    const stored = times.length ? await storedCallsBetween(ctx.userId, Math.min(...times), Math.max(...times)) : [];
-    const deduped = dropDuplicates(events, stored);
-    events = deduped.kept;
-    const duplicates = deduped.duplicates;
-    if (events.length === 0) return { received: 0, ignored, duplicates, ids: [] };
     const countryCode = await WorkspaceSettingsService.countryCode();
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
+      // The phone can start two syncs at once (call-log watcher, timer, opening the app). Without this wait both would pass the
+      // duplicate check below before either had saved anything, and the same call would be stored twice. One person's uploads queue up here.
+      await client.query('SELECT pg_advisory_xact_lock($1, $2)', [CALL_UPLOAD_LOCK, parseInt(ctx.userId)]);
+      // Drop calls this user already has (or that repeat inside this upload) before inserting.
+      const times = events.map(e => (e.timestamp ? new Date(e.timestamp).getTime() : Date.now())).filter(Number.isFinite);
+      const stored = times.length ? await storedCallsBetween(ctx.userId, Math.min(...times), Math.max(...times), (sql, p) => client.query(sql, p)) : [];
+      const deduped = dropDuplicates(events, stored);
+      events = deduped.kept;
+      const duplicates = deduped.duplicates;
+      if (events.length === 0) { await client.query('COMMIT'); return { received: 0, ignored, duplicates, ids: [] }; }
       const params = [];
       const values = [];
       const now = new Date().toISOString();
@@ -206,14 +215,16 @@ class CallService {
     const limit = Math.min(Math.max(parseInt(query.limit) || 100, 1), 1000);
     const offset = Math.max(parseInt(query.offset) || 0, 0);
     const where = (conds.length ? ' WHERE ' + conds.join(' AND ') : '')
-      + ` ORDER BY timestamp DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+      + ` ORDER BY call_events.timestamp DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
     // recording_count is a correlated subquery rather than a join so the call list
     // stays one row per call (a LEFT JOIN would duplicate a call with several
     // recordings and break the LIMIT window).
     const r = await q(
-      `SELECT id,phone_number,direction,status,duration_seconds,timestamp,caller_id,notes,is_pinned,recording_path,
+      // The timestamp column holds UTC clock time without a zone. Reading it as text with an explicit Z keeps the instant exact
+      // whatever time zone the server runs in (node-postgres would otherwise read it as the server's local time).
+      `SELECT id,phone_number,direction,status,duration_seconds,to_char(timestamp, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') AS timestamp,caller_id,notes,is_pinned,recording_path,
               (recording_path IS NOT NULL) AS has_recording_path,
               (SELECT count(*)::int FROM call_recordings cr WHERE cr.call_id = call_events.id) AS recording_count
          FROM call_events${where}`, params);
@@ -227,53 +238,56 @@ class CallService {
   }
 
   // Dashboard numbers. An agent sees their own calls; managers/admins the whole book.
-  async stats(ctx) {
-    const today = new Date();
-    const ts = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString();
-    const te = new Date(today.getFullYear(), today.getMonth(), today.getDate() + 1).toISOString();
+  // "Today" is the viewer's calendar day (?tz= minutes east of UTC), and every call is classified with the same rules as
+  // Call Analytics and Call History (callKinds), so these tiles can never disagree with those pages.
+  async stats(ctx, query = {}) {
+    const dayStart = startOfLocalDay(Date.now(), tzMinutes(query));
+    const ts = new Date(dayStart).toISOString();
+    const te = new Date(dayStart + DAY).toISOString();
     const isAgent = ctx.role === 'agent';
+    const mine = isAgent ? 'AND c.user_id = $3' : '';
+    const bp = isAgent ? [ts, te, parseInt(ctx.userId)] : [ts, te];
 
-    const base = isAgent
-      ? 'FROM call_events WHERE timestamp >= $2 AND timestamp < $3 AND user_id = $1'
-      : 'FROM call_events WHERE timestamp >= $1 AND timestamp < $2';
-    const bp = isAgent ? [ctx.userId, ts, te] : [ts, te];
+    const today = (await q(
+      `SELECT COUNT(*)::int AS total, COALESCE(SUM(c.duration_seconds), 0)::int AS dur,
+              COUNT(DISTINCT COALESCE(c.phone_key, c.phone_number))::int AS uniq,
+              COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'incoming')::int AS incoming,
+              COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'outgoing')::int AS outgoing,
+              COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'missed')::int AS missed,
+              COUNT(*) FILTER (WHERE (${KIND_SQL}) = 'rejected')::int AS rejected,
+              COUNT(*) FILTER (WHERE ${CONNECTED_SQL})::int AS connected
+         FROM call_events c WHERE c.timestamp >= $1::timestamp AND c.timestamp < $2::timestamp ${mine}`, bp)).rows[0];
 
-    const tr = await q(`SELECT COUNT(*) as total, COALESCE(SUM(duration_seconds),0) as dur, COUNT(DISTINCT phone_number) as uniq ${base}`, bp);
-    const tRow = tr.rows[0];
-
-    const breakdown = await Promise.all([
-      q(`SELECT COUNT(*) ${base} AND direction = 'incoming'`, bp),
-      q(`SELECT COUNT(*) ${base} AND direction = 'outgoing'`, bp),
-      q(`SELECT COUNT(*) ${base} AND status = 'missed'`, bp),
-      q(`SELECT COUNT(*) ${base} AND status = 'rejected'`, bp),
-      q(`SELECT COUNT(*) ${base} AND status = 'connected'`, bp),
-    ]);
-
+    // Average length of a call that was actually answered: calls nobody picked up (0 seconds) would only drag it down.
     const allR = await q(
-      isAgent ? 'SELECT COUNT(*), AVG(duration_seconds) FROM call_events WHERE user_id = $1' : 'SELECT COUNT(*), AVG(duration_seconds) FROM call_events',
-      isAgent ? [ctx.userId] : []);
-    const totalAll = parseInt(allR.rows[0].count) || 0;
-    const avgDur = parseFloat(allR.rows[0].avg) || 0;
+      `SELECT COUNT(*)::int AS n, COALESCE(AVG(c.duration_seconds) FILTER (WHERE ${CONNECTED_SQL}), 0)::float AS avg
+         FROM call_events c ${isAgent ? 'WHERE c.user_id = $1' : ''}`,
+      isAgent ? [parseInt(ctx.userId)] : []);
+    const totalAll = allR.rows[0].n;
+    const avgDur = allR.rows[0].avg;
 
-    // Leads: an agent counts the leads they may see (created, assigned or collaborating).
+    // Leads: an agent counts the leads they may see (created, assigned or collaborating). Deleted and merged-away leads
+    // are not leads any more, the same rule the lead analytics use.
     const lp = [];
     const scope = visibleSql(ctx, 'l', lp);
-    const leadsR = await q(`SELECT COUNT(*) FROM leads l WHERE 1=1${scope}`, lp);
-    const convR = await q(`SELECT COUNT(*) FROM leads l WHERE l.status = 'converted'${scope}`, lp);
+    const live = 'l.deleted_at IS NULL AND l.merged_into_lead_id IS NULL';
+    const leadsR = await q(`SELECT COUNT(*) FROM leads l WHERE ${live}${scope}`, lp);
+    const convR = await q(`SELECT COUNT(*) FROM leads l WHERE ${live} AND l.status = 'converted'${scope}`, lp);
 
+    // People in teams, each counted once even when they sit in several teams.
     const tR = isAgent
-      ? await q('SELECT COUNT(*) FROM team_members WHERE user_id = $1', [ctx.userId])
-      : await q('SELECT COUNT(*) FROM team_members');
+      ? await q('SELECT COUNT(DISTINCT user_id) FROM team_members WHERE user_id = $1', [ctx.userId])
+      : await q('SELECT COUNT(DISTINCT user_id) FROM team_members');
 
     return {
-      total_calls_today: parseInt(tRow.total) || 0,
-      incoming_today: parseInt(breakdown[0].rows[0].count) || 0,
-      outgoing_today: parseInt(breakdown[1].rows[0].count) || 0,
-      missed_today: parseInt(breakdown[2].rows[0].count) || 0,
-      rejected_today: parseInt(breakdown[3].rows[0].count) || 0,
-      connected_today: parseInt(breakdown[4].rows[0].count) || 0,
-      total_duration_today: parseInt(tRow.dur) || 0,
-      unique_contacts_today: parseInt(tRow.uniq) || 0,
+      total_calls_today: today.total,
+      incoming_today: today.incoming,
+      outgoing_today: today.outgoing,
+      missed_today: today.missed,
+      rejected_today: today.rejected,
+      connected_today: today.connected,
+      total_duration_today: today.dur,
+      unique_contacts_today: today.uniq,
       total_calls_all: totalAll,
       total_leads: parseInt(leadsR.rows[0].count) || 0,
       converted_leads: parseInt(convR.rows[0].count) || 0,
