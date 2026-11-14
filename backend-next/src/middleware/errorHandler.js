@@ -12,6 +12,9 @@ function errorHandler(err, req, res, next) {
   if (err instanceof AppError) {
     return res.status(err.status).json({ detail: err.detail, ...(err.extra || {}) });
   }
+  // The phone lost signal in the middle of an upload. Nobody is left to read a reply and nothing is wrong on the server,
+  // so do not log it as an error (it hides the real ones). The app sends the file again on its next sync.
+  if (err && err.message === 'Request aborted') return res.status(400).json({ detail: 'Upload was cancelled' });
   // multer (upload size / field limits) is a client error, not a server fault
   if (err && err.name === 'MulterError') return res.status(400).json({ detail: err.message });
   // body-parser errors carry their own status

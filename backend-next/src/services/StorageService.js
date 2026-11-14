@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { pipeline } = require('stream/promises');
 const integrations = require('../config/integrations');
+const { retryOnServerError } = require('../utils/retry');
 const { UPLOADS_DIR, ROOT_DIR } = require('../config/upload');
 
 // Where uploaded files really live.
@@ -53,10 +54,11 @@ class StorageService {
     if (this.driver() !== 'r2') return;
     const { PutObjectCommand } = require('@aws-sdk/client-s3');
     const file = this.abs(rel);
-    await this.client().send(new PutObjectCommand({
+    // R2 sometimes answers 503 for a moment. A file stream cannot be re-sent by the AWS library, so we retry here and open the file fresh each time.
+    await retryOnServerError(() => this.client().send(new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME, Key: this.key(rel), Body: fs.createReadStream(file), ContentLength: fs.statSync(file).size, ContentType: this.contentType(rel),
-    }));
-    fs.unlinkSync(file);                              // R2 now holds it; the cache is rebuilt on demand
+    })));
+    fs.unlinkSync(file);                             // R2 now holds it; the cache is rebuilt on demand
   }
 
   // Write bytes that never came from an upload (exports, backups).
